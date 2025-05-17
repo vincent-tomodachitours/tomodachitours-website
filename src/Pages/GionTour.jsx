@@ -3,6 +3,15 @@ import React, { useEffect, useState } from 'react'
 //Import tour config file
 import config from '../config.json';
 
+//SVG
+import { ReactComponent as Location } from '../SVG/Location.svg'
+import { ReactComponent as One } from '../SVG/One-circle.svg'
+import { ReactComponent as Two } from '../SVG/Two-circle.svg'
+import { ReactComponent as Three } from '../SVG/Three-circle.svg'
+import { ReactComponent as Four } from '../SVG/Four-circle.svg'
+import { ReactComponent as Five } from '../SVG/Five-circle.svg'
+import { ReactComponent as Six } from '../SVG/Six-circle.svg'
+
 //Images
 import photo1 from '../IMG/Gion-Tour/kiyomizu.webp'
 import photo2 from '../IMG/Gion-Tour/geisha.webp'
@@ -61,16 +70,16 @@ const GionTour = () => {
                         <DurationReview tourDuration={tourDuration} tourReviews={tourReviews} />
                         <p className='font-ubuntu my-6 md:mb-0'>{config['night-tour']['tour-description']}</p>
                         <div className='flex flex-col-reverse md:flex-row'>
-                            <div className='my-6'>
-                                <div className='flex gap-4 font-ubuntu'>
+                            <div className='my-6 w-full'>
+                                <div className='flex w-max gap-4 font-roboto font-bold border-b-2 border-blue-600'>
                                     {activeContent === 1 ?
-                                        <button className='border-b-4 border-blue-900'>Description</button> :
+                                        <button className='bg-blue-600 text-white p-2 rounded-t-md'>Description</button> :
                                         <button onClick={() => setActiveContent(1)}>Description</button>}
                                     {activeContent === 2 ?
-                                        <button className='border-b-4 border-blue-900'>Itinerary</button> :
+                                        <button className='bg-blue-600 text-white p-2 rounded-t-md'>Itinerary</button> :
                                         <button onClick={() => setActiveContent(2)}>Itinerary</button>}
                                     {activeContent === 3 ?
-                                        <button className='border-b-4 border-blue-900'>Meeting Point</button> :
+                                        <button className='bg-blue-600 text-white p-2 rounded-t-md'>Meeting Point</button> :
                                         <button onClick={() => setActiveContent(3)}>Meeting Point</button>}
                                 </div>
                                 {activeContent === 1 &&
@@ -85,15 +94,66 @@ const GionTour = () => {
                                     </div>
                                 }
                                 {activeContent === 2 &&
-                                    <div className='font-ubuntu mt-4'>
-                                        <p>"Discover the spiritual heart of Kyoto at Inari-Shrine, famous for its thousands of vibrant red Tori gates. Hike through the enchanting paths that lead up Mount Inari, surrounded by a deep sense of history, spirituality and nature. This iconic Shinto shrine is dedicated to Inari, the god of rice, agriculture, and business. Visitors come to pray for success, health, and happiness while exploring smaller shrines, stone fox statues, and scenic viewpoints."</p>
+                                    <div className='font-ubuntu mt-6 flex flex-row gap-1 w-full'>
+                                        <div className='w-10 h-full flex flex-col justify-between items-center'>
+                                            {Array.from({ length: 22 }).map((_, i) => (
+                                                <p key={i}>•</p>
+                                            ))}
+                                        </div>
+                                        <div className='flex flex-col gap-6 basis-11/12 font-roboto'>
+                                            <div className='relative overflow-visible'>
+                                                <h4 className='font-bold'>You'll start at</h4>
+                                                <p>Statue of Izumo-no-Okuni</p>
+                                                <a
+                                                    href='https://maps.app.goo.gl/ZErESUEc65kkLbx16' target='_blank' rel="noopener noreferrer"
+                                                    className='font-semibold underline'
+                                                >Open Google Maps</a>
+                                                <Location className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                            <div className='relative overflow-visible'>
+                                                <h4 className='font-bold'>Gion Shirakawa</h4>
+                                                <p>Stop: 15 minutes</p>
+                                                <One className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                            <div className='relative overflow-visible'>
+                                                <h4 className='font-bold'>Hanamikoji Street</h4>
+                                                <p>Stop: 20 minutes</p>
+                                                <Two className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                            <div className='relative overflow-visible'>
+                                                <h4 className='font-bold'>kiyomizu-dera Temple</h4>
+                                                <p>Stop: 60 minutes - Admission excluded</p>
+                                                <Three className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                            <div className='relative overflow-visible'>
+                                                <h4 className='font-bold'>Sanenzaka Ninenzaka</h4>
+                                                <p>Stop: 30 minutes</p>
+                                                <Four className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                            <div className='relative overflow-visible'>
+                                                <h4 className='font-bold'>Yasaka Pagoda</h4>
+                                                <p>Stop: 10 minutes</p>
+                                                <Five className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                            <div className='relative overflow-visible'>
+                                                <h4 className='font-bold'>Yasaka Shrine</h4>
+                                                <p>Stop: 30 minutes</p>
+                                                <Six className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                            <div className='relative overflow-visible font-bold'>
+                                                <h4>You'll return to the starting point</h4>
+                                                <Location className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                        </div>
                                     </div>
                                 }
                                 {activeContent === 3 &&
-                                    <div className='font-ubuntumt-4'>
-                                        <p>You can start this experience at the following places.</p>
-                                        <p>7-Eleven.Heart-In JR Kyoto Station Central Entrance Store</p>
-                                        <p>〒600-8216 JP Kyoto</p>
+                                    <div className='font-roboto mt-4'>
+                                        <p>Statue of Izumo-no-Okuni</p>
+                                        <a
+                                            href='https://maps.app.goo.gl/ZErESUEc65kkLbx16' target='_blank' rel="noopener noreferrer"
+                                            className='font-semibold underline'
+                                        >Open Google Maps</a>
                                     </div>
                                 }
                             </div>

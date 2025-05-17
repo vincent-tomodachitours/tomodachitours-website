@@ -3,6 +3,10 @@ import React, { useEffect, useState } from 'react'
 //Import tour config file
 import config from '../config.json';
 
+//SVG
+import { ReactComponent as Location } from '../SVG/Location.svg'
+import { ReactComponent as One } from '../SVG/One-circle.svg'
+
 //Images
 import photo1 from '../IMG/Night-Tour/1.webp'
 import photo2 from '../IMG/Night-Tour/2.webp'
@@ -60,16 +64,16 @@ const NightTour = () => {
                         <DurationReview tourDuration={tourDuration} tourReviews={tourReviews} />
                         <p className='font-ubuntu my-6 md:mb-0'>{config['night-tour']['tour-description']}</p>
                         <div className='flex flex-col-reverse md:flex-row'>
-                            <div className='my-6'>
-                                <div className='flex gap-4 font-ubuntu'>
+                            <div className='my-6 w-full'>
+                                <div className='flex w-max gap-4 font-roboto font-bold border-b-2 border-blue-600'>
                                     {activeContent === 1 ?
-                                        <button className='border-b-4 border-blue-900'>Description</button> :
+                                        <button className='bg-blue-600 text-white p-2 rounded-t-md'>Description</button> :
                                         <button onClick={() => setActiveContent(1)}>Description</button>}
                                     {activeContent === 2 ?
-                                        <button className='border-b-4 border-blue-900'>Itinerary</button> :
+                                        <button className='bg-blue-600 text-white p-2 rounded-t-md'>Itinerary</button> :
                                         <button onClick={() => setActiveContent(2)}>Itinerary</button>}
                                     {activeContent === 3 ?
-                                        <button className='border-b-4 border-blue-900'>Meeting Point</button> :
+                                        <button className='bg-blue-600 text-white p-2 rounded-t-md'>Meeting Point</button> :
                                         <button onClick={() => setActiveContent(3)}>Meeting Point</button>}
                                 </div>
                                 {activeContent === 1 &&
@@ -84,15 +88,42 @@ const NightTour = () => {
                                     </div>
                                 }
                                 {activeContent === 2 &&
-                                    <div className='font-ubuntu mt-4'>
-                                        <p>"Discover the spiritual heart of Kyoto at Inaei-Shrine, famous for its thousands of vibrant red Tori gates. Hike through the enchanting paths that lead up Mount Inari, surrounded by a deep sense of history, spirituality and nature. This iconic Shinto shrine is dedicated to Inari, the god of rice, agriculture, and business. Visitors come to pray for success, health, and happiness while exploring smaller shrines, stone fox statues, and scenic viewpoints."</p>
+                                    <div className='font-ubuntu mt-6 flex flex-row gap-1 w-full'>
+                                        <div className='w-10 h-full flex flex-col justify-between items-center'>
+                                            {Array.from({ length: 7 }).map((_, i) => (
+                                                <p key={i}>•</p>
+                                            ))}
+                                        </div>
+                                        <div className='flex flex-col gap-6 basis-11/12 font-roboto'>
+                                            <div className='relative overflow-visible'>
+                                                <h4 className='font-bold'>You'll start at</h4>
+                                                <p>7-Eleven Heart-in - JR Kyoto Station Central Entrance Store</p>
+                                                <a
+                                                    href='https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9' target='_blank' rel="noopener noreferrer"
+                                                    className='font-semibold underline'
+                                                >Open Google Maps</a>
+                                                <Location className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                            <div className='relative overflow-visible'>
+                                                <h4 className='font-bold'>Fushimi Inari Taisha Shrine</h4>
+                                                <p>Stop: 2 hours</p>
+                                                <One className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                            <div className='relative overflow-visible font-bold'>
+                                                <h4>You'll return to the starting point</h4>
+                                                <Location className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
+                                            </div>
+                                        </div>
                                     </div>
                                 }
                                 {activeContent === 3 &&
-                                    <div className='font-ubuntu mt-4'>
-                                        <p>You can start this experience at the following places.</p>
+                                    <div className='font-roboto mt-4'>
                                         <p>7-Eleven.Heart-In JR Kyoto Station Central Entrance Store</p>
-                                        <p>〒600-8216 JP Kyoto</p>
+                                        <a
+                                            href='https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9' target='_blank' rel="noopener noreferrer"
+                                            className='font-semibold underline'
+                                        >Open Google Maps</a>
+                                        <p className='mt-4'>Warning: There are multiple 7-Elevens at Kyoto station. The 7-Eleven for the meetup location is in the central exit of Kyoto station.</p>
                                     </div>
                                 }
                             </div>

@@ -12,7 +12,6 @@ import gionTour from "../IMG/Gion-Tour/geisha.webp"
 
 import Footer from '../Components/Footer'
 import DisplayProduct1 from '../Components/DisplayProduct1'
-import CardForm from '../Components/CardForm';
 
 const Home = () => {
     return (
@@ -20,7 +19,7 @@ const Home = () => {
             <Header />
             <div className='2xl:h-screen relative'>
                 <img src={main1} alt="Bamboo forest(img)" className='w-full h-full overflow-hidden object-cover' />
-                <h1 className='sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl absolute inset-0 grid place-items-center mx-auto font-black text-center text-white bg-black bg-opacity-20'>Discover Kyoto Beyond the Guidebooks</h1>
+                <h1 className='text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl absolute inset-0 grid place-items-center mx-auto font-black text-center text-white bg-black bg-opacity-20'>Discover Kyoto Beyond the Guidebooks</h1>
             </div>
             <div className='w-5/6 mt-12 mx-auto'>
                 <h1 className='font-black text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-12'>Tours</h1>

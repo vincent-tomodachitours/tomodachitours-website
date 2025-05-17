@@ -31,7 +31,7 @@ const Tours = () => {
             <Header />
             <div className='relative h-[16rem] md:h-[24rem] lg:h-[30rem]'>
                 <img src={main1} alt='Yasaka pagoda(img)' className='w-full h-full object-cover' />
-                <h1 className='sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-black absolute inset-0 flex justify-center items-center text-white bg-black bg-opacity-20'>Explore with Tomodachi Tours</h1>
+                <h1 className='text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-black absolute inset-0 flex justify-center items-center text-white bg-black bg-opacity-20'>Explore with Tomodachi Tours</h1>
             </div>
             <div className='tours flex flex-col w-5/6 mx-auto mt-20 gap-6 lg:gap-20'>
                 <DisplayProduct3
