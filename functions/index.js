@@ -1,7 +1,7 @@
 const functions = require("firebase-functions");
 const cors = require("cors")({ origin: ["http://localhost:3000", "https://tomodachitours-f4612.web.app"] });
 const Payjp = require("payjp");
-const payjp = Payjp("sk_test_61260d4d7881534a5a0baf24");
+const payjp = Payjp("sk_test_66666666666666666");
 
 exports.createCharge = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
