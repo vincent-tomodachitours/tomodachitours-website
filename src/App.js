@@ -1,24 +1,33 @@
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import NightTour from './Pages/NightTour';
+import Home from './Pages/Home';
+import CancellationPolicy from './Pages/CancellationPolicy';
+import About from './Pages/About';
+import Tours from './Pages/Tours';
+import MorningTour from './Pages/MorningTour';
+import UjiTour from './Pages/UjiTour';
+import ScrollToTop from './Components/ScrollToTop';
+import GionTour from './Pages/GionTour';
+import CommercialDisclosure from './Pages/CommercialDisclosure';
+import Recommendations from './Pages/Recommendations';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/tours" element={<Tours />} />
+        <Route path="/tours/kyoto-fushimi-inari-night-walking-tour" element={<NightTour />} />
+        <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
+        <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
+        <Route path="/tours/kyoto-gion-early-morning-walking-tour" element={<GionTour />} />
+        <Route path="/about" element={<About />} />
+        <Route path="recommendations" element={<Recommendations />} />
+        <Route path="/cancellation-policy" element={<CancellationPolicy />} />
+        <Route path="/commercial-disclosure" element={<CommercialDisclosure />} />
+      </Routes>
+    </Router>
   );
 }
 
