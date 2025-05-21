@@ -2,6 +2,7 @@
 
 #Secret code
 /functions/index.js
+/functions/service-account.json
 
 # dependencies
 /node_modules

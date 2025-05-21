@@ -32,7 +32,6 @@ const tourDuration = config['morning-tour']['tour-duration'];
 const tourReviews = config['morning-tour']['reviews'];
 const availableTimes = config['morning-tour']['time-slots'];
 const maxSlots = config['morning-tour']['max-participants'];
-const API_URL = "https://script.google.com/macros/s/AKfycbxR7Muw7FnDX0TAF0qnelmqNo3-4IU0SYZfTKc1L-Iw5-8ZBBE44QypE7-LxMyZtUNXog/exec";
 
 const MorningTour = () => {
     const images = [
@@ -152,12 +151,12 @@ const MorningTour = () => {
                                     </div>
                                 }
                             </div>
-                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} api={API_URL} price={tourPrice} />
+                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Morning tour" price={tourPrice} />
                                 : null}
                         </div>
                     </div>
                     {!isMobile ?
-                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} api={API_URL} price={tourPrice} />
+                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Morning tour" price={tourPrice} />
                         : null
                     }
                 </div>

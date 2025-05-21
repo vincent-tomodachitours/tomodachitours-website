@@ -32,7 +32,6 @@ const tourDuration = config['uji-tour']['tour-duration'];
 const tourReviews = config['uji-tour']['reviews'];
 const availableTimes = config['uji-tour']['time-slots'];
 const maxSlots = config['uji-tour']['max-participants'];
-const API_URL = "https://script.google.com/macros/s/AKfycbzulW0-e1NDaaSr6Wt3aliU-2otKnf56rksn143aIE2hn-rb3j2Pkc45LXHfo6YgWpUeA/exec";
 
 const UjiTour = () => {
     const images = [
@@ -157,12 +156,12 @@ const UjiTour = () => {
                                     </div>
                                 }
                             </div>
-                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} api={API_URL} price={tourPrice} />
+                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Uji tour" price={tourPrice} />
                                 : null}
                         </div>
                     </div>
                     {!isMobile ?
-                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} api={API_URL} price={tourPrice} />
+                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Uji tour" price={tourPrice} />
                         : null
                     }
                 </div>

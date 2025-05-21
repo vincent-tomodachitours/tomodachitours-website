@@ -1,7 +1,9 @@
 const functions = require("firebase-functions");
+const { google } = require("googleapis");
+const serviceAccount = require('./service-account.json');
 const cors = require("cors")({ origin: ["http://localhost:3000", "https://tomodachitours-f4612.web.app"] });
 const Payjp = require("payjp");
-const payjp = Payjp("sk_test_66666666666666666");
+const payjp = Payjp("sk_test_61260d4d7881534a5a0baf24");
 
 exports.createCharge = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
@@ -49,6 +51,63 @@ exports.createCharge = functions.https.onRequest((req, res) => {
             console.error("Message:", error.message);
             console.error("Stack:", error.stack);
             return res.status(500).send({ success: false, error: error.message });
+        }
+    });
+});
+
+//Depricated attempt to fetch bookings
+/**exports.getBookings = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        if (req.method !== "POST") {
+            return res.status(405).send("Method not allowed");
+        }
+
+        const { sheetUrl } = req.body;
+
+        if (!sheetUrl || typeof sheetUrl !== 'string') {
+            return res.status(400).json({ error: "Invalid or missing url" });
+        }
+
+        try {
+            const response = await fetch(sheetUrl);
+            const data = await response.json();
+
+            res.status(200).send({ data });
+        } catch (error) {
+            console.error("Failed to fetch Google sheets data:", error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    })
+})*/
+
+exports.getBookings = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        try {
+            if (req.method !== 'POST') {
+                return res.status(405).send('Method not allowed');
+            }
+
+            const spreadsheetId = "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM";
+            const dataRange = req.body.range || "Sheet1!A1:I";
+
+            const auth = new google.auth.GoogleAuth({
+                credentials: serviceAccount,
+                scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+            });
+
+            const client = await auth.getClient();
+            const sheets = google.sheets({ version: 'v4', auth: client });
+
+            const response = await sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: dataRange,
+            });
+
+            // Return the full raw response from Google API
+            res.status(200).json(response.data);
+        } catch (error) {
+            console.error("Unhandled error:", error);
+            res.status(500).json({ error: "Internal Server Error" });
         }
     });
 });

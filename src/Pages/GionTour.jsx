@@ -33,7 +33,6 @@ const tourDuration = config['gion-tour']['tour-duration'];
 const tourReviews = config['gion-tour']['reviews'];
 const availableTimes = config['gion-tour']['time-slots'];
 const maxSlots = config['gion-tour']['max-participants'];
-const API_URL = "https://script.google.com/macros/s/AKfycbx6Q3G30JrtVfKfvf4kFLcaCWTyR39KdrPM0Bp4I6pPc5W4ryAD43rgInHCTwzAvr6u4w/exec";
 
 const GionTour = () => {
     const images = [
@@ -157,12 +156,12 @@ const GionTour = () => {
                                     </div>
                                 }
                             </div>
-                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} api={API_URL} price={tourPrice} />
+                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Gion tour" price={tourPrice} />
                                 : null}
                         </div>
                     </div>
                     {!isMobile ?
-                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} api={API_URL} price={tourPrice} />
+                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Gion tour" price={tourPrice} />
                         : null
                     }
                 </div>

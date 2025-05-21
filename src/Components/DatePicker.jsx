@@ -5,7 +5,7 @@ import PeopleSelector from "./PeopleSelector";
 import { ReactComponent as Clock } from '../SVG/Clock.svg'
 import Checkout from './Checkout'
 
-function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, api, price }) {
+function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price }) {
     const [checkout, setCheckout] = useState(false);
     const handleOpenCheckout = () => setCheckout(true);
     const handleCloseCheckout = () => setCheckout(false);
@@ -28,6 +28,16 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, api, pr
     }
 
     useEffect(() => {
+        fetchBookings();
+    }, [sheetId]);
+
+    useEffect(() => {
+        if (calendarState === 1) {
+            setTourTime(returnAvailableTimes(calendarSelectedDate, participants)[0])
+        }
+    }, [calendarState])
+
+    useEffect(() => {
         const appContainer = document.getElementById('app-container');
         if (checkout) {
             appContainer.classList.remove('overflow-y-auto');
@@ -42,22 +52,44 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, api, pr
         };
     }, [checkout]);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch(`${api}?action=getBookings`);
-                const data = await response.json();
-                setBookings(data);
+    //Depricated fetch bookings api call straight to google app script: insecure
+    /**const fetchFakeBookings = async () => {
+        try {
+            const sheetUrl = `${api}?action=getBookings`;
 
-                setLoaded(1);
-            } catch (error) {
-                console.error("Error fetching data: ", error);
-            }
+            const response = await fetch('sheetUrl', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sheetUrl })
+            });
+
+            const data = await response.json();
+            console.log(data);
+            setBookings(data);
+            setLoaded(1);
+        } catch (error) {
+            console.error('Failed to fetch bookings:', error);
         }
+    };*/
 
-        fetchData();
-    }, [api]);
+    const fetchBookings = async () => {
+        try {
+            const response = await fetch('https://us-central1-tomodachitours-f4612.cloudfunctions.net/getBookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    spreadsheetId: "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM",
+                    range: `${sheetId}!A2:I`
+                })
+            });
 
+            const data = await response.json();
+            setBookings(data.values);
+            setLoaded(1);
+        } catch (error) {
+            console.error('Failed to fetch bookings:', error);
+        }
+    };
 
     const [calendarSelectedDate, setCalendarSelectedDate] = useState(() => {
         const tomorrow = new Date();
@@ -74,6 +106,28 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, api, pr
 
     const participantsByDate = {};
     Object.values(bookings).forEach((b) => {
+        if (b[0] && b[1]) {
+            const formattedDate = b[0].split("T")[0];
+            const timeSlot = b[1];
+
+            // Initialize date entry if it doesn't exist
+            if (!participantsByDate[formattedDate]) {
+                participantsByDate[formattedDate] = {};
+            }
+            // Ensure all time slots exist for that date (set to 0 by default)
+            availableTimes.forEach((t) => {
+                if (!participantsByDate[formattedDate][t]) {
+                    participantsByDate[formattedDate][t] = 0;
+                }
+            });
+
+            participantsByDate[formattedDate][timeSlot] += b[8];
+        }
+    });
+
+    //Depricated fetched booking organizing logic(using google app scripts): insecure
+    //If using this logic and you run into an error, check the date format coming from the api
+    /**Object.values(bookings).forEach((b) => {
         if (b["date"] && b["time"]) {
             const formattedDate = b["date"].split("T")[0];
             const timeSlot = b["time"];
@@ -91,9 +145,9 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, api, pr
 
             participantsByDate[formattedDate][timeSlot] += b["participants"];
         }
-    });
+    });*/
 
-    const checkOpenTimeSlots = (date, participants) => {
+    const returnAvailableTimes = (date, participants) => {
         const formattedDate = date.toLocaleDateString("en-CA");
         const dayData = participantsByDate[formattedDate];
 
@@ -108,6 +162,10 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, api, pr
             }
         }
 
+        return options;
+    }
+
+    const timeSlotSelector = (options) => {
         return <div>
             <select name="time" id="time" value={tourTime} onChange={handleTourTimeChange} className="w-full h-10 rounded-lg border border-gray-700 bg-slate-100 px-2 font-ubuntu font-bold">
                 {options.map((_, i) => (
@@ -133,6 +191,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, api, pr
 
         return true;
     };
+
 
     const disableDates = ({ date }) => {
         return date < today || isDateFull(date, participants);
@@ -175,7 +234,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, api, pr
                     <h2 className="font-ubuntu font-black text-lg">Choose a time</h2>
                 </div>
                 {
-                    checkOpenTimeSlots(calendarSelectedDate, participants)
+                    timeSlotSelector(returnAvailableTimes(calendarSelectedDate, participants))
                 }
                 <div className="mt-6 booking-summary">
                     <h1 className='font-ubuntu font-black text-2xl my-4'>Booking Summary</h1>

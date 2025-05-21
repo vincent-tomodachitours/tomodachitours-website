@@ -27,7 +27,6 @@ const tourDuration = config['night-tour']['tour-duration'];
 const tourReviews = config['night-tour']['reviews'];
 const availableTimes = config['night-tour']['time-slots'];
 const maxSlots = config['night-tour']['max-participants'];
-const API_URL = "https://script.google.com/macros/s/AKfycbzOSSaJX-dzvazzxuLso5EBtjdElQsf4vE_Zh-6PzoY9kiu--cnMEWfjNOx36ai2kRPfg/exec";
 
 const NightTour = () => {
     const images = [
@@ -65,16 +64,16 @@ const NightTour = () => {
                         <p className='font-ubuntu my-6 md:mb-0'>{config['night-tour']['tour-description']}</p>
                         <div className='flex flex-col-reverse md:flex-row'>
                             <div className='my-6 w-full'>
-                                <div className='flex w-max gap-4 font-roboto font-bold border-b-2 border-blue-600'>
+                                <div className='flex w-max font-roboto font-bold border-b-2 border-blue-600'>
                                     {activeContent === 1 ?
                                         <button className='bg-blue-600 text-white p-2 rounded-t-md'>Description</button> :
-                                        <button onClick={() => setActiveContent(1)}>Description</button>}
+                                        <button className='p-2' onClick={() => setActiveContent(1)}>Description</button>}
                                     {activeContent === 2 ?
                                         <button className='bg-blue-600 text-white p-2 rounded-t-md'>Itinerary</button> :
-                                        <button onClick={() => setActiveContent(2)}>Itinerary</button>}
+                                        <button className='p-2' onClick={() => setActiveContent(2)}>Itinerary</button>}
                                     {activeContent === 3 ?
                                         <button className='bg-blue-600 text-white p-2 rounded-t-md'>Meeting Point</button> :
-                                        <button onClick={() => setActiveContent(3)}>Meeting Point</button>}
+                                        <button className='p-2' onClick={() => setActiveContent(3)}>Meeting Point</button>}
                                 </div>
                                 {activeContent === 1 &&
                                     <div className='font-ubuntu flex flex-col gap-6 mt-4'>
@@ -127,12 +126,12 @@ const NightTour = () => {
                                     </div>
                                 }
                             </div>
-                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} api={API_URL} price={tourPrice} />
+                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Night tour" price={tourPrice} />
                                 : null}
                         </div>
                     </div>
                     {!isMobile ?
-                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} api={API_URL} price={tourPrice} />
+                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Night tour" price={tourPrice} />
                         : null
                     }
                 </div>
