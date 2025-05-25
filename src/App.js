@@ -10,6 +10,7 @@ import ScrollToTop from './Components/ScrollToTop';
 import GionTour from './Pages/GionTour';
 import CommercialDisclosure from './Pages/CommercialDisclosure';
 import Recommendations from './Pages/Recommendations';
+import Thankyou from './Pages/Thankyou';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="recommendations" element={<Recommendations />} />
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />
         <Route path="/commercial-disclosure" element={<CommercialDisclosure />} />
+        <Route path="/thankyou" element={<Thankyou />} />
       </Routes>
     </Router>
   );

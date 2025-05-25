@@ -67,7 +67,7 @@ const Checkout = ({ onClose, tourName, tourDate, tourTime, adult, child, infant,
     }
 
     return (
-        <div className='fixed inset-0 h-screen bg-black bg-opacity-50 flex justify-end z-50'>
+        <div className='fixed inset-0 h-screen bg-black bg-opacity-50 flex justify-end z-40'>
             {/**white box in front of transparent black bg */}
             <div className='bg-white w-11/12 md:w-3/4 h-4/5 rounded-md m-auto py-6 overflow-y-auto'>
                 <div className='header relative w-11/12 mx-auto mt-2'>
@@ -107,7 +107,6 @@ const Checkout = ({ onClose, tourName, tourDate, tourTime, adult, child, infant,
                                 <h2 className='font-roboto text-2xl font-bold mb-4'>Payment information</h2>
                                 <div className='w-full border-t-2 bg-gray-300 mb-6' />
                                 <div className='mt-6'>
-                                    {/**<PayjpCheckout totalPrice={(adult + child) * tourPrice} />*/}
                                     <CardForm ref={childRef} totalPrice={(adult + child) * tourPrice} />
                                 </div>
                             </div>
@@ -128,7 +127,7 @@ const Checkout = ({ onClose, tourName, tourDate, tourTime, adult, child, infant,
                                 <span>¥{child * tourPrice}</span>
                             </div> : null}
                             {infant !== 0 ? <div className='flex justify-between'>
-                                <span>Indants: {infant}</span>
+                                <span>Infants: {infant}</span>
                                 <span>FREE</span>
                             </div> : null}
                         </div>

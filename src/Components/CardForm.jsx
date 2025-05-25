@@ -1,4 +1,5 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import PaymentFailed from '../Pages/PaymentFailed';
 
 const payjp = window.Payjp("pk_test_c5620903dcfe0af2f19e8475", { locale: "en" });
 
@@ -6,6 +7,8 @@ const CardForm = forwardRef(({ totalPrice }, ref) => {
     let numberElement = null;
     let expiryElement = null;
     let cvcElement = null;
+
+    const [paymentFailed, setPaymentFailed] = useState(false);
 
     const handlePayDivMount = () => {
         const elements = payjp.elements();
@@ -31,7 +34,7 @@ const CardForm = forwardRef(({ totalPrice }, ref) => {
         }
         const token = await payjp.createToken(window.cardElements.numberElement);
 
-        const response = await fetch(" https://us-central1-tomodachitours-f4612.cloudfunctions.net/createCharge", {
+        const response = await fetch("https://us-central1-tomodachitours-f4612.cloudfunctions.net/createCharge", {
             method: "POST", //POST for popup
             headers: {
                 "Content-Type": "application/json",
@@ -44,9 +47,9 @@ const CardForm = forwardRef(({ totalPrice }, ref) => {
 
         const data = await response.json();
         if (data.success) {
-            alert("Payment successful!");
+            window.location.href = "/thankyou"
         } else {
-            alert("Payment failed.");
+            setPaymentFailed(true);
         }
     };
 
@@ -87,6 +90,7 @@ const CardForm = forwardRef(({ totalPrice }, ref) => {
                     <div id='cvc-form' ref={handlePayDivMount} className='p-2 bg-white border border-gray-300 rounded-md' />
                 </div>
             </div>
+            {paymentFailed ? <PaymentFailed onClick={() => setPaymentFailed(false)} /> : null}
         </div>
     );
 });
