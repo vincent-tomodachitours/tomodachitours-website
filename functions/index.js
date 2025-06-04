@@ -1,9 +1,11 @@
 const functions = require("firebase-functions");
+require('dotenv').config();
 const { google } = require("googleapis");
+const fetch = require('node-fetch');
 const serviceAccount = require('./service-account.json');
 const cors = require("cors")({ origin: ["http://localhost:3000", "https://tomodachitours-f4612.web.app"] });
 const Payjp = require("payjp");
-const payjp = Payjp("sk_test_61260d4d7881534a5a0baf24");
+const payjp = Payjp(process.env.STRIPE_SECRET_KEY);
 
 exports.createCharge = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
@@ -88,7 +90,7 @@ exports.getBookings = functions.https.onRequest((req, res) => {
             }
 
             const spreadsheetId = "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM";
-            const dataRange = req.body.range || "Sheet1!A1:I";
+            const dataRange = req.body.range;
 
             const auth = new google.auth.GoogleAuth({
                 credentials: serviceAccount,
@@ -110,6 +112,80 @@ exports.getBookings = functions.https.onRequest((req, res) => {
             res.status(500).json({ error: "Internal Server Error" });
         }
     });
+});
+
+exports.createBookings = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        try {
+            if (req.method !== 'POST') {
+                return res.status(405).send('Method not allowed');
+            }
+            const spreadsheetId = "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM";
+            const dataRange = req.body.range;
+
+            const auth = new google.auth.GoogleAuth({
+                credentials: serviceAccount,
+                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+            });
+
+            const client = await auth.getClient();
+            const sheets = google.sheets({ version: 'v4', auth: client });
+
+            const values = [
+                [
+                    req.body.date,
+                    req.body.time,
+                    req.body.adults,
+                    req.body.children,
+                    req.body.infants,
+                    req.body.name,
+                    req.body.phone,
+                    req.body.email,
+                    "",
+                    new Date().toISOString(), // timestamp
+                ],
+            ];
+
+            const resource = { values };
+
+            const response = await sheets.spreadsheets.values.append({
+                spreadsheetId,
+                range: dataRange,
+                valueInputOption: "USER_ENTERED",
+                resource,
+            });
+
+            const scriptUrl = 'https://script.google.com/macros/s/AKfycbx7ZkjQRaqafa2BdzRxCYBvX7rVwBYE12Zr6z4YQWi7y_RvInXqa4MCkm4MzWOdHNm9/exec';
+            const emailNotification = await fetch(scriptUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    secret: 'ifyoureadthisyouregay',
+                    name: req.body.name,
+                    email: req.body.email,
+                    phone: req.body.phone,
+                    date: req.body.date,
+                    time: req.body.time,
+                    adults: req.body.adults,
+                    children: req.body.children,
+                    infants: req.body.infants,
+                    tourname: req.body.tourname,
+                    tourprice: req.body.tourprice
+                })
+            });
+
+            const emailResult = await emailNotification.text();
+
+            res.status(200).json({
+                success: true,
+                result: response.data,
+                emailStatus: emailResult
+            });
+        } catch (error) {
+            console.error("Create booking error:", error);
+            res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+    })
 });
 
 exports.redirectCharge = functions.https.onRequest((req, res) => {

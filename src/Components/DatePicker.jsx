@@ -78,7 +78,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    spreadsheetId: "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM",
                     range: `${sheetId}!A2:I`
                 })
             });
@@ -282,7 +281,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 </div>
             )}
             {checkout === true ? (
-                <Checkout onClose={handleCloseCheckout} tourName={tourName} tourDate={calendarSelectedDate.toLocaleDateString("en-CA")} tourTime={tourTime} adult={adultParticipants} child={childParticipants} infant={infantParticipants} tourPrice={price} />
+                <Checkout onClose={handleCloseCheckout} tourName={tourName} sheetId={sheetId} tourDate={calendarSelectedDate.toLocaleDateString("en-CA")} tourTime={tourTime} adult={adultParticipants} child={childParticipants} infant={infantParticipants} tourPrice={price} />
             ) : null}
         </div>
     )

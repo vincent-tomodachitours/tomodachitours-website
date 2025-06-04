@@ -26,6 +26,7 @@ import Footer from '../Components/Footer'
 import DisplayProduct3 from '../Components/DisplayProduct3'
 
 const Tours = () => {
+
     return (
         <div className='flex flex-col font-ubuntu'>
             <Header />

@@ -1,16 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react'
 
+import TextField from '@mui/material/TextField';
+
 import CardForm from './CardForm';
 import { Link } from 'react-router-dom';
 
-const API_URL = "https://script.google.com/macros/s/AKfycbzOSSaJX-dzvazzxuLso5EBtjdElQsf4vE_Zh-6PzoY9kiu--cnMEWfjNOx36ai2kRPfg/exec";
+import 'react-phone-input-2/lib/style.css'
+import PhoneInput from 'react-phone-input-2';
+import Loading from './Loading';
 
-const Checkout = ({ onClose, tourName, tourDate, tourTime, adult, child, infant, tourPrice }) => {
+const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child, infant, tourPrice }) => {
+    //useState to handle payment loading screen
+    const [paymentProcessing, setPaymentProcessing] = useState(false);
+
     //Pay now button from parent(Checkout.jsx) to child(CardForm.jsx)
     const childRef = useRef();
     const handlePayNowButton = () => {
+        setPaymentProcessing(true);
         if (childRef.current) {
-            childRef.current.handleGetToken?.();
+            childRef.current.handleCreateBooking?.();
         }
     }
 
@@ -22,7 +30,10 @@ const Checkout = ({ onClose, tourName, tourDate, tourTime, adult, child, infant,
         email: '',
         phone: '',
         terms: false
-    })
+    });
+
+    const formRef = useRef({});
+
     useEffect(() => {
         const { fname, lname, email, phone, terms } = formData;
         const allFieldsFilled =
@@ -40,34 +51,23 @@ const Checkout = ({ onClose, tourName, tourDate, tourTime, adult, child, infant,
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
-    };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        const formData = {
-            "date": tourDate,
-            "time": tourTime,
-            "adults": adult,
-            "children": child,
-            "infants": infant,
-            "name": e.target.fname.value + " " + e.target.lname.value,
-            "phone": "'" + e.target.phone.value,
-            "email": e.target.email.value
+        formRef.current = {
+            ...formRef.current,
+            date: tourDate,
+            time: tourTime,
+            adults: adult,
+            children: child,
+            infants: infant,
+            name: formData.fname + " " + formData.lname,
+            phone: `'${formData.phone}`,
+            email: formData.email,
         };
-
-        await fetch(API_URL, {
-            method: "POST",
-            mode: "no-cors",
-            body: JSON.stringify(formData),
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
-    }
+    };
 
     return (
         <div className='fixed inset-0 h-screen bg-black bg-opacity-50 flex justify-end z-40'>
+            {paymentProcessing ? <Loading /> : null}
             {/**white box in front of transparent black bg */}
             <div className='bg-white w-11/12 md:w-3/4 h-4/5 rounded-md m-auto py-6 overflow-y-auto'>
                 <div className='header relative w-11/12 mx-auto mt-2'>
@@ -83,7 +83,7 @@ const Checkout = ({ onClose, tourName, tourDate, tourTime, adult, child, infant,
                             <div>
                                 <h2 className='font-roboto text-2xl font-bold mb-4'>Lead traveller's contact information</h2>
                                 <div className='w-full border-t-2 bg-gray-300 mb-6' /> {/**Gray divider line */}
-                                <form className='grid grid-cols-1 md:grid-cols-2 gap-4' onSubmit={handleSubmit}>
+                                <form className='grid grid-cols-1 md:grid-cols-2 gap-4' >
                                     <div>
                                         <label className="font-ubuntu text-md" for="fname">First name</label><br />
                                         <input className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' type="text" id='fname' name='fname' value={formData.fname} onChange={handleInputChange} />
@@ -94,11 +94,41 @@ const Checkout = ({ onClose, tourName, tourDate, tourTime, adult, child, infant,
                                     </div>
                                     <div>
                                         <label className="font-ubuntu text-md" for="email">Email address</label><br />
+                                        <TextField
+                                            label="email"
+                                            type="email"
+                                            variant="outlined"
+                                            fullWidth
+                                            required
+                                        />
                                         <input className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' type="text" id='email' name='email' value={formData.email} onChange={handleInputChange} />
                                     </div>
                                     <div>
                                         <label className="font-ubuntu text-md" for="phone">Phone number</label><br />
-                                        <input className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' type="text" id='phone' name='phone' value={formData.phone} onChange={handleInputChange} />
+                                        <PhoneInput
+                                            country={'us'}
+                                            onChange={(phone) => {
+                                                const syntheticEvent = {
+                                                    target: {
+                                                        name: 'phone',
+                                                        value: phone,
+                                                        type: 'text',
+                                                    },
+                                                };
+                                                handleInputChange(syntheticEvent);
+                                            }}
+                                            inputStyle={{
+                                                width: '100%',
+                                                height: '2.5rem',
+                                                borderRadius: '0.375rem',
+                                                border: '1px solid #D1D5DB',
+                                                paddingLeft: '3rem',
+                                                paddingRight: '0.5rem',
+                                                fontFamily: 'Ubuntu',
+                                                fontSize: '1rem'
+                                            }}
+                                            enableSearch
+                                        />
                                     </div>
                                     {/**<button type="submit" className='bg-blue-700 text-white font-ubuntu rounded-md p-2'>Create Booking</button>*/}
                                 </form>
@@ -107,7 +137,7 @@ const Checkout = ({ onClose, tourName, tourDate, tourTime, adult, child, infant,
                                 <h2 className='font-roboto text-2xl font-bold mb-4'>Payment information</h2>
                                 <div className='w-full border-t-2 bg-gray-300 mb-6' />
                                 <div className='mt-6'>
-                                    <CardForm ref={childRef} totalPrice={(adult + child) * tourPrice} />
+                                    <CardForm ref={childRef} totalPrice={(adult + child) * tourPrice} formRef={formRef} tourName={tourName} sheetId={sheetId} setPaymentProcessing={setPaymentProcessing} />
                                 </div>
                             </div>
                         </div>

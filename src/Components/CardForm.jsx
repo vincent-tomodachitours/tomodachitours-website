@@ -3,7 +3,41 @@ import PaymentFailed from '../Pages/PaymentFailed';
 
 const payjp = window.Payjp("pk_test_c5620903dcfe0af2f19e8475", { locale: "en" });
 
-const CardForm = forwardRef(({ totalPrice }, ref) => {
+const CardForm = forwardRef(({ totalPrice, formRef, tourName, sheetId, setPaymentProcessing }, ref) => {
+    const handleCreateBooking = async () => {
+        try {
+            const bookingData = {
+                ...formRef.current
+            }
+            console.log(formRef.current)
+            const response = await fetch("https://us-central1-tomodachitours-f4612.cloudfunctions.net/createBookings", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    ...bookingData,
+                    range: `${sheetId}!A2:I`,
+                    tourname: tourName,
+                    tourprice: totalPrice
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                handleGetToken()
+            } else {
+                setPaymentProcessing(false);
+                alert("Oops, something went wrong.");
+            }
+        } catch (error) {
+            setPaymentProcessing(false);
+            console.error("Error submitting booking:", error);
+            alert("Something went wrong.");
+        }
+    }
+
     let numberElement = null;
     let expiryElement = null;
     let cvcElement = null;
@@ -49,12 +83,13 @@ const CardForm = forwardRef(({ totalPrice }, ref) => {
         if (data.success) {
             window.location.href = "/thankyou"
         } else {
+            setPaymentProcessing(false);
             setPaymentFailed(true);
         }
     };
 
     useImperativeHandle(ref, () => ({
-        handleGetToken
+        handleCreateBooking
     }));
 
     /**const handleRedirectToken = async () => {
