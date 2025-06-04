@@ -9,7 +9,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const [checkout, setCheckout] = useState(false);
     const handleOpenCheckout = () => setCheckout(true);
     const handleCloseCheckout = () => setCheckout(false);
-    const [bookings, setBookings] = useState("Loading");
+    const [bookings, setBookings] = useState([]);
 
     const [loaded, setLoaded] = useState(0);
     const [calendarState, setCalendarState] = useState(0);
@@ -83,10 +83,12 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             });
 
             const data = await response.json();
-            setBookings(data.values);
+            setBookings(data.values || []); // Fallback to empty array if no values
             setLoaded(1);
         } catch (error) {
             console.error('Failed to fetch bookings:', error);
+            setBookings([]); // Set to empty array on error
+            setLoaded(1); // Still show the calendar even if fetch fails
         }
     };
 
@@ -104,27 +106,31 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     minViewLimit.setMonth(today.getMonth());
 
     const participantsByDate = {};
-    Object.values(bookings).forEach((b) => {
-        if (b[0] && b[1]) {
-            const formattedDate = b[0].split("T")[0];
-            const timeSlot = b[1];
+    
+    // Only process bookings if it's an array (not the initial "Loading" string)
+    if (Array.isArray(bookings)) {
+        Object.values(bookings).forEach((b) => {
+            if (b[0] && b[1]) {
+                const formattedDate = b[0].split("T")[0];
+                const timeSlot = b[1];
 
-            // Initialize date entry if it doesn't exist
-            if (!participantsByDate[formattedDate]) {
-                participantsByDate[formattedDate] = {};
-            }
-            // Ensure all time slots exist for that date (set to 0 by default)
-            availableTimes.forEach((t) => {
-                if (!participantsByDate[formattedDate][t]) {
-                    participantsByDate[formattedDate][t] = 0;
+                // Initialize date entry if it doesn't exist
+                if (!participantsByDate[formattedDate]) {
+                    participantsByDate[formattedDate] = {};
                 }
-            });
+                // Ensure all time slots exist for that date (set to 0 by default)
+                availableTimes.forEach((t) => {
+                    if (!participantsByDate[formattedDate][t]) {
+                        participantsByDate[formattedDate][t] = 0;
+                    }
+                });
 
-            // FIX: Calculate total participants correctly
-            const totalParticipants = parseInt(b[2] || 0) + parseInt(b[3] || 0); // adults + children
-            participantsByDate[formattedDate][timeSlot] += totalParticipants;
-        }
-    });
+                // FIX: Calculate total participants correctly
+                const totalParticipants = parseInt(b[2] || 0) + parseInt(b[3] || 0); // adults + children
+                participantsByDate[formattedDate][timeSlot] += totalParticipants;
+            }
+        });
+    }
 
     //Depricated fetched booking organizing logic(using google app scripts): insecure
     //If using this logic and you run into an error, check the date format coming from the api

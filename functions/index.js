@@ -1,11 +1,53 @@
 const functions = require("firebase-functions");
+const admin = require("firebase-admin");
 require('dotenv').config();
 const { google } = require("googleapis");
 const fetch = require('node-fetch');
-const serviceAccount = require('./service-account.json');
+
+// Try to load service account, fallback to default admin initialization
+let serviceAccount;
+try {
+    serviceAccount = require('./service-account.json');
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+} catch (error) {
+    // Use default Firebase Admin authentication in production
+    if (!admin.apps.length) {
+        admin.initializeApp();
+    }
+}
+
 const cors = require("cors")({ origin: ["http://localhost:3000", "https://tomodachitours-f4612.web.app"] });
 const Payjp = require("payjp");
-const payjp = Payjp(process.env.STRIPE_SECRET_KEY);
+
+// Initialize Pay.jp only if API key is available
+let payjp;
+const payjpKey = process.env.PAYJP_SECRET_KEY || functions.config().payjp?.secret_key;
+if (payjpKey) {
+    payjp = Payjp(payjpKey);
+    console.log("✅ Pay.jp initialized successfully");
+} else {
+    console.warn("Pay.jp API key not found - payment functions will not work");
+}
+
+// Function to get Google Auth client
+async function getGoogleAuthClient() {
+    if (serviceAccount) {
+        // Use service account if available
+        const auth = new google.auth.GoogleAuth({
+            credentials: serviceAccount,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+        return await auth.getClient();
+    } else {
+        // Use default credentials in production
+        const auth = new google.auth.GoogleAuth({
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+        return await auth.getClient();
+    }
+}
 
 exports.validateDiscountCode = functions.https.onRequest((req, res) => {
     cors(req, res, async () => {
@@ -119,6 +161,11 @@ exports.createCharge = functions.https.onRequest((req, res) => {
         }
 
         try {
+            if (!payjp) {
+                console.error("Pay.jp not initialized - missing API key");
+                return res.status(500).send({ success: false, error: "Payment service not available" });
+            }
+
             console.log("Attempting charge with:", {
                 amount,
                 currency: "jpy",
@@ -187,12 +234,7 @@ exports.getBookings = functions.https.onRequest((req, res) => {
             const spreadsheetId = "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM";
             const dataRange = req.body.range;
 
-            const auth = new google.auth.GoogleAuth({
-                credentials: serviceAccount,
-                scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-            });
-
-            const client = await auth.getClient();
+            const client = await getGoogleAuthClient();
             const sheets = google.sheets({ version: 'v4', auth: client });
 
             const response = await sheets.spreadsheets.values.get({
@@ -218,12 +260,7 @@ exports.createBookings = functions.https.onRequest((req, res) => {
             const spreadsheetId = "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM";
             const dataRange = req.body.range;
 
-            const auth = new google.auth.GoogleAuth({
-                credentials: serviceAccount,
-                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-            });
-
-            const client = await auth.getClient();
+            const client = await getGoogleAuthClient();
             const sheets = google.sheets({ version: 'v4', auth: client });
 
             const values = [
@@ -312,12 +349,7 @@ exports.updateBookingChargeId = functions.https.onRequest((req, res) => {
         try {
             const spreadsheetId = "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM";
             
-            const auth = new google.auth.GoogleAuth({
-                credentials: serviceAccount,
-                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-            });
-
-            const client = await auth.getClient();
+            const client = await getGoogleAuthClient();
             const sheets = google.sheets({ version: 'v4', auth: client });
 
             // Find the most recent booking for this email and tour without charge ID
@@ -378,6 +410,11 @@ exports.redirectCharge = functions.https.onRequest((req, res) => {
         }
 
         try {
+            if (!payjp) {
+                console.error("Pay.jp not initialized - cannot process redirect");
+                return res.redirect("http://localhost:3000/commercial-disclosure");
+            }
+
             // Step 0: Get the charge_id from query params
             const payId = req.query.charge_id;
             if (!payId) {
@@ -389,7 +426,7 @@ exports.redirectCharge = functions.https.onRequest((req, res) => {
             const chargeRes = await fetch(`https://api.pay.jp/v1/charges/${payId}`, {
                 method: "GET",
                 headers: {
-                    Authorization: `Basic ${Buffer.from(payjp + ":").toString("base64")}`,
+                    Authorization: `Basic ${Buffer.from(payjpKey + ":").toString("base64")}`,
                 },
             });
 
@@ -405,7 +442,7 @@ exports.redirectCharge = functions.https.onRequest((req, res) => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
-                    Authorization: `Basic ${Buffer.from(payjp + ":").toString("base64")}`,
+                    Authorization: `Basic ${Buffer.from(payjpKey + ":").toString("base64")}`,
                 },
             });
 
@@ -450,12 +487,7 @@ exports.cancelBooking = functions.https.onRequest((req, res) => {
             // 1. Verify booking exists and get details
             const spreadsheetId = "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM";
             
-            const auth = new google.auth.GoogleAuth({
-                credentials: serviceAccount,
-                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-            });
-
-            const client = await auth.getClient();
+            const client = await getGoogleAuthClient();
             const sheets = google.sheets({ version: 'v4', auth: client });
 
             // Get booking details
@@ -500,6 +532,15 @@ exports.cancelBooking = functions.https.onRequest((req, res) => {
 
             // 2. Process refund through Pay.jp
             console.log("Processing refund for charge:", chargeId);
+            
+            if (!payjp) {
+                console.error("Pay.jp not initialized - cannot process refund");
+                return res.status(500).json({
+                    success: false,
+                    message: "Payment service not available for refunds"
+                });
+            }
+
             const refund = await payjp.refunds.create({
                 charge: chargeId,
                 reason: "requested_by_customer"
@@ -594,12 +635,7 @@ exports.getBookingDetails = functions.https.onRequest((req, res) => {
         try {
             const spreadsheetId = "1sGrijFYalE47yFiV4JdyHHiY9VmrjVMdbI5RTwog5RM";
             
-            const auth = new google.auth.GoogleAuth({
-                credentials: serviceAccount,
-                scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-            });
-
-            const client = await auth.getClient();
+            const client = await getGoogleAuthClient();
             const sheets = google.sheets({ version: 'v4', auth: client });
 
             const response = await sheets.spreadsheets.values.get({
