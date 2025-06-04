@@ -13,6 +13,12 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
     //useState to handle payment loading screen
     const [paymentProcessing, setPaymentProcessing] = useState(false);
 
+    // Discount code state
+    const [discountCode, setDiscountCode] = useState('');
+    const [appliedDiscount, setAppliedDiscount] = useState(null);
+    const [discountLoading, setDiscountLoading] = useState(false);
+    const [discountError, setDiscountError] = useState('');
+
     //Pay now button from parent(Checkout.jsx) to child(CardForm.jsx)
     const childRef = useRef();
     const handlePayNowButton = () => {
@@ -34,6 +40,42 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
 
     const formRef = useRef({});
 
+    // Add discount application function
+    const handleApplyDiscount = async () => {
+        if (!discountCode.trim()) return;
+        
+        setDiscountLoading(true);
+        setDiscountError('');
+        
+        try {
+            const response = await fetch("https://us-central1-tomodachitours-f4612.cloudfunctions.net/validateDiscountCode", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    code: discountCode,
+                    tourPrice,
+                    adults: adult,
+                    children: child
+                }),
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                setAppliedDiscount(result.discount);
+                setDiscountError('');
+            } else {
+                setDiscountError(result.message);
+                setAppliedDiscount(null);
+            }
+        } catch (error) {
+            setDiscountError('Failed to validate discount code');
+            setAppliedDiscount(null);
+        } finally {
+            setDiscountLoading(false);
+        }
+    };
+
     useEffect(() => {
         const { fname, lname, email, phone, terms } = formData;
         const allFieldsFilled =
@@ -45,6 +87,7 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
 
         setPaymentAllowed(allFieldsFilled);
     }, [formData]);
+    
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData((prev) => ({
@@ -64,6 +107,9 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
             email: formData.email,
         };
     };
+
+    // Calculate final price with discount
+    const finalPrice = appliedDiscount ? appliedDiscount.finalAmount : (adult + child) * tourPrice;
 
     return (
         <div className='fixed inset-0 h-screen bg-black bg-opacity-50 flex justify-end z-40'>
@@ -137,7 +183,16 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
                                 <h2 className='font-roboto text-2xl font-bold mb-4'>Payment information</h2>
                                 <div className='w-full border-t-2 bg-gray-300 mb-6' />
                                 <div className='mt-6'>
-                                    <CardForm ref={childRef} totalPrice={(adult + child) * tourPrice} formRef={formRef} tourName={tourName} sheetId={sheetId} setPaymentProcessing={setPaymentProcessing} />
+                                    <CardForm 
+                                        ref={childRef} 
+                                        totalPrice={finalPrice}
+                                        originalPrice={(adult + child) * tourPrice}
+                                        appliedDiscount={appliedDiscount}
+                                        formRef={formRef} 
+                                        tourName={tourName} 
+                                        sheetId={sheetId} 
+                                        setPaymentProcessing={setPaymentProcessing} 
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -163,16 +218,55 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
                         </div>
                         <div className='w-full border-t-2 bg-gray-300 my-4' />
                         <div>
-                            <label className="font-ubuntu text-md" for="discount">Discount code</label>
+                            <label className="font-ubuntu text-md" htmlFor="discount">Discount code</label>
                             <div className='flex gap-2'>
-                                <input className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' type="text" id='discount' name='discount' />
-                                <button className='p-2 bg-blue-600 rounded-md font-roboto font-bold text-white'>Apply</button>
+                                <input 
+                                    className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' 
+                                    type="text" 
+                                    id='discount' 
+                                    name='discount'
+                                    value={discountCode}
+                                    onChange={(e) => setDiscountCode(e.target.value)}
+                                    disabled={appliedDiscount !== null}
+                                />
+                                <button 
+                                    className={`p-2 rounded-md font-roboto font-bold text-white ${
+                                        discountLoading ? 'bg-gray-400' : 
+                                        appliedDiscount ? 'bg-green-600' : 'bg-blue-600'
+                                    }`}
+                                    onClick={appliedDiscount ? () => {
+                                        setAppliedDiscount(null);
+                                        setDiscountCode('');
+                                        setDiscountError('');
+                                    } : handleApplyDiscount}
+                                    disabled={discountLoading}
+                                >
+                                    {discountLoading ? 'Checking...' : 
+                                     appliedDiscount ? 'Remove' : 'Apply'}
+                                </button>
                             </div>
+                            {discountError && (
+                                <p className="text-red-500 text-sm mt-1 font-ubuntu">{discountError}</p>
+                            )}
+                            {appliedDiscount && (
+                                <p className="text-green-500 text-sm mt-1 font-ubuntu">
+                                    Discount applied: -{appliedDiscount.type === 'percentage' ? 
+                                        `${appliedDiscount.value}%` : 
+                                        `¥${appliedDiscount.discountAmount}`}
+                                </p>
+                            )}
                         </div>
                         <div className='w-full border-t-2 bg-gray-300 my-4' />
                         <div className='flex justify-between'>
                             <span className='font-bold text-2xl'>Order Total</span>
-                            <span className='font-medium text-2xl'>¥{(adult + child) * tourPrice}</span>
+                            <div className="text-right">
+                                {appliedDiscount && (
+                                    <div className="text-sm text-gray-500 line-through font-roboto">
+                                        ¥{appliedDiscount.originalAmount.toLocaleString('en-US')}
+                                    </div>
+                                )}
+                                <span className='font-medium text-2xl'>¥{finalPrice.toLocaleString('en-US')}</span>
+                            </div>
                         </div>
                         <div className='w-full border-t-2 bg-gray-300 my-4' />
                         <div className='flex items-start gap-2 mb-2'>

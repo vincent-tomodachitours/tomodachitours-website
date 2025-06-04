@@ -11,6 +11,7 @@ import GionTour from './Pages/GionTour';
 import CommercialDisclosure from './Pages/CommercialDisclosure';
 import Recommendations from './Pages/Recommendations';
 import Thankyou from './Pages/Thankyou';
+import BookingCancellation from './Components/BookingCancellation';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="recommendations" element={<Recommendations />} />
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />
+        <Route path="/cancel-booking" element={<BookingCancellation />} />
         <Route path="/commercial-disclosure" element={<CommercialDisclosure />} />
         <Route path="/thankyou" element={<Thankyou />} />
       </Routes>

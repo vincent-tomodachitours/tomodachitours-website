@@ -38,6 +38,12 @@ const Thankyou = () => {
                     </div>
                 </div>
                 <span className='font-normal'>Download confirmation here</span>
+                <p className="mt-4 font-ubuntu">
+                    Need to cancel your booking? 
+                    <Link to="/cancel-booking" className="text-blue-600 underline ml-1 font-ubuntu">
+                        Cancel here
+                    </Link>
+                </p>
             </div>
             <Footer />
         </div>

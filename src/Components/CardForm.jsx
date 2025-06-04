@@ -3,7 +3,7 @@ import PaymentFailed from '../Pages/PaymentFailed';
 
 const payjp = window.Payjp("pk_test_c5620903dcfe0af2f19e8475", { locale: "en" });
 
-const CardForm = forwardRef(({ totalPrice, formRef, tourName, sheetId, setPaymentProcessing }, ref) => {
+const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formRef, tourName, sheetId, setPaymentProcessing }, ref) => {
     const handleCreateBooking = async () => {
         try {
             const bookingData = {
@@ -17,9 +17,10 @@ const CardForm = forwardRef(({ totalPrice, formRef, tourName, sheetId, setPaymen
                 },
                 body: JSON.stringify({
                     ...bookingData,
-                    range: `${sheetId}!A2:I`,
+                    range: `${sheetId}!A2:M`,
                     tourname: tourName,
-                    tourprice: totalPrice
+                    tourprice: totalPrice,
+                    discountcode: appliedDiscount?.code || ""
                 }),
             });
 
@@ -75,12 +76,30 @@ const CardForm = forwardRef(({ totalPrice, formRef, tourName, sheetId, setPaymen
             },
             body: JSON.stringify({
                 token: token.id,
-                amount: totalPrice
+                amount: totalPrice, // This is the discounted amount
+                discountCode: appliedDiscount?.code || null,
+                originalAmount: originalPrice || totalPrice
             }),
         });
 
         const data = await response.json();
         if (data.success) {
+            // Update booking with charge ID before redirecting
+            try {
+                await fetch("https://us-central1-tomodachitours-f4612.cloudfunctions.net/updateBookingChargeId", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        email: formRef.current.email,
+                        chargeId: data.charge.id,
+                        tourname: tourName
+                    }),
+                });
+            } catch (error) {
+                console.error("Failed to update booking with charge ID:", error);
+                // Don't block the success flow
+            }
+            
             window.location.href = "/thankyou"
         } else {
             setPaymentProcessing(false);

@@ -78,7 +78,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    range: `${sheetId}!A2:I`
+                    range: `${sheetId}!A2:J`
                 })
             });
 
@@ -120,7 +120,9 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 }
             });
 
-            participantsByDate[formattedDate][timeSlot] += b[8];
+            // FIX: Calculate total participants correctly
+            const totalParticipants = parseInt(b[2] || 0) + parseInt(b[3] || 0); // adults + children
+            participantsByDate[formattedDate][timeSlot] += totalParticipants;
         }
     });
 
