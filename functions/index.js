@@ -31,21 +31,28 @@ if (payjpKey) {
     console.warn("Pay.jp API key not found - payment functions will not work");
 }
 
-// Function to get Google Auth client
+// Function to get Google Auth client using Firebase Admin SDK
 async function getGoogleAuthClient() {
-    if (serviceAccount) {
-        // Use service account if available
-        const auth = new google.auth.GoogleAuth({
-            credentials: serviceAccount,
-            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-        });
-        return await auth.getClient();
-    } else {
-        // Use default credentials in production
-        const auth = new google.auth.GoogleAuth({
-            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-        });
-        return await auth.getClient();
+    try {
+        // Try to use service account if available
+        if (serviceAccount) {
+            console.log("Using service account for Google Sheets authentication");
+            const auth = new google.auth.GoogleAuth({
+                credentials: serviceAccount,
+                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+            });
+            return await auth.getClient();
+        } else {
+            console.log("Using default credentials for Google Sheets authentication");
+            // Fallback to default application credentials
+            const auth = new google.auth.GoogleAuth({
+                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+            });
+            return await auth.getClient();
+        }
+    } catch (error) {
+        console.error("Failed to authenticate with Google Sheets:", error);
+        throw error;
     }
 }
 
