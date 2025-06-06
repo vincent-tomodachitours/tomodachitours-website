@@ -21,7 +21,9 @@ export async function fetchTours() {
             .order('created_at');
 
         if (error) {
-            console.error('Error fetching tours from Supabase:', error);
+            console.error('❌ Error fetching tours from Supabase:', error);
+            console.error('Supabase URL:', process.env.REACT_APP_SUPABASE_URL);
+            console.error('Supabase Key exists:', !!process.env.REACT_APP_SUPABASE_ANON_KEY);
             // Fall back to static config if Supabase fails
             return getStaticTours();
         }
@@ -54,7 +56,9 @@ export async function fetchTours() {
         return transformedTours;
 
     } catch (error) {
-        console.error('Failed to fetch tours:', error);
+        console.error('❌ Failed to fetch tours (catch block):', error);
+        console.error('Environment check - URL:', process.env.REACT_APP_SUPABASE_URL);
+        console.error('Environment check - Key exists:', !!process.env.REACT_APP_SUPABASE_ANON_KEY);
         // Fall back to static config
         return getStaticTours();
     }
