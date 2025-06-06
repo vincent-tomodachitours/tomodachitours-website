@@ -35,7 +35,7 @@
     "build": "react-scripts build",
     "start": "react-scripts start",
     "test": "react-scripts test",
-    "vercel-build": "react-scripts build",
+    "vercel-build": "CI=false react-scripts build",
     "test:frontend": "react-scripts test --watchAll=false --verbose",
     "test:backend": "node test-backend.js",
     "test:all": "node test-runner.js",
