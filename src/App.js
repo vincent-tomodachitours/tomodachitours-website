@@ -12,6 +12,7 @@ import CommercialDisclosure from './Pages/CommercialDisclosure';
 import Recommendations from './Pages/Recommendations';
 import Thankyou from './Pages/Thankyou';
 import BookingCancellation from './Components/BookingCancellation';
+import Login from './components/Login';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Route path="/cancel-booking" element={<BookingCancellation />} />
         <Route path="/commercial-disclosure" element={<CommercialDisclosure />} />
         <Route path="/thankyou" element={<Thankyou />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
     </Router>
   );

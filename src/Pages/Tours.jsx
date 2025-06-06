@@ -1,8 +1,8 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Header from '../Components/Headers/Header1'
 
-//Import tour config file
-import config from '../config.json';
+//Import tour services
+import { fetchTours } from '../services/toursService';
 
 import main1 from "../IMG/Gion-Tour/yasaka-pagoda.webp"
 
@@ -26,6 +26,60 @@ import Footer from '../Components/Footer'
 import DisplayProduct3 from '../Components/DisplayProduct3'
 
 const Tours = () => {
+    const [tours, setTours] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    // Load tour data from Supabase
+    useEffect(() => {
+        const loadTours = async () => {
+            try {
+                setLoading(true);
+                const data = await fetchTours();
+                setTours(data);
+                console.log('✅ Tours overview data loaded:', Object.keys(data));
+            } catch (error) {
+                console.error('❌ Failed to load tours overview data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadTours();
+    }, []);
+
+    // Show loading state
+    if (loading) {
+        return (
+            <div className='flex flex-col font-ubuntu'>
+                <Header />
+                <div className='relative h-[16rem] md:h-[24rem] lg:h-[30rem]'>
+                    <img src={main1} alt='Yasaka pagoda(img)' className='w-full h-full object-cover' />
+                    <h1 className='text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-black absolute inset-0 flex justify-center items-center text-white bg-black bg-opacity-20'>Explore with Tomodachi Tours</h1>
+                </div>
+                <div className='tours flex flex-col w-5/6 mx-auto mt-20 gap-6 lg:gap-20'>
+                    <div className='text-center text-xl text-gray-600 py-20'>Loading tours information...</div>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    // Show error state if tours couldn't be loaded
+    if (!tours) {
+        return (
+            <div className='flex flex-col font-ubuntu'>
+                <Header />
+                <div className='relative h-[16rem] md:h-[24rem] lg:h-[30rem]'>
+                    <img src={main1} alt='Yasaka pagoda(img)' className='w-full h-full object-cover' />
+                    <h1 className='text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-black absolute inset-0 flex justify-center items-center text-white bg-black bg-opacity-20'>Explore with Tomodachi Tours</h1>
+                </div>
+                <div className='tours flex flex-col w-5/6 mx-auto mt-20 gap-6 lg:gap-20'>
+                    <div className='text-center text-xl text-red-600 py-20'>Unable to load tours information. Please try again later.</div>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
 
     return (
         <div className='flex flex-col font-ubuntu'>
@@ -43,9 +97,9 @@ const Tours = () => {
                     image2Alt={"Fushimi-Inari romon gate at night(img)"}
                     image3={nightTour3}
                     image3Alt={"Fushimi-Inari fox statue(img)"}
-                    title={config['night-tour']['tour-title']}
-                    par={config['night-tour']['tour-description']}
-                    price={`¥ ${config['night-tour']['tour-price'].toLocaleString('en-US')} / Adult`}
+                    title={tours['night-tour']['tour-title']}
+                    par={tours['night-tour']['tour-description']}
+                    price={`¥ ${tours['night-tour']['tour-price'].toLocaleString('en-US')} / Adult`}
                     link={"/tours/kyoto-fushimi-inari-night-walking-tour"}
                 />
                 <DisplayProduct3
@@ -56,9 +110,9 @@ const Tours = () => {
                     image2Alt={"Bamboo forest(img)"}
                     image3={morningTour3}
                     image3Alt={"Togetsukyo bridge(img)"}
-                    title={config['morning-tour']['tour-title']}
-                    par={config['morning-tour']['tour-description']}
-                    price={`¥ ${config['morning-tour']['tour-price'].toLocaleString('en-US')} / Adult`}
+                    title={tours['morning-tour']['tour-title']}
+                    par={tours['morning-tour']['tour-description']}
+                    price={`¥ ${tours['morning-tour']['tour-price'].toLocaleString('en-US')} / Adult`}
                     link={"/tours/kyoto-early-bird-english-tour"}
                 />
                 <DisplayProduct3
@@ -69,9 +123,9 @@ const Tours = () => {
                     image2Alt={"Byodo-in during spring(img)"}
                     image3={ujiTour3}
                     image3Alt={"Murasaki Shikibu statue(img)"}
-                    title={config['uji-tour']['tour-title']}
-                    par={config['uji-tour']['tour-description']}
-                    price={`¥ ${config['uji-tour']['tour-price'].toLocaleString('en-US')} / Adult`}
+                    title={tours['uji-tour']['tour-title']}
+                    par={tours['uji-tour']['tour-description']}
+                    price={`¥ ${tours['uji-tour']['tour-price'].toLocaleString('en-US')} / Adult`}
                     link={"/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto"}
                 />
                 <DisplayProduct3
@@ -82,9 +136,9 @@ const Tours = () => {
                     image2Alt={"Geisha walking through hanamachi(img)"}
                     image3={gionTour3}
                     image3Alt={"Yasaka pagoda with cherry blossoms(img)"}
-                    title={config['gion-tour']['tour-title']}
-                    par={config['gion-tour']['tour-description']}
-                    price={`¥ ${config['gion-tour']['tour-price'].toLocaleString('en-US')} / Adult`}
+                    title={tours['gion-tour']['tour-title']}
+                    par={tours['gion-tour']['tour-description']}
+                    price={`¥ ${tours['gion-tour']['tour-price'].toLocaleString('en-US')} / Adult`}
                     link={"/tours/kyoto-gion-early-morning-walking-tour"}
                 />
             </div>

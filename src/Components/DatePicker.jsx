@@ -4,6 +4,7 @@ import '../CSS/Calendar.css';
 import PeopleSelector from "./PeopleSelector";
 import { ReactComponent as Clock } from '../SVG/Clock.svg'
 import Checkout from './Checkout'
+import { supabase } from '../lib/supabase';
 
 function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price }) {
     const [checkout, setCheckout] = useState(false);
@@ -52,43 +53,48 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         };
     }, [checkout]);
 
-    //Depricated fetch bookings api call straight to google app script: insecure
-    /**const fetchFakeBookings = async () => {
-        try {
-            const sheetUrl = `${api}?action=getBookings`;
+    async function fetchBookingsForTour() {
+        console.log('Fetching bookings for tour:', sheetId);
+        // Convert sheetId to match database tour_type format
+        const tourTypeMap = {
+            'Night tour': 'NIGHT_TOUR',
+            'Morning tour': 'MORNING_TOUR',
+            'Uji tour': 'UJI_TOUR',
+            'Gion tour': 'GION_TOUR'
+        };
+        const tourType = tourTypeMap[sheetId];
+        console.log('Using tour_type:', tourType);
 
-            const response = await fetch('sheetUrl', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sheetUrl })
-            });
-
-            const data = await response.json();
-            console.log(data);
-            setBookings(data);
-            setLoaded(1);
-        } catch (error) {
-            console.error('Failed to fetch bookings:', error);
+        if (!tourType) {
+            console.error('Invalid tour type:', sheetId);
+            throw new Error(`Invalid tour type: ${sheetId}`);
         }
-    };*/
+
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*')
+            .eq('tour_type', tourType)
+            .eq('status', 'CONFIRMED');
+
+        if (error) {
+            console.error('Error fetching bookings:', error);
+            throw error;
+        }
+
+        console.log('Fetched bookings:', data);
+        return data;
+    }
 
     const fetchBookings = async () => {
         try {
-            const response = await fetch('https://us-central1-tomodachitours-f4612.cloudfunctions.net/getBookings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    range: `${sheetId}!A2:J`
-                })
-            });
-
-            const data = await response.json();
-            setBookings(data.values || []); // Fallback to empty array if no values
-            setLoaded(1);
+            const data = await fetchBookingsForTour();
+            console.log('Setting bookings state:', data);
+            setBookings(data);
+            setLoaded(true);
         } catch (error) {
-            console.error('Failed to fetch bookings:', error);
-            setBookings([]); // Set to empty array on error
-            setLoaded(1); // Still show the calendar even if fetch fails
+            console.error("Failed to fetch bookings:", error);
+            setBookings([]);
+            setLoaded(true);
         }
     };
 
@@ -106,13 +112,15 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     minViewLimit.setMonth(today.getMonth());
 
     const participantsByDate = {};
-    
+
     // Only process bookings if it's an array (not the initial "Loading" string)
     if (Array.isArray(bookings)) {
-        Object.values(bookings).forEach((b) => {
-            if (b[0] && b[1]) {
-                const formattedDate = b[0].split("T")[0];
-                const timeSlot = b[1];
+        console.log('Processing bookings array:', bookings);
+        bookings.forEach((booking) => {
+            if (booking.booking_date && booking.booking_time) {
+                const formattedDate = booking.booking_date;
+                const timeSlot = booking.booking_time;
+                console.log('Processing booking:', { formattedDate, timeSlot, booking });
 
                 // Initialize date entry if it doesn't exist
                 if (!participantsByDate[formattedDate]) {
@@ -125,50 +133,39 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                     }
                 });
 
-                // FIX: Calculate total participants correctly
-                const totalParticipants = parseInt(b[2] || 0) + parseInt(b[3] || 0); // adults + children
+                // Calculate total participants using the new schema
+                const totalParticipants = booking.adults + booking.children;
+                console.log('Adding participants:', { formattedDate, timeSlot, totalParticipants });
                 participantsByDate[formattedDate][timeSlot] += totalParticipants;
             }
         });
+        console.log('Final participantsByDate:', participantsByDate);
     }
-
-    //Depricated fetched booking organizing logic(using google app scripts): insecure
-    //If using this logic and you run into an error, check the date format coming from the api
-    /**Object.values(bookings).forEach((b) => {
-        if (b["date"] && b["time"]) {
-            const formattedDate = b["date"].split("T")[0];
-            const timeSlot = b["time"];
-
-            // Initialize date entry if it doesn't exist
-            if (!participantsByDate[formattedDate]) {
-                participantsByDate[formattedDate] = {};
-            }
-            // Ensure all time slots exist for that date (set to 0 by default)
-            availableTimes.forEach((t) => {
-                if (!participantsByDate[formattedDate][t]) {
-                    participantsByDate[formattedDate][t] = 0;
-                }
-            });
-
-            participantsByDate[formattedDate][timeSlot] += b["participants"];
-        }
-    });*/
 
     const returnAvailableTimes = (date, participants) => {
         const formattedDate = date.toLocaleDateString("en-CA");
+        console.log('Checking available times for:', { formattedDate, participants });
         const dayData = participantsByDate[formattedDate];
+        console.log('Day data:', dayData);
 
         const options = [...availableTimes];
+        console.log('Initial time options:', options);
 
         if (dayData) {
             for (let i = 0; i < options.length; i++) {
-                if (dayData[options[i]] > (maxSlots - participants)) {
+                const currentSlot = options[i];
+                const currentParticipants = dayData[currentSlot] || 0;
+                console.log('Checking time slot:', { currentSlot, currentParticipants, maxSlots, participants });
+
+                if (currentParticipants > (maxSlots - participants)) {
+                    console.log('Removing time slot:', currentSlot);
                     options.splice(i, 1);
                     i--;
                 }
             }
         }
 
+        console.log('Final available times:', options);
         return options;
     }
 

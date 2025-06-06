@@ -9,7 +9,7 @@ import 'react-phone-input-2/lib/style.css'
 import PhoneInput from 'react-phone-input-2';
 import Loading from './Loading';
 
-const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child, infant, tourPrice }) => {
+const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, tourPrice, tourName }) => {
     //useState to handle payment loading screen
     const [paymentProcessing, setPaymentProcessing] = useState(false);
 
@@ -43,26 +43,33 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
     // Add discount application function
     const handleApplyDiscount = async () => {
         if (!discountCode.trim()) return;
-        
+
         setDiscountLoading(true);
         setDiscountError('');
-        
+
         try {
-            const response = await fetch("https://us-central1-tomodachitours-f4612.cloudfunctions.net/validateDiscountCode", {
+            // Call Supabase Edge Function instead of Firebase
+            const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/validate-discount`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
+                },
                 body: JSON.stringify({
                     code: discountCode,
-                    tourPrice,
-                    adults: adult,
-                    children: child
+                    originalAmount: (adult + child) * tourPrice
                 }),
             });
 
             const result = await response.json();
-            
+
             if (result.success) {
-                setAppliedDiscount(result.discount);
+                // Store the complete discount data with originalAmount and finalAmount
+                setAppliedDiscount({
+                    ...result.discount,
+                    originalAmount: result.originalAmount,
+                    finalAmount: result.finalAmount
+                });
                 setDiscountError('');
             } else {
                 setDiscountError(result.message);
@@ -87,7 +94,7 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
 
         setPaymentAllowed(allFieldsFilled);
     }, [formData]);
-    
+
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData((prev) => ({
@@ -140,13 +147,6 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
                                     </div>
                                     <div>
                                         <label className="font-ubuntu text-md" for="email">Email address</label><br />
-                                        <TextField
-                                            label="email"
-                                            type="email"
-                                            variant="outlined"
-                                            fullWidth
-                                            required
-                                        />
                                         <input className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' type="text" id='email' name='email' value={formData.email} onChange={handleInputChange} />
                                     </div>
                                     <div>
@@ -183,15 +183,14 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
                                 <h2 className='font-roboto text-2xl font-bold mb-4'>Payment information</h2>
                                 <div className='w-full border-t-2 bg-gray-300 mb-6' />
                                 <div className='mt-6'>
-                                    <CardForm 
-                                        ref={childRef} 
+                                    <CardForm
+                                        ref={childRef}
                                         totalPrice={finalPrice}
                                         originalPrice={(adult + child) * tourPrice}
                                         appliedDiscount={appliedDiscount}
-                                        formRef={formRef} 
-                                        tourName={tourName} 
-                                        sheetId={sheetId} 
-                                        setPaymentProcessing={setPaymentProcessing} 
+                                        formRef={formRef}
+                                        sheetId={sheetId}
+                                        setPaymentProcessing={setPaymentProcessing}
                                     />
                                 </div>
                             </div>
@@ -201,7 +200,15 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
                     <div className='details basis-1/3 border border-gray-300 rounded-lg py-6 px-6 md:px-12 font-roboto'>
                         <h2 className='font-bold text-2xl text-blue-600'>Order Summary</h2>
                         <div className='w-full border-t-2 bg-gray-300 my-4' />
-                        <h3 className='text-lg font-bold mb-2'>{tourName}</h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="font-bold text-lg text-gray-700" style={{ maxWidth: '60%' }}>
+                                {tourName}
+                            </div>
+                            <div className="text-right">
+                                <div className="text-2xl font-extrabold text-gray-700">{tourTime}</div>
+                                <div className="text-md text-gray-500 mt-1">{tourDate}</div>
+                            </div>
+                        </div>
                         <div>
                             <div className='flex justify-between'>
                                 <span>Adults: {adult}</span>
@@ -220,20 +227,19 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
                         <div>
                             <label className="font-ubuntu text-md" htmlFor="discount">Discount code</label>
                             <div className='flex gap-2'>
-                                <input 
-                                    className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' 
-                                    type="text" 
-                                    id='discount' 
+                                <input
+                                    className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu'
+                                    type="text"
+                                    id='discount'
                                     name='discount'
                                     value={discountCode}
                                     onChange={(e) => setDiscountCode(e.target.value)}
                                     disabled={appliedDiscount !== null}
                                 />
-                                <button 
-                                    className={`p-2 rounded-md font-roboto font-bold text-white ${
-                                        discountLoading ? 'bg-gray-400' : 
+                                <button
+                                    className={`p-2 rounded-md font-roboto font-bold text-white ${discountLoading ? 'bg-gray-400' :
                                         appliedDiscount ? 'bg-green-600' : 'bg-blue-600'
-                                    }`}
+                                        }`}
                                     onClick={appliedDiscount ? () => {
                                         setAppliedDiscount(null);
                                         setDiscountCode('');
@@ -241,8 +247,8 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
                                     } : handleApplyDiscount}
                                     disabled={discountLoading}
                                 >
-                                    {discountLoading ? 'Checking...' : 
-                                     appliedDiscount ? 'Remove' : 'Apply'}
+                                    {discountLoading ? 'Checking...' :
+                                        appliedDiscount ? 'Remove' : 'Apply'}
                                 </button>
                             </div>
                             {discountError && (
@@ -250,9 +256,9 @@ const Checkout = ({ onClose, tourName, sheetId, tourDate, tourTime, adult, child
                             )}
                             {appliedDiscount && (
                                 <p className="text-green-500 text-sm mt-1 font-ubuntu">
-                                    Discount applied: -{appliedDiscount.type === 'percentage' ? 
-                                        `${appliedDiscount.value}%` : 
-                                        `¥${appliedDiscount.discountAmount}`}
+                                    Discount applied: -{appliedDiscount.type === 'percentage' ?
+                                        `${appliedDiscount.percentage}%` :
+                                        `¥${appliedDiscount.amount}`}
                                 </p>
                             )}
                         </div>

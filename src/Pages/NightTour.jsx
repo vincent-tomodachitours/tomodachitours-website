@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
-//Import tour config file
-import config from '../config.json';
+//Import tour services
+import { getTour } from '../services/toursService';
 
 //SVG
 import { ReactComponent as Location } from '../SVG/Location.svg'
@@ -21,13 +21,6 @@ import DatePicker from '../Components/DatePicker'
 import DurationReview from '../Components/TourPages/DurationReview'
 import ImageShowcase from '../Components/TourPages/ImageShowcase'
 
-const tourTitle = config['night-tour']['tour-title'];
-const tourPrice = config['night-tour']['tour-price'];
-const tourDuration = config['night-tour']['tour-duration'];
-const tourReviews = config['night-tour']['reviews'];
-const availableTimes = config['night-tour']['time-slots'];
-const maxSlots = config['night-tour']['max-participants'];
-
 const NightTour = () => {
     const images = [
         { src: photo1 },
@@ -36,6 +29,28 @@ const NightTour = () => {
         { src: photo4 },
         { src: photo5 },
     ];
+
+    // Tour data state
+    const [tourData, setTourData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    // Load tour data from Supabase
+    useEffect(() => {
+        const loadTourData = async () => {
+            try {
+                setLoading(true);
+                const data = await getTour('night-tour');
+                setTourData(data);
+                console.log('✅ Night tour data loaded:', data);
+            } catch (error) {
+                console.error('❌ Failed to load night tour data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadTourData();
+    }, []);
 
     //Mobile resizing logic
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -49,6 +64,40 @@ const NightTour = () => {
     }, []);
 
     const [activeContent, setActiveContent] = useState(1);
+
+    // Show loading state
+    if (loading) {
+        return (
+            <div id='app-container' className='w-full h-screen min-h-screen flex flex-col overflow-y-auto'>
+                <Header />
+                <div className='w-4/5 md:w-3/4 mx-auto flex justify-center items-center py-20'>
+                    <div className='text-xl text-gray-600'>Loading tour information...</div>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    // Show error state if tour data couldn't be loaded
+    if (!tourData) {
+        return (
+            <div id='app-container' className='w-full h-screen min-h-screen flex flex-col overflow-y-auto'>
+                <Header />
+                <div className='w-4/5 md:w-3/4 mx-auto flex justify-center items-center py-20'>
+                    <div className='text-xl text-red-600'>Unable to load tour information. Please try again later.</div>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    // Extract tour data
+    const tourTitle = tourData['tour-title'];
+    const tourPrice = tourData['tour-price'];
+    const tourDuration = tourData['tour-duration'];
+    const tourReviews = tourData['reviews'];
+    const availableTimes = tourData['time-slots'];
+    const maxSlots = tourData['max-participants'];
     return (
         <div id='app-container' className='w-full h-screen min-h-screen flex flex-col overflow-y-auto'>
             <Header />
@@ -61,7 +110,7 @@ const NightTour = () => {
                             <span className='text-3xl font-bold whitespace-nowrap'>¥ {tourPrice.toLocaleString('en-US')} / Adult</span>
                         </div>
                         <DurationReview tourDuration={tourDuration} tourReviews={tourReviews} />
-                        <p className='font-ubuntu my-6 md:mb-0'>{config['night-tour']['tour-description']}</p>
+                        <p className='font-ubuntu my-6 md:mb-0'>{tourData['tour-description']}</p>
                         <div className='flex flex-col-reverse md:flex-row'>
                             <div className='my-6 w-full'>
                                 <div className='flex w-max font-roboto font-bold border-b-2 border-blue-600'>

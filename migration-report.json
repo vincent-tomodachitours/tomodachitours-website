@@ -1,0 +1,3567 @@
+{
+  "timestamp": "2025-06-05T05:55:58.700Z",
+  "results": {
+    "total": 39,
+    "successful": 39,
+    "failed": 0,
+    "errors": []
+  },
+  "validationErrors": [
+    {
+      "row": [
+        "2025-03-17",
+        "17:00",
+        "3",
+        "0",
+        "0",
+        "Rani",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-03-18",
+        "17:00",
+        "2",
+        "1",
+        "1",
+        "Dane",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-03-19",
+        "18:00",
+        "1",
+        "0",
+        "0",
+        "Robert",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-03-19",
+        "17:00",
+        "1",
+        "1",
+        "0",
+        "Jim",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-03-21",
+        "19:00",
+        "8",
+        "0",
+        "0",
+        "Peter",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-03-22",
+        "17:00",
+        "9",
+        "0",
+        "0",
+        "Lucy",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-03-23",
+        "18:00",
+        "4",
+        "2",
+        "0",
+        "Yuta",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-03-24",
+        "18:00",
+        "5",
+        "0",
+        "0",
+        "Yuta",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-03-25",
+        "19:00",
+        "7",
+        "0",
+        "0",
+        "Yuta",
+        "",
+        "",
+        "7"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-03-26",
+        "19:00",
+        "2",
+        "0",
+        "0",
+        "Yuta",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-01",
+        "17:00",
+        "3",
+        "1",
+        "0",
+        "Sato",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-02",
+        "18:00",
+        "5",
+        "0",
+        "0",
+        "Ken",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-03",
+        "17:00",
+        "6",
+        "0",
+        "0",
+        "Rika",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-03",
+        "18:00",
+        "4",
+        "1",
+        "0",
+        "Marina",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-03",
+        "19:00",
+        "7",
+        "1",
+        "0",
+        "Hiroshi",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-04",
+        "17:00",
+        "1",
+        "1",
+        "1",
+        "Naomi",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-06",
+        "18:00",
+        "6",
+        "0",
+        "0",
+        "Rika",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-07",
+        "17:00",
+        "4",
+        "2",
+        "0",
+        "Takeshi",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-08",
+        "18:00",
+        "8",
+        "0",
+        "0",
+        "Ayaka",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-09",
+        "17:00",
+        "9",
+        "0",
+        "0",
+        "Yuki",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-09",
+        "18:00",
+        "3",
+        "1",
+        "0",
+        "Hana",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-09",
+        "19:00",
+        "5",
+        "0",
+        "0",
+        "Taro",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-11",
+        "17:00",
+        "2",
+        "2",
+        "0",
+        "Emi",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-11",
+        "19:00",
+        "3",
+        "1",
+        "0",
+        "Hana",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-12",
+        "17:00",
+        "6",
+        "0",
+        "1",
+        "Mei",
+        "",
+        "",
+        "7"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-12",
+        "18:00",
+        "4",
+        "1",
+        "0",
+        "Marina",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-13",
+        "17:00",
+        "5",
+        "0",
+        "0",
+        "Kenta",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-15",
+        "17:00",
+        "9",
+        "0",
+        "0",
+        "Kenta",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-15",
+        "18:00",
+        "9",
+        "0",
+        "0",
+        "Penis",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-15",
+        "19:00",
+        "9",
+        "0",
+        "0",
+        "Ryo",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-16",
+        "17:00",
+        "5",
+        "0",
+        "0",
+        "Sora",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-16",
+        "18:00",
+        "4",
+        "1",
+        "0",
+        "Marina",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-18",
+        "17:00",
+        "6",
+        "0",
+        "0",
+        "Daichi",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-18",
+        "18:00",
+        "2",
+        "1",
+        "0",
+        "Haru",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-18",
+        "19:00",
+        "9",
+        "0",
+        "0",
+        "Taro",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-19",
+        "17:00",
+        "8",
+        "0",
+        "0",
+        "Yuki",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-19",
+        "18:00",
+        "5",
+        "0",
+        "0",
+        "Kaori",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-21",
+        "19:00",
+        "6",
+        "0",
+        "0",
+        "Daichi",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-22",
+        "17:00",
+        "2",
+        "1",
+        "0",
+        "Haru",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-24",
+        "18:00",
+        "8",
+        "0",
+        "0",
+        "Ryo",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-26",
+        "17:00",
+        "5",
+        "0",
+        "0",
+        "Nao",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-26",
+        "18:00",
+        "3",
+        "2",
+        "0",
+        "Misaki",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-26",
+        "19:00",
+        "7",
+        "0",
+        "0",
+        "Yusuke",
+        "",
+        "",
+        "7"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-27",
+        "18:00",
+        "4",
+        "1",
+        "0",
+        "Kaori",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "17:00",
+        "7",
+        "0",
+        "0",
+        "Takeshi",
+        "",
+        "",
+        "7"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "18:00",
+        "3",
+        "1",
+        "0",
+        "Hana",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "19:00",
+        "5",
+        "0",
+        "0",
+        "Sora",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-30",
+        "17:00",
+        "4",
+        "1",
+        "0",
+        "Kaori",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-23",
+        "17:00",
+        "12",
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-06-02",
+        "17:00",
+        "12",
+        "0",
+        "0",
+        "",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-20",
+        "7:15",
+        "2",
+        "1",
+        "0",
+        "Victor",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-20",
+        "8:00",
+        "7",
+        "2",
+        "0",
+        "Paul",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-20",
+        "8:45",
+        "2",
+        "3",
+        "1",
+        "Alice",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-21",
+        "8:00",
+        "2",
+        "1",
+        "0",
+        "Nico",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-22",
+        "6:30",
+        "1",
+        "0",
+        "0",
+        "Felix",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-22",
+        "8:45",
+        "2",
+        "7",
+        "0",
+        "Olive",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-23",
+        "7:15",
+        "1",
+        "0",
+        "4",
+        "Olive",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-26",
+        "6:30",
+        "2",
+        "0",
+        "0",
+        "Sam",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-27",
+        "7:15",
+        "8",
+        "0",
+        "0",
+        "Emma",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-27",
+        "8:00",
+        "3",
+        "0",
+        "5",
+        "Diego",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-27",
+        "8:45",
+        "1",
+        "1",
+        "0",
+        "Yara",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-28",
+        "6:30",
+        "1",
+        "1",
+        "4",
+        "Zane",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-28",
+        "8:00",
+        "1",
+        "2",
+        "0",
+        "Nico",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-28",
+        "8:45",
+        "6",
+        "0",
+        "0",
+        "Bob",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "6:30",
+        "2",
+        "1",
+        "6",
+        "Jack",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "7:15",
+        "8",
+        "0",
+        "0",
+        "Alice",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-30",
+        "7:15",
+        "1",
+        "2",
+        "4",
+        "Clara",
+        "",
+        "",
+        "7"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-30",
+        "8:00",
+        "1",
+        "0",
+        "0",
+        "Leo",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-01",
+        "6:30",
+        "2",
+        "0",
+        "4",
+        "Tina",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-01",
+        "7:15",
+        "3",
+        "1",
+        "0",
+        "Xander",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-01",
+        "8:45",
+        "2",
+        "2",
+        "0",
+        "Olive",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-02",
+        "7:15",
+        "1",
+        "0",
+        "2",
+        "Xander",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-02",
+        "8:00",
+        "8",
+        "0",
+        "0",
+        "Rita",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-02",
+        "8:45",
+        "5",
+        "0",
+        "4",
+        "Ivy",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-03",
+        "7:15",
+        "1",
+        "0",
+        "0",
+        "Jack",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-04",
+        "8:45",
+        "8",
+        "0",
+        "1",
+        "Emma",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-05",
+        "6:30",
+        "2",
+        "0",
+        "0",
+        "Xander",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-05",
+        "8:00",
+        "3",
+        "2",
+        "4",
+        "Ivy",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-05",
+        "8:45",
+        "4",
+        "0",
+        "0",
+        "Yara",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-06",
+        "7:15",
+        "1",
+        "0",
+        "0",
+        "Grace",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-07",
+        "6:30",
+        "1",
+        "1",
+        "0",
+        "Karen",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-07",
+        "7:15",
+        "1",
+        "4",
+        "2",
+        "Victor",
+        "",
+        "",
+        "7"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-07",
+        "8:00",
+        "1",
+        "5",
+        "2",
+        "Alice",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-08",
+        "7:15",
+        "2",
+        "0",
+        "1",
+        "Mona",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-08",
+        "8:00",
+        "2",
+        "0",
+        "0",
+        "Clara",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-08",
+        "8:45",
+        "1",
+        "0",
+        "5",
+        "Rita",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-09",
+        "7:15",
+        "2",
+        "0",
+        "0",
+        "Diego",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-09",
+        "8:00",
+        "4",
+        "0",
+        "0",
+        "Alice",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-09",
+        "8:45",
+        "6",
+        "2",
+        "1",
+        "Bob",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-10",
+        "7:15",
+        "7",
+        "0",
+        "0",
+        "Olive",
+        "",
+        "",
+        "7"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-10",
+        "8:45",
+        "4",
+        "0",
+        "4",
+        "Olive",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-11",
+        "7:15",
+        "2",
+        "1",
+        "6",
+        "Olive",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-11",
+        "8:45",
+        "2",
+        "2",
+        "0",
+        "Sam",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-12",
+        "6:30",
+        "1",
+        "2",
+        "3",
+        "Karen",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-12",
+        "7:15",
+        "6",
+        "1",
+        "0",
+        "Leo",
+        "",
+        "",
+        "7"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-12",
+        "8:45",
+        "1",
+        "0",
+        "0",
+        "Grace",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-13",
+        "8:00",
+        "1",
+        "0",
+        "1",
+        "Uma",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-13",
+        "8:45",
+        "4",
+        "0",
+        "0",
+        "Xander",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-16",
+        "6:30",
+        "1",
+        "8",
+        "0",
+        "Tina",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-16",
+        "7:15",
+        "2",
+        "1",
+        "0",
+        "Mona",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-16",
+        "8:00",
+        "2",
+        "0",
+        "0",
+        "Henry",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-17",
+        "7:15",
+        "1",
+        "0",
+        "0",
+        "Alice",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-17",
+        "8:00",
+        "2",
+        "0",
+        "4",
+        "Clara",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-18",
+        "6:30",
+        "1",
+        "0",
+        "0",
+        "Felix",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-18",
+        "7:15",
+        "6",
+        "0",
+        "1",
+        "Grace",
+        "",
+        "",
+        "7"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-18",
+        "8:00",
+        "5",
+        "0",
+        "0",
+        "Grace",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-19",
+        "6:30",
+        "3",
+        "1",
+        "0",
+        "Victor",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-19",
+        "8:00",
+        "8",
+        "0",
+        "0",
+        "Tina",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-24",
+        "8:00",
+        "9",
+        "0",
+        "0",
+        "Steve",
+        "",
+        "",
+        "9"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-21",
+        "9:30",
+        "1",
+        "1",
+        "0",
+        "Paul",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-21",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Felix",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-22",
+        "9:30",
+        "1",
+        "1",
+        "1",
+        "Paul",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-22",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Mia",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-22",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Sophia",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-23",
+        "9:30",
+        "1",
+        "0",
+        "1",
+        "John",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-23",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Alice",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-23",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Paul",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-24",
+        "9:30",
+        "1",
+        "0",
+        "1",
+        "Paul",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-24",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Olivia",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-25",
+        "9:30",
+        "1",
+        "2",
+        "0",
+        "Ava",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-25",
+        "9:30",
+        "1",
+        "0",
+        "1",
+        "Nico",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-26",
+        "9:30",
+        "1",
+        "2",
+        "1",
+        "Sophia",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-27",
+        "9:30",
+        "1",
+        "0",
+        "1",
+        "Alice",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-27",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Noah",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-28",
+        "9:30",
+        "1",
+        "1",
+        "1",
+        "Sara",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-28",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Nico",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "9:30",
+        "1",
+        "2",
+        "1",
+        "Victor",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Lena",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-30",
+        "9:30",
+        "1",
+        "1",
+        "1",
+        "Victor",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-30",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Emma",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-01",
+        "9:30",
+        "1",
+        "0",
+        "1",
+        "Sara",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-01",
+        "9:30",
+        "1",
+        "1",
+        "0",
+        "Olivia",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-02",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Alice",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-02",
+        "9:30",
+        "1",
+        "0",
+        "1",
+        "Noah",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-03",
+        "9:30",
+        "1",
+        "1",
+        "1",
+        "Sara",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-03",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Nico",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-04",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Sophia",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-04",
+        "9:30",
+        "1",
+        "1",
+        "0",
+        "Liam",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-04",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Sara",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-04",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Ava",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-05",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "John",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-05",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Noah",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-05",
+        "9:30",
+        "1",
+        "1",
+        "0",
+        "Ava",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-06",
+        "9:30",
+        "1",
+        "0",
+        "1",
+        "Felix",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-06",
+        "9:30",
+        "1",
+        "1",
+        "0",
+        "Sophia",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-07",
+        "9:30",
+        "1",
+        "1",
+        "0",
+        "Mason",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-07",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Ava",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-07",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Sophia",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-08",
+        "9:30",
+        "1",
+        "1",
+        "1",
+        "Noah",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-09",
+        "9:30",
+        "1",
+        "2",
+        "1",
+        "Sara",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-09",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "John",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-10",
+        "9:30",
+        "1",
+        "2",
+        "0",
+        "Victor",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-10",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Sophia",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-11",
+        "9:30",
+        "1",
+        "1",
+        "0",
+        "Nico",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-11",
+        "9:30",
+        "1",
+        "0",
+        "1",
+        "Lena",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-12",
+        "9:30",
+        "1",
+        "2",
+        "0",
+        "John",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-13",
+        "9:30",
+        "1",
+        "1",
+        "1",
+        "Alice",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-14",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Felix",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-14",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Sophia",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-14",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "John",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-15",
+        "9:30",
+        "1",
+        "1",
+        "1",
+        "Ava",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-15",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "John",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-16",
+        "9:30",
+        "1",
+        "2",
+        "1",
+        "Olivia",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-16",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Emma",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-17",
+        "9:30",
+        "1",
+        "2",
+        "1",
+        "Alice",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-17",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Nico",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-18",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Alice",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-18",
+        "9:30",
+        "1",
+        "1",
+        "0",
+        "Noah",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-18",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Sophia",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-19",
+        "9:30",
+        "1",
+        "1",
+        "1",
+        "Lena",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-19",
+        "9:30",
+        "1",
+        "1",
+        "0",
+        "Nico",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-20",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Liam",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-20",
+        "9:30",
+        "1",
+        "0",
+        "0",
+        "Lena",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-25",
+        "9:30",
+        "6",
+        "0",
+        "0",
+        "Tina",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-22",
+        "6:30",
+        "1",
+        "0",
+        "1",
+        "Liam",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-22",
+        "7:15",
+        "2",
+        "2",
+        "1",
+        "Dane",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-22",
+        "8:00",
+        "3",
+        "3",
+        "6",
+        "Jim",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-23",
+        "7:15",
+        "3",
+        "0",
+        "0",
+        "Sara",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-23",
+        "8:00",
+        "2",
+        "1",
+        "1",
+        "Rani",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-24",
+        "6:30",
+        "9",
+        "0",
+        "3",
+        "Alex",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-24",
+        "7:15",
+        "2",
+        "0",
+        "1",
+        "Dane",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-24",
+        "8:00",
+        "2",
+        "0",
+        "0",
+        "Lucy",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-25",
+        "6:30",
+        "3",
+        "3",
+        "0",
+        "Peter",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-25",
+        "7:15",
+        "1",
+        "0",
+        "0",
+        "Rani",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-25",
+        "8:00",
+        "1",
+        "0",
+        "1",
+        "Dane",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-26",
+        "6:30",
+        "1",
+        "3",
+        "4",
+        "Sara",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-26",
+        "7:15",
+        "7",
+        "3",
+        "2",
+        "Sara",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-26",
+        "8:00",
+        "3",
+        "0",
+        "1",
+        "Mina",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-27",
+        "6:30",
+        "1",
+        "2",
+        "7",
+        "Emily",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-27",
+        "7:15",
+        "6",
+        "0",
+        "0",
+        "Alex",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-27",
+        "8:00",
+        "4",
+        "0",
+        "0",
+        "Rani",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-28",
+        "6:30",
+        "1",
+        "1",
+        "0",
+        "Jim",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-28",
+        "7:15",
+        "2",
+        "0",
+        "0",
+        "Noah",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-28",
+        "8:00",
+        "6",
+        "1",
+        "1",
+        "Lucy",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "6:30",
+        "3",
+        "0",
+        "0",
+        "Robert",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "7:15",
+        "5",
+        "0",
+        "0",
+        "Lucy",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-29",
+        "8:00",
+        "5",
+        "1",
+        "0",
+        "Liam",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-30",
+        "6:30",
+        "9",
+        "1",
+        "2",
+        "Robert",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-04-30",
+        "8:00",
+        "3",
+        "1",
+        "0",
+        "Alex",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-01",
+        "6:30",
+        "2",
+        "0",
+        "0",
+        "Sara",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-01",
+        "7:15",
+        "1",
+        "0",
+        "3",
+        "Alex",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-01",
+        "8:00",
+        "1",
+        "0",
+        "0",
+        "Jim",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-02",
+        "6:30",
+        "3",
+        "0",
+        "0",
+        "Noah",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-02",
+        "7:15",
+        "4",
+        "7",
+        "1",
+        "Dane",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-02",
+        "8:00",
+        "6",
+        "2",
+        "0",
+        "Jim",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-03",
+        "6:30",
+        "11",
+        "0",
+        "1",
+        "Alex",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-03",
+        "7:15",
+        "3",
+        "3",
+        "2",
+        "Noah",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-03",
+        "8:00",
+        "3",
+        "3",
+        "0",
+        "Dane",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-04",
+        "6:30",
+        "3",
+        "0",
+        "0",
+        "Emily",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-04",
+        "7:15",
+        "6",
+        "2",
+        "0",
+        "John",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-04",
+        "8:00",
+        "6",
+        "0",
+        "2",
+        "Olivia",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-05",
+        "6:30",
+        "1",
+        "0",
+        "1",
+        "John",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-05",
+        "7:15",
+        "10",
+        "0",
+        "2",
+        "Peter",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-05",
+        "8:00",
+        "5",
+        "0",
+        "0",
+        "John",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-06",
+        "6:30",
+        "1",
+        "0",
+        "0",
+        "Emily",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-06",
+        "7:15",
+        "3",
+        "3",
+        "2",
+        "Olivia",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-07",
+        "7:15",
+        "2",
+        "2",
+        "6",
+        "Robert",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-07",
+        "8:00",
+        "4",
+        "2",
+        "2",
+        "Alex",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-08",
+        "6:30",
+        "1",
+        "4",
+        "3",
+        "Noah",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-08",
+        "7:15",
+        "2",
+        "2",
+        "0",
+        "John",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-08",
+        "8:00",
+        "4",
+        "1",
+        "3",
+        "Robert",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-09",
+        "6:30",
+        "4",
+        "0",
+        "0",
+        "Rani",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-09",
+        "7:15",
+        "3",
+        "6",
+        "1",
+        "Lucy",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-09",
+        "8:00",
+        "2",
+        "0",
+        "0",
+        "Alex",
+        "",
+        "",
+        "2"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-10",
+        "6:30",
+        "6",
+        "1",
+        "3",
+        "Noah",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-10",
+        "7:15",
+        "1",
+        "2",
+        "9",
+        "Noah",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-10",
+        "8:00",
+        "4",
+        "0",
+        "2",
+        "Robert",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-11",
+        "6:30",
+        "1",
+        "2",
+        "0",
+        "Noah",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-11",
+        "7:15",
+        "1",
+        "0",
+        "0",
+        "Alex",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-11",
+        "8:00",
+        "7",
+        "0",
+        "3",
+        "Peter",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-12",
+        "6:30",
+        "3",
+        "2",
+        "0",
+        "Emily",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-12",
+        "7:15",
+        "1",
+        "0",
+        "0",
+        "Noah",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-12",
+        "8:00",
+        "3",
+        "0",
+        "0",
+        "Sara",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-13",
+        "6:30",
+        "1",
+        "0",
+        "0",
+        "Rani",
+        "",
+        "",
+        "1"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-13",
+        "8:00",
+        "5",
+        "0",
+        "1",
+        "Mina",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-14",
+        "8:00",
+        "2",
+        "5",
+        "3",
+        "Mina",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-15",
+        "6:30",
+        "1",
+        "4",
+        "0",
+        "Emily",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-15",
+        "7:15",
+        "2",
+        "0",
+        "2",
+        "Peter",
+        "",
+        "",
+        "4"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-15",
+        "8:00",
+        "6",
+        "5",
+        "1",
+        "John",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-16",
+        "6:30",
+        "4",
+        "1",
+        "0",
+        "John",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-16",
+        "7:15",
+        "1",
+        "0",
+        "2",
+        "John",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-17",
+        "7:15",
+        "8",
+        "0",
+        "0",
+        "Sara",
+        "",
+        "",
+        "8"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-17",
+        "8:00",
+        "1",
+        "4",
+        "0",
+        "Sara",
+        "",
+        "",
+        "5"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-18",
+        "6:30",
+        "5",
+        "3",
+        "2",
+        "Lucy",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-18",
+        "7:15",
+        "5",
+        "1",
+        "0",
+        "Lucy",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-19",
+        "6:30",
+        "3",
+        "6",
+        "1",
+        "Emily",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-19",
+        "7:15",
+        "6",
+        "0",
+        "0",
+        "Lucy",
+        "",
+        "",
+        "6"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-19",
+        "8:00",
+        "3",
+        "3",
+        "6",
+        "Alex",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-20",
+        "6:30",
+        "2",
+        "7",
+        "1",
+        "Jim",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-20",
+        "7:15",
+        "1",
+        "2",
+        "0",
+        "Lucy",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-20",
+        "8:00",
+        "1",
+        "8",
+        "3",
+        "John",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-21",
+        "6:30",
+        "2",
+        "0",
+        "1",
+        "Lucy",
+        "",
+        "",
+        "3"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-21",
+        "7:15",
+        "1",
+        "0",
+        "9",
+        "Dane",
+        "",
+        "",
+        "10"
+      ],
+      "error": "Missing required fields: name or email"
+    },
+    {
+      "row": [
+        "2025-05-26",
+        "7:15",
+        "12",
+        "0",
+        "0",
+        "Samuel",
+        "",
+        "",
+        "12"
+      ],
+      "error": "Missing required fields: name or email"
+    }
+  ]
+}

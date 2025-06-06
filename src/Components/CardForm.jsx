@@ -1,5 +1,6 @@
-import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useImperativeHandle, useState, useEffect, useRef } from 'react';
 import PaymentFailed from '../Pages/PaymentFailed';
+import { supabase } from '../lib/supabase';
 
 const payjp = window.Payjp("pk_test_c5620903dcfe0af2f19e8475", { locale: "en" });
 
@@ -7,31 +8,36 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
     const handleCreateBooking = async () => {
         try {
             const bookingData = {
-                ...formRef.current
-            }
-            console.log(formRef.current)
-            const response = await fetch("https://us-central1-tomodachitours-f4612.cloudfunctions.net/createBookings", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    ...bookingData,
-                    range: `${sheetId}!A2:M`,
-                    tourname: tourName,
-                    tourprice: totalPrice,
-                    discountcode: appliedDiscount?.code || ""
-                }),
-            });
+                tour_type: sheetId.toUpperCase().replace(' ', '_'),
+                booking_date: formRef.current.date,
+                booking_time: formRef.current.time,
+                customer_name: formRef.current.name,
+                customer_phone: formRef.current.phone,
+                customer_email: formRef.current.email,
+                adults: parseInt(formRef.current.adults),
+                children: parseInt(formRef.current.children) || 0,
+                infants: parseInt(formRef.current.infants) || 0,
+                status: 'PENDING_PAYMENT',
+                discount_code: appliedDiscount?.code || null
+            };
 
-            const result = await response.json();
+            // Insert booking into Supabase
+            const { data, error } = await supabase
+                .from('bookings')
+                .insert([bookingData])
+                .select()
+                .single();
 
-            if (result.success) {
-                handleGetToken()
-            } else {
+            if (error) {
+                console.error('Error creating booking:', error);
                 setPaymentProcessing(false);
-                alert("Oops, something went wrong.");
+                alert(`Failed to create booking. ${error.message || error}`);
+                return;
             }
+
+            // Store booking ID for later use
+            window.currentBookingId = data.id;
+            handleGetToken();
         } catch (error) {
             setPaymentProcessing(false);
             console.error("Error submitting booking:", error);
@@ -39,67 +45,59 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
         }
     }
 
-    let numberElement = null;
-    let expiryElement = null;
-    let cvcElement = null;
+    const numberElement = useRef(null);
+    const expiryElement = useRef(null);
+    const cvcElement = useRef(null);
 
     const [paymentFailed, setPaymentFailed] = useState(false);
 
-    const handlePayDivMount = () => {
+    useEffect(() => {
         const elements = payjp.elements();
-
-        numberElement = elements.create("cardNumber");
-        numberElement.mount("#number-form");
-        expiryElement = elements.create("cardExpiry");
-        expiryElement.mount("#expiry-form")
-        cvcElement = elements.create("cardCvc");
-        cvcElement.mount("#cvc-form")
+        numberElement.current = elements.create("cardNumber");
+        numberElement.current.mount("#number-form");
+        expiryElement.current = elements.create("cardExpiry");
+        expiryElement.current.mount("#expiry-form");
+        cvcElement.current = elements.create("cardCvc");
+        cvcElement.current.mount("#cvc-form");
 
         window.cardElements = {
-            numberElement,
-            expiryElement,
-            cvcElement,
+            numberElement: numberElement.current,
+            expiryElement: expiryElement.current,
+            cvcElement: cvcElement.current,
         };
-    };
+    }, []);
 
     const handleGetToken = async () => {
-        if (!numberElement || !expiryElement || !cvcElement) {
+        if (!numberElement.current || !expiryElement.current || !cvcElement.current) {
             alert("element is not mounted");
             return;
         }
-        const token = await payjp.createToken(window.cardElements.numberElement);
+        const token = await payjp.createToken(numberElement.current);
 
-        const response = await fetch("https://us-central1-tomodachitours-f4612.cloudfunctions.net/createCharge", {
-            method: "POST", //POST for popup
+        if (!token || token.error) {
+            alert("Token creation failed.");
+            setPaymentProcessing(false);
+            return;
+        }
+
+        // Call Supabase Edge Function instead of Firebase
+        const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-charge`, {
+            method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
             },
             body: JSON.stringify({
                 token: token.id,
-                amount: totalPrice, // This is the discounted amount
+                amount: totalPrice,
                 discountCode: appliedDiscount?.code || null,
-                originalAmount: originalPrice || totalPrice
+                originalAmount: originalPrice || totalPrice,
+                bookingId: window.currentBookingId
             }),
         });
 
         const data = await response.json();
         if (data.success) {
-            // Update booking with charge ID before redirecting
-            try {
-                await fetch("https://us-central1-tomodachitours-f4612.cloudfunctions.net/updateBookingChargeId", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        email: formRef.current.email,
-                        chargeId: data.charge.id,
-                        tourname: tourName
-                    }),
-                });
-            } catch (error) {
-                console.error("Failed to update booking with charge ID:", error);
-                // Don't block the success flow
-            }
-            
             window.location.href = "/thankyou"
         } else {
             setPaymentProcessing(false);
@@ -141,7 +139,7 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
                 </div>
                 <div className='basis-1/2'>
                     <span>Security Code</span>
-                    <div id='cvc-form' ref={handlePayDivMount} className='p-2 bg-white border border-gray-300 rounded-md' />
+                    <div id='cvc-form' className='p-2 bg-white border border-gray-300 rounded-md' />
                 </div>
             </div>
             {paymentFailed ? <PaymentFailed onClick={() => setPaymentFailed(false)} /> : null}

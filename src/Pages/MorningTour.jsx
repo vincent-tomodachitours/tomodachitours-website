@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
-//Import tour config file
-import config from '../config.json';
+//Import tour services
+import { getTour } from '../services/toursService';
 
 //SVG
 import { ReactComponent as Location } from '../SVG/Location.svg'
@@ -26,13 +26,6 @@ import DatePicker from '../Components/DatePicker'
 import DurationReview from '../Components/TourPages/DurationReview'
 import ImageShowcase from '../Components/TourPages/ImageShowcase'
 
-const tourTitle = config['morning-tour']['tour-title'];
-const tourPrice = config['morning-tour']['tour-price'];
-const tourDuration = config['morning-tour']['tour-duration'];
-const tourReviews = config['morning-tour']['reviews'];
-const availableTimes = config['morning-tour']['time-slots'];
-const maxSlots = config['morning-tour']['max-participants'];
-
 const MorningTour = () => {
     const images = [
         { src: photo1 },
@@ -41,6 +34,28 @@ const MorningTour = () => {
         { src: photo4 },
         { src: photo5 },
     ];
+
+    // Tour data state
+    const [tourData, setTourData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    // Load tour data from Supabase
+    useEffect(() => {
+        const loadTourData = async () => {
+            try {
+                setLoading(true);
+                const data = await getTour('morning-tour');
+                setTourData(data);
+                console.log('✅ Morning tour data loaded:', data);
+            } catch (error) {
+                console.error('❌ Failed to load morning tour data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadTourData();
+    }, []);
 
     //Mobile resizing logic
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -54,6 +69,40 @@ const MorningTour = () => {
     }, []);
 
     const [activeContent, setActiveContent] = useState(1);
+
+    // Show loading state
+    if (loading) {
+        return (
+            <div id='app-container' className='w-full'>
+                <Header />
+                <div className='w-4/5 mx-auto flex justify-center items-center py-20'>
+                    <div className='text-xl text-gray-600'>Loading tour information...</div>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    // Show error state if tour data couldn't be loaded
+    if (!tourData) {
+        return (
+            <div id='app-container' className='w-full'>
+                <Header />
+                <div className='w-4/5 mx-auto flex justify-center items-center py-20'>
+                    <div className='text-xl text-red-600'>Unable to load tour information. Please try again later.</div>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    // Extract tour data
+    const tourTitle = tourData['tour-title'];
+    const tourPrice = tourData['tour-price'];
+    const tourDuration = tourData['tour-duration'];
+    const tourReviews = tourData['reviews'];
+    const availableTimes = tourData['time-slots'];
+    const maxSlots = tourData['max-participants'];
     return (
         <div id='app-container' className='w-full'>
             <Header />
@@ -66,7 +115,7 @@ const MorningTour = () => {
                             <span className='text-3xl font-bold whitespace-nowrap'>¥ {tourPrice.toLocaleString('en-US')} / Adult</span>
                         </div>
                         <DurationReview tourDuration={tourDuration} tourReviews={tourReviews} />
-                        <p className='font-ubuntu my-6 md:mb-0'>{config['night-tour']['tour-description']}</p>
+                        <p className='font-ubuntu my-6 md:mb-0'>{tourData['tour-description']}</p>
                         <div className='flex flex-col-reverse md:flex-row'>
                             <div className='my-6 w-full'>
                                 <div className='flex w-max gap-4 font-roboto font-bold border-b-2 border-blue-600'>

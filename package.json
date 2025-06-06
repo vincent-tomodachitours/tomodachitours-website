@@ -8,6 +8,7 @@
     "@mui/material": "^7.1.1",
     "@stripe/react-stripe-js": "^3.6.0",
     "@stripe/stripe-js": "^7.1.0",
+    "@supabase/supabase-js": "^2.49.10",
     "@tailwindcss/cli": "^4.0.12",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
@@ -16,6 +17,7 @@
     "autoprefixer": "^10.4.21",
     "classnames": "^2.5.1",
     "dotenv": "^16.5.0",
+    "googleapis": "^133.0.0",
     "node-fetch": "^3.3.2",
     "payjp": "^2.3.0",
     "postcss": "^8.5.3",
@@ -29,16 +31,19 @@
     "yet-another-react-lightbox": "^3.23.0"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "dev": "react-scripts start",
     "build": "react-scripts build",
+    "start": "react-scripts start",
     "test": "react-scripts test",
+    "vercel-build": "react-scripts build",
     "test:frontend": "react-scripts test --watchAll=false --verbose",
     "test:backend": "node test-backend.js",
     "test:all": "node test-runner.js",
     "test:watch": "react-scripts test",
     "test:coverage": "react-scripts test --coverage --watchAll=false",
     "eject": "react-scripts eject",
-    "fetch-config": "node scripts/fetchConfig.js"
+    "fetch-config": "node scripts/fetchConfig.js",
+    "migrate": "node scripts/migrateToSupabase.js"
   },
   "eslintConfig": {
     "extends": [
@@ -59,8 +64,8 @@
     ]
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.17",
-    "identity-obj-proxy": "^3.0.0"
+    "identity-obj-proxy": "^3.0.0",
+    "tailwindcss": "^3.4.17"
   },
   "jest": {
     "collectCoverageFrom": [
