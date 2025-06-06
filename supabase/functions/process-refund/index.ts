@@ -108,10 +108,11 @@ Deno.serve(async (req) => {
 
     console.log("✅ Booking status updated to CANCELLED")
 
-    // Send cancellation email
+    // Send cancellation emails (customer + company)
     try {
       const scriptUrl = 'https://script.google.com/macros/s/AKfycbx7ZkjQRaqafa2BdzRxCYBvX7rVwBYE12Zr6z4YQWi7y_RvInXqa4MCkm4MzWOdHNm9/exec'
 
+      // 1. Send cancellation email to customer
       await fetch(scriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,7 +128,30 @@ Deno.serve(async (req) => {
         })
       })
 
-      console.log("✅ Cancellation email sent")
+      console.log("✅ Customer cancellation email sent")
+
+      // 2. Send cancellation notification to company
+      await fetch(scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: 'ifyoureadthisyouregay',
+          type: 'company_cancellation',
+          customerName: booking.customer_name,
+          customerEmail: booking.customer_email,
+          customerPhone: booking.customer_phone || 'Not provided',
+          tourname: booking.tour_type,
+          date: booking.booking_date,
+          time: booking.booking_time,
+          adults: booking.adults,
+          children: booking.children,
+          infants: booking.infants,
+          refundAmount: refundInfo?.amount || 'N/A',
+          chargeId: booking.charge_id || 'N/A'
+        })
+      })
+
+      console.log("✅ Company cancellation notification sent")
     } catch (emailError) {
       console.error("Email notification failed:", emailError)
       // Don't fail the cancellation for email issues

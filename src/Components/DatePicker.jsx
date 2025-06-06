@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Calendar from "react-calendar"
 import '../CSS/Calendar.css';
 import PeopleSelector from "./PeopleSelector";
@@ -12,7 +12,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const handleCloseCheckout = () => setCheckout(false);
     const [bookings, setBookings] = useState([]);
 
-    const [loaded, setLoaded] = useState(0);
     const [calendarState, setCalendarState] = useState(0);
 
     const [participants, setParticipants] = useState(1);
@@ -28,32 +27,11 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         setTourTime(event.target.value);
     }
 
-    useEffect(() => {
-        fetchBookings();
-    }, [sheetId]);
+    const [calendarSelectedDate, setCalendarSelectedDate] = useState(new Date());
 
-    useEffect(() => {
-        if (calendarState === 1) {
-            setTourTime(returnAvailableTimes(calendarSelectedDate, participants)[0])
-        }
-    }, [calendarState])
+    const participantsByDate = {};
 
-    useEffect(() => {
-        const appContainer = document.getElementById('app-container');
-        if (checkout) {
-            appContainer.classList.remove('overflow-y-auto');
-            appContainer.classList.add('overflow-y-hidden');
-        } else {
-            appContainer.classList.remove('overflow-y-hidden');
-            appContainer.classList.add('overflow-y-auto');
-        }
-
-        return () => {
-            appContainer.classList.remove('overflow-y-hidden');
-        };
-    }, [checkout]);
-
-    async function fetchBookingsForTour() {
+    const fetchBookings = useCallback(async () => {
         console.log('Fetching bookings for tour:', sheetId);
         // Convert sheetId to match database tour_type format
         const tourTypeMap = {
@@ -82,27 +60,61 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         }
 
         console.log('Fetched bookings:', data);
-        return data;
-    }
+        setBookings(data);
+    }, [sheetId]);
 
-    const fetchBookings = async () => {
-        try {
-            const data = await fetchBookingsForTour();
-            console.log('Setting bookings state:', data);
-            setBookings(data);
-            setLoaded(true);
-        } catch (error) {
-            console.error("Failed to fetch bookings:", error);
-            setBookings([]);
-            setLoaded(true);
+    const returnAvailableTimes = useCallback((date, participants) => {
+        const formattedDate = date.toLocaleDateString("en-CA");
+        console.log('Checking available times for:', { formattedDate, participants });
+        const dayData = participantsByDate[formattedDate];
+        console.log('Day data:', dayData);
+
+        const options = [...availableTimes];
+        console.log('Initial time options:', options);
+
+        if (dayData) {
+            for (let i = 0; i < options.length; i++) {
+                const currentSlot = options[i];
+                const currentParticipants = dayData[currentSlot] || 0;
+                console.log('Checking time slot:', { currentSlot, currentParticipants, maxSlots, participants });
+
+                if (currentParticipants > (maxSlots - participants)) {
+                    console.log('Removing time slot:', currentSlot);
+                    options.splice(i, 1);
+                    i--;
+                }
+            }
         }
-    };
 
-    const [calendarSelectedDate, setCalendarSelectedDate] = useState(() => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow;
-    });
+        console.log('Final available times:', options);
+        return options;
+    }, [bookings, availableTimes, maxSlots, participantsByDate]);
+
+    useEffect(() => {
+        fetchBookings();
+    }, [sheetId, fetchBookings]);
+
+    useEffect(() => {
+        if (calendarState === 1) {
+            setTourTime(returnAvailableTimes(calendarSelectedDate, participants)[0])
+        }
+    }, [calendarState, calendarSelectedDate, participants, returnAvailableTimes]);
+
+    useEffect(() => {
+        const appContainer = document.getElementById('app-container');
+        if (checkout) {
+            appContainer.classList.remove('overflow-y-auto');
+            appContainer.classList.add('overflow-y-hidden');
+        } else {
+            appContainer.classList.remove('overflow-y-hidden');
+            appContainer.classList.add('overflow-y-auto');
+        }
+
+        return () => {
+            appContainer.classList.remove('overflow-y-hidden');
+        };
+    }, [checkout]);
+
     const today = new Date();
 
     const oneYearsLater = new Date();
@@ -110,8 +122,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
     const minViewLimit = new Date();
     minViewLimit.setMonth(today.getMonth());
-
-    const participantsByDate = {};
 
     // Only process bookings if it's an array (not the initial "Loading" string)
     if (Array.isArray(bookings)) {
@@ -140,33 +150,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             }
         });
         console.log('Final participantsByDate:', participantsByDate);
-    }
-
-    const returnAvailableTimes = (date, participants) => {
-        const formattedDate = date.toLocaleDateString("en-CA");
-        console.log('Checking available times for:', { formattedDate, participants });
-        const dayData = participantsByDate[formattedDate];
-        console.log('Day data:', dayData);
-
-        const options = [...availableTimes];
-        console.log('Initial time options:', options);
-
-        if (dayData) {
-            for (let i = 0; i < options.length; i++) {
-                const currentSlot = options[i];
-                const currentParticipants = dayData[currentSlot] || 0;
-                console.log('Checking time slot:', { currentSlot, currentParticipants, maxSlots, participants });
-
-                if (currentParticipants > (maxSlots - participants)) {
-                    console.log('Removing time slot:', currentSlot);
-                    options.splice(i, 1);
-                    i--;
-                }
-            }
-        }
-
-        console.log('Final available times:', options);
-        return options;
     }
 
     const timeSlotSelector = (options) => {
@@ -276,15 +259,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
     return (
         <div className='w-full md:w-2/3 lg:w-2/5 h-full border border-gray-300 rounded-md p-4 mx-auto text-gray-700'>
-            {loaded ? (
-                <div>
-                    {renderCalendarComponent()}
-                </div>
-            ) : (
-                <div className="w-full h-full grid place-content-center">
-                    <h1 className="text-3xl font-ubuntu font-bold">LOADING...</h1>
-                </div>
-            )}
+            {renderCalendarComponent()}
             {checkout === true ? (
                 <Checkout onClose={handleCloseCheckout} tourName={tourName} sheetId={sheetId} tourDate={calendarSelectedDate.toLocaleDateString("en-CA")} tourTime={tourTime} adult={adultParticipants} child={childParticipants} infant={infantParticipants} tourPrice={price} />
             ) : null}
