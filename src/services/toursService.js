@@ -9,26 +9,21 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  * Fetch all tours from Supabase with caching
  */
 export async function fetchTours() {
-    // Return cached data if it's still fresh
-    if (toursCache && cacheTimestamp && (Date.now() - cacheTimestamp < CACHE_DURATION)) {
-        return toursCache;
-    }
-
     try {
+        // Check cache first
+        if (toursCache && (Date.now() - cacheTimestamp) < CACHE_DURATION) {
+            return toursCache;
+        }
+
         const { data: tours, error } = await supabase
             .from('tours')
             .select('*')
-            .order('created_at');
+            .order('type');
 
         if (error) {
-            console.error('❌ Error fetching tours from Supabase:', error);
-            console.error('Supabase URL:', process.env.REACT_APP_SUPABASE_URL);
-            console.error('Supabase Key exists:', !!process.env.REACT_APP_SUPABASE_ANON_KEY);
-            // Fall back to static config if Supabase fails
-            return getStaticTours();
+            throw error;
         }
 
-        // Transform Supabase data to match the expected format
         const transformedTours = {};
 
         tours.forEach(tour => {
@@ -43,7 +38,6 @@ export async function fetchTours() {
                 'max-participants': tour.max_participants,
                 'cancellation-cutoff-hours': tour.cancellation_cutoff_hours ?? 24,
                 'cancellation-cutoff-hours-with-participant': tour.cancellation_cutoff_hours_with_participant ?? tour.cancellation_cutoff_hours ?? 24,
-                // Additional data from Supabase
                 id: tour.id,
                 type: tour.type,
                 updated_at: tour.updated_at
@@ -54,13 +48,9 @@ export async function fetchTours() {
         toursCache = transformedTours;
         cacheTimestamp = Date.now();
 
-        console.log('✅ Tours loaded from Supabase:', Object.keys(transformedTours));
         return transformedTours;
 
     } catch (error) {
-        console.error('❌ Failed to fetch tours (catch block):', error);
-        console.error('Environment check - URL:', process.env.REACT_APP_SUPABASE_URL);
-        console.error('Environment check - Key exists:', !!process.env.REACT_APP_SUPABASE_ANON_KEY);
         // Fall back to static config
         return getStaticTours();
     }
@@ -138,10 +128,8 @@ function extractTimeSlots(timeSlots) {
 async function getStaticTours() {
     try {
         const config = await import('../config.json');
-        console.log('⚠️ Using fallback static tours from config.json');
         return config.default || config;
     } catch (error) {
-        console.error('Failed to load static config:', error);
         return {};
     }
 } 

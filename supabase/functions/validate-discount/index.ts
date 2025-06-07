@@ -2,7 +2,9 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
+import { validateRequest, addSecurityHeaders, sanitizeOutput } from '../validation-middleware'
+import { z } from 'zod'
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
@@ -11,6 +13,12 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// Validation schema for discount code request
+const discountRequestSchema = z.object({
+  code: z.string().min(1).max(50),
+  tourPrice: z.number().int().positive()
+})
 
 console.log("Discount validation function loaded")
 
@@ -21,123 +29,95 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { code, originalAmount } = await req.json()
-
-    console.log("Discount validation request:", { code, originalAmount })
-
-    if (!code || !originalAmount) {
-      throw new Error('Missing required fields: code or originalAmount')
+    // Validate request data
+    const { data, error } = await validateRequest(req, discountRequestSchema)
+    if (error) {
+      return new Response(
+        JSON.stringify({ success: false, error }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      )
     }
 
-    const upperCode = code.toUpperCase()
+    const { code, tourPrice } = data!
 
-    // Create Supabase client
-    const supabaseClient = createClient(
+    // Initialize Supabase client
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { auth: { persistSession: false } }
     )
 
-    // Query the discount code
-    const { data: discountCode, error } = await supabaseClient
+    // Get discount code details
+    const { data: discountCode, error: discountError } = await supabase
       .from('discount_codes')
       .select('*')
-      .eq('code', upperCode)
-      .eq('active', true)
+      .eq('code', code.toUpperCase())
       .single()
 
-    if (error || !discountCode) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Invalid or expired discount code'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
-      )
+    if (discountError) {
+      throw new Error('Invalid discount code')
     }
 
-    // Check if code is valid based on dates
+    // Validate discount code
     const now = new Date()
-    if (discountCode.valid_until && new Date(discountCode.valid_until) < now) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'This discount code has expired'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
-      )
+    const startDate = new Date(discountCode.valid_from)
+    const endDate = discountCode.valid_until ? new Date(discountCode.valid_until) : null
+
+    if (now < startDate || (endDate && now > endDate)) {
+      throw new Error('Discount code has expired or is not yet valid')
     }
 
-    // Check usage limit
-    if (discountCode.max_uses && discountCode.used_count >= discountCode.max_uses) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'This discount code has reached its usage limit'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
-      )
+    if (discountCode.max_uses && discountCode.times_used >= discountCode.max_uses) {
+      throw new Error('Discount code has reached maximum usage')
     }
 
-    // Calculate discount
-    let discountAmount = 0
-    let finalAmount = originalAmount
-
-    if (discountCode.type === 'percentage') {
-      discountAmount = Math.floor(originalAmount * (discountCode.value / 100))
-      finalAmount = originalAmount - discountAmount
-    } else {
-      discountAmount = discountCode.value
-      finalAmount = Math.max(0, originalAmount - discountAmount)
+    // Calculate discounted price
+    let discountedPrice = tourPrice
+    if (discountCode.discount_type === 'percentage') {
+      discountedPrice = Math.round(tourPrice * (1 - discountCode.discount_value / 100))
+    } else if (discountCode.discount_type === 'fixed') {
+      discountedPrice = tourPrice - discountCode.discount_value
     }
 
-    console.log("✅ Discount applied:", { code: upperCode, discountAmount, finalAmount })
+    // Ensure minimum price
+    if (discountCode.minimum_price && discountedPrice < discountCode.minimum_price) {
+      discountedPrice = discountCode.minimum_price
+    }
 
-    // Increment the used_count
-    const { error: updateError } = await supabaseClient
-      .from('discount_codes')
-      .update({ used_count: discountCode.used_count + 1 })
-      .eq('id', discountCode.id)
-
-    if (updateError) {
-      console.error("Failed to update discount code usage count:", updateError)
+    const response = {
+      success: true,
+      code: discountCode.code,
+      originalPrice: tourPrice,
+      discountedPrice,
+      discountType: discountCode.discount_type,
+      discountValue: discountCode.discount_value
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        discount: {
-          code: upperCode,
-          amount: discountAmount,
-          type: discountCode.type,
-          percentage: discountCode.type === 'percentage' ? discountCode.value : null,
-          id: discountCode.id
-        },
-        originalAmount,
-        finalAmount
-      }),
+      JSON.stringify(sanitizeOutput(response)),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+        headers: addSecurityHeaders(new Headers({
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }))
       }
     )
 
   } catch (error) {
-    console.error("Discount validation failed:", error)
+    console.error('Discount validation error:', error)
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        headers: addSecurityHeaders(new Headers({
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        })),
+        status: 400
       }
     )
   }

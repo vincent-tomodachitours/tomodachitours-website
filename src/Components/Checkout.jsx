@@ -313,7 +313,7 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                         <div className='w-full border-t-2 bg-gray-300 my-4' />
                         <div className='flex items-start gap-2 mb-2'>
                             <input className='h-full mt-2 cursor-pointer' type='checkbox' name='terms' checked={formData.terms} onChange={handleInputChange} />
-                            <span> I have read and agree to the <Link className='text-blue-600 '>Terms and Conditions</Link>.</span>
+                            <span> I have read and agree to the <Link to="/commercial-disclosure" className='text-blue-600'>Terms and Conditions</Link>.</span>
                         </div>
                         {
                             paymentAllowed ?

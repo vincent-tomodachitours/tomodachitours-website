@@ -16,7 +16,6 @@
     "@testing-library/user-event": "^13.5.0",
     "autoprefixer": "^10.4.21",
     "classnames": "^2.5.1",
-    "dotenv": "^16.5.0",
     "googleapis": "^133.0.0",
     "node-fetch": "^3.3.2",
     "payjp": "^2.3.0",
@@ -28,22 +27,20 @@
     "react-router-dom": "^7.5.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4",
-    "yet-another-react-lightbox": "^3.23.0"
+    "yet-another-react-lightbox": "^3.23.0",
+    "zod": "^3.25.56"
   },
   "scripts": {
     "dev": "react-scripts start",
     "build": "react-scripts build",
     "start": "react-scripts start",
-    "test": "react-scripts test",
+    "test": "vitest",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "vercel-build": "CI=false react-scripts build",
-    "test:frontend": "react-scripts test --watchAll=false --verbose",
-    "test:backend": "node test-backend.js",
-    "test:all": "node test-runner.js",
-    "test:watch": "react-scripts test",
-    "test:coverage": "react-scripts test --coverage --watchAll=false",
     "eject": "react-scripts eject",
-    "fetch-config": "node scripts/fetchConfig.js",
-    "migrate": "node scripts/migrateToSupabase.js"
+    "fetch-config": "node scripts/fetchConfig.js"
   },
   "eslintConfig": {
     "extends": [
@@ -64,8 +61,11 @@
     ]
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.2",
+    "dotenv": "^16.5.0",
     "identity-obj-proxy": "^3.0.0",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "vitest": "^3.2.2"
   },
   "jest": {
     "collectCoverageFrom": [

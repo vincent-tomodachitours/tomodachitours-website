@@ -2,9 +2,102 @@ import React, { forwardRef, useImperativeHandle, useState, useEffect, useRef } f
 import PaymentFailed from '../Pages/PaymentFailed';
 import { supabase } from '../lib/supabase';
 
-const payjp = window.Payjp("pk_test_c5620903dcfe0af2f19e8475", { locale: "en" });
+// Initialize PayJP outside of component to ensure single initialization
+let payjp = null;
+if (window.Payjp && !payjp) {
+    payjp = window.Payjp(process.env.REACT_APP_PAYJP_PUBLIC_KEY, {
+        locale: "en",
+        threeDSecure: true
+    });
+}
 
 const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formRef, tourName, sheetId, setPaymentProcessing }, ref) => {
+    const [isPayJPReady, setIsPayJPReady] = useState(false);
+    const numberElement = useRef(null);
+    const expiryElement = useRef(null);
+    const cvcElement = useRef(null);
+    const [paymentFailed, setPaymentFailed] = useState(false);
+    const initializationAttempted = useRef(false);
+
+    useEffect(() => {
+        if (initializationAttempted.current) return;
+        initializationAttempted.current = true;
+
+        if (!payjp && window.Payjp) {
+            payjp = window.Payjp(process.env.REACT_APP_PAYJP_PUBLIC_KEY, {
+                locale: "en",
+                threeDSecure: true
+            });
+        }
+
+        const initializePayJP = () => {
+            if (payjp) {
+                setIsPayJPReady(true);
+            } else if (window.Payjp) {
+                payjp = window.Payjp(process.env.REACT_APP_PAYJP_PUBLIC_KEY, {
+                    locale: "en",
+                    threeDSecure: true
+                });
+                setIsPayJPReady(true);
+            }
+        };
+
+        initializePayJP();
+
+        if (!payjp) {
+            const checkPayJP = setInterval(() => {
+                initializePayJP();
+                if (payjp) {
+                    clearInterval(checkPayJP);
+                }
+            }, 100);
+
+            return () => clearInterval(checkPayJP);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isPayJPReady || !payjp) return;
+
+        // Cleanup previous elements
+        if (numberElement.current) {
+            numberElement.current.unmount();
+        }
+        if (expiryElement.current) {
+            expiryElement.current.unmount();
+        }
+        if (cvcElement.current) {
+            cvcElement.current.unmount();
+        }
+
+        const elements = payjp.elements();
+        numberElement.current = elements.create("cardNumber");
+        expiryElement.current = elements.create("cardExpiry");
+        cvcElement.current = elements.create("cardCvc");
+
+        // Mount elements
+        const numberForm = document.getElementById("number-form");
+        const expiryForm = document.getElementById("expiry-form");
+        const cvcForm = document.getElementById("cvc-form");
+
+        if (numberForm) numberElement.current.mount("#number-form");
+        if (expiryForm) expiryElement.current.mount("#expiry-form");
+        if (cvcForm) cvcElement.current.mount("#cvc-form");
+
+        window.cardElements = {
+            numberElement: numberElement.current,
+            expiryElement: expiryElement.current,
+            cvcElement: cvcElement.current,
+        };
+
+        // Cleanup function
+        return () => {
+            if (numberElement.current) numberElement.current.unmount();
+            if (expiryElement.current) expiryElement.current.unmount();
+            if (cvcElement.current) cvcElement.current.unmount();
+        };
+    }, [isPayJPReady]);
+
     const handleCreateBooking = async () => {
         try {
             const bookingData = {
@@ -45,61 +138,49 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
         }
     }
 
-    const numberElement = useRef(null);
-    const expiryElement = useRef(null);
-    const cvcElement = useRef(null);
-
-    const [paymentFailed, setPaymentFailed] = useState(false);
-
-    useEffect(() => {
-        const elements = payjp.elements();
-        numberElement.current = elements.create("cardNumber");
-        numberElement.current.mount("#number-form");
-        expiryElement.current = elements.create("cardExpiry");
-        expiryElement.current.mount("#expiry-form");
-        cvcElement.current = elements.create("cardCvc");
-        cvcElement.current.mount("#cvc-form");
-
-        window.cardElements = {
-            numberElement: numberElement.current,
-            expiryElement: expiryElement.current,
-            cvcElement: cvcElement.current,
-        };
-    }, []);
-
     const handleGetToken = async () => {
         if (!numberElement.current || !expiryElement.current || !cvcElement.current) {
             alert("element is not mounted");
             return;
         }
-        const token = await payjp.createToken(numberElement.current);
 
-        if (!token || token.error) {
-            alert("Token creation failed.");
-            setPaymentProcessing(false);
-            return;
-        }
+        try {
+            // Create token without additional parameters - PayJP handles 3D Secure automatically
+            const tokenResponse = await payjp.createToken(numberElement.current);
 
-        // Call Supabase Edge Function instead of Firebase
-        const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-charge`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
-            },
-            body: JSON.stringify({
-                token: token.id,
-                amount: totalPrice,
-                discountCode: appliedDiscount?.code || null,
-                originalAmount: originalPrice || totalPrice,
-                bookingId: window.currentBookingId
-            }),
-        });
+            if (!tokenResponse || tokenResponse.error) {
+                console.error("Token creation failed:", tokenResponse.error);
+                setPaymentProcessing(false);
+                alert("Payment failed: " + (tokenResponse.error?.message || "Token creation failed"));
+                return;
+            }
 
-        const data = await response.json();
-        if (data.success) {
-            window.location.href = "/thankyou"
-        } else {
+            // Call Supabase Edge Function
+            const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-charge`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    token: tokenResponse.id,
+                    amount: totalPrice,
+                    discountCode: appliedDiscount?.code || null,
+                    originalAmount: originalPrice || totalPrice,
+                    bookingId: window.currentBookingId
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.location.href = "/thankyou"
+            } else {
+                setPaymentProcessing(false);
+                setPaymentFailed(true);
+            }
+        } catch (error) {
+            console.error("Payment processing error:", error);
             setPaymentProcessing(false);
             setPaymentFailed(true);
         }

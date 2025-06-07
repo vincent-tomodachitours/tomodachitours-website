@@ -30,7 +30,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const participantsByDate = {};
 
     const fetchBookings = useCallback(async () => {
-        console.log('Fetching bookings for tour:', sheetId);
         // Convert sheetId to match database tour_type format
         const tourTypeMap = {
             'Night tour': 'NIGHT_TOUR',
@@ -39,10 +38,8 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             'Gion tour': 'GION_TOUR'
         };
         const tourType = tourTypeMap[sheetId];
-        console.log('Using tour_type:', tourType);
 
         if (!tourType) {
-            console.error('Invalid tour type:', sheetId);
             throw new Error(`Invalid tour type: ${sheetId}`);
         }
 
@@ -53,23 +50,16 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             .eq('status', 'CONFIRMED');
 
         if (error) {
-            console.error('Error fetching bookings:', error);
             throw error;
         }
 
-        console.log('Fetched bookings:', data);
         setBookings(data);
     }, [sheetId]);
 
     const returnAvailableTimes = useCallback((date, participants) => {
         const formattedDate = date.toLocaleDateString("en-CA");
-        console.log('Checking available times for:', { formattedDate, participants });
         const dayData = participantsByDate[formattedDate] || {};
-        console.log('Day data:', dayData);
-
         const options = [...availableTimes];
-        console.log('Initial time options:', options);
-
         const nowJST = getNowInJST();
 
         for (let i = 0; i < options.length; i++) {
@@ -80,26 +70,13 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             const hasParticipants = currentParticipants > 0;
             const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
 
-            console.log('Checking time slot:', {
-                currentSlot,
-                currentParticipants,
-                maxSlots,
-                participants,
-                hoursUntilTour,
-                hasParticipants,
-                cutoffHours
-            });
-
             // Remove slot if it's either full or past cutoff
             if (currentParticipants > (maxSlots - participants) || hoursUntilTour < cutoffHours) {
-                console.log('Removing time slot:', currentSlot,
-                    currentParticipants > (maxSlots - participants) ? '(full)' : '(past cutoff)');
                 options.splice(i, 1);
                 i--;
             }
         }
 
-        console.log('Final available times:', options);
         return options;
     }, [bookings, availableTimes, maxSlots, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant]);
 

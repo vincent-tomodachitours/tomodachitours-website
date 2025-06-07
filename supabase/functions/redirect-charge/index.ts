@@ -4,13 +4,24 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from '@supabase/supabase-js'
+import { addSecurityHeaders } from '../validation-middleware'
+import { z } from 'zod'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-console.log("3D Secure redirect function loaded")
+console.log("3D Secure redirect handler loaded")
+
+// URL parameter validation schema
+const urlParamsSchema = z.object({
+    charge_id: z.string().optional(),
+    token_id: z.string().optional()
+}).refine(data => data.charge_id || data.token_id, {
+    message: "Either charge_id or token_id must be provided"
+})
 
 Deno.serve(async (req) => {
     // Handle CORS preflight requests
@@ -20,14 +31,20 @@ Deno.serve(async (req) => {
 
     try {
         const url = new URL(req.url)
-        const chargeId = url.searchParams.get('charge_id') || url.searchParams.get('token_id')
+        const params = {
+            charge_id: url.searchParams.get('charge_id'),
+            token_id: url.searchParams.get('token_id')
+        }
 
-        console.log("3D Secure redirect request:", { chargeId, url: req.url })
-
-        if (!chargeId) {
-            console.error("Missing charge_id in redirect")
+        // Validate URL parameters
+        const result = urlParamsSchema.safeParse(params)
+        if (!result.success) {
+            console.error("Invalid URL parameters:", result.error)
             return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
         }
+
+        const chargeId = params.charge_id || params.token_id
+        console.log("3D Secure redirect request:", { chargeId, url: req.url })
 
         const payjpKey = Deno.env.get('PAYJP_SECRET_KEY')
         if (!payjpKey) {
@@ -65,19 +82,42 @@ Deno.serve(async (req) => {
             }
         })
 
-        if (!finishResponse.ok) {
-            const errorText = await finishResponse.text()
-            console.error("Failed to finish 3DS charge:", errorText)
+        const finishData = await finishResponse.json()
+
+        if (finishData.error) {
+            console.error("Failed to finish 3D Secure:", finishData.error)
             return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
         }
 
-        console.log("✅ 3D Secure processing completed successfully")
+        // Update booking status if payment was successful
+        if (finishData.paid) {
+            const supabase = createClient(
+                Deno.env.get('SUPABASE_URL') || '',
+                Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+            )
 
-        // Redirect to success page
-        return Response.redirect('https://tomodachitours.vercel.app/tours', 302)
+            const { error: updateError } = await supabase
+                .from('bookings')
+                .update({
+                    status: 'CONFIRMED',
+                    payment_status: 'PAID',
+                    three_d_secure_status: finishData.three_d_secure_status,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('payment_id', chargeId)
+
+            if (updateError) {
+                console.error("Failed to update booking status:", updateError)
+                // Continue to success page anyway as payment was successful
+            }
+
+            return Response.redirect('https://tomodachitours.vercel.app/thankyou', 302)
+        }
+
+        return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
 
     } catch (error) {
-        console.error("3D Secure redirect failed:", error)
+        console.error("3D Secure redirect processing error:", error)
         return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
     }
 })

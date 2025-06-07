@@ -19,7 +19,7 @@ const BookingCancellation = () => {
                 const toursData = await fetchTours();
                 setTours(toursData);
             } catch (error) {
-                console.error('Failed to load tours data:', error);
+                setMessage('Failed to load tour data');
             }
         };
         loadTours();
@@ -130,16 +130,13 @@ const BookingCancellation = () => {
                 setMessage(result.error || 'Failed to cancel booking');
             }
         } catch (error) {
-            setMessage('Failed to cancel booking: ' + (error.message || JSON.stringify(error)));
-            console.error('Cancel booking error:', error);
+            setMessage('Failed to cancel booking: ' + (error.message || 'An error occurred'));
         } finally {
             setCancelling(prev => ({ ...prev, [booking.id]: false }));
         }
     };
 
     function getBookingDateTime(booking) {
-        // booking_date: 'YYYY-MM-DD', booking_time: 'H:MM' or 'HH:MM'
-        // Ensure time format has leading zero for proper parsing
         const timeFormatted = booking.booking_time.padStart(5, '0');
         return new Date(`${booking.booking_date}T${timeFormatted}`);
     }
