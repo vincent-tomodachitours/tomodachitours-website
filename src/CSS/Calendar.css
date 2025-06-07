@@ -164,3 +164,41 @@
 .react-calendar--selectRange .react-calendar__tile--hover {
   background-color: #e6e6e6;
 }
+
+/* Make disabled 'today' tile look like other disabled tiles */
+.react-calendar__tile--now.react-calendar__tile--disabled {
+  background: none !important;
+  color: #bdbdbd !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-weight: normal !important;
+}
+
+/* Remove rounded and special background for disabled+active (selected) tile */
+.react-calendar__tile--active:disabled,
+.react-calendar__tile--active.react-calendar__tile--disabled,
+.react-calendar__tile--now.react-calendar__tile--active:disabled,
+.react-calendar__tile--now.react-calendar__tile--active.react-calendar__tile--disabled {
+  background: #f0f0f0 !important;
+  color: #ababab !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-weight: normal !important;
+}
+
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.5rem;
+  /* space for the arrow */
+  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 8L10 12L14 8' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem 1.25rem;
+}

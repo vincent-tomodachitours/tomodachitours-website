@@ -38,9 +38,11 @@ export async function fetchTours() {
                 'tour-description': tour.description,
                 'tour-price': tour.base_price,
                 'tour-duration': formatDuration(tour.duration_minutes),
-                'reviews': 0, // Could be added to DB later
+                'reviews': tour.reviews ?? 0,
                 'time-slots': extractTimeSlots(tour.time_slots),
                 'max-participants': tour.max_participants,
+                'cancellation-cutoff-hours': tour.cancellation_cutoff_hours ?? 24,
+                'cancellation-cutoff-hours-with-participant': tour.cancellation_cutoff_hours_with_participant ?? tour.cancellation_cutoff_hours ?? 24,
                 // Additional data from Supabase
                 id: tour.id,
                 type: tour.type,

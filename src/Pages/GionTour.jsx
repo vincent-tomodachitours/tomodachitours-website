@@ -132,11 +132,11 @@ const GionTour = () => {
                                 </div>
                                 {activeContent === 1 &&
                                     <div className='font-ubuntu flex flex-col gap-6 mt-4'>
-                                        <p>Experience Kyoto’s most iconic sights before the crowds arrive! Our early morning walking tour takes you through the historic streets of Gion, visiting Kiyomizu-dera Temple, Yasaka Shrine, Hanamikoji Street, and Sannenzaka & Ninenzaka with a knowledgeable and friendly English-speaking guide.</p>
+                                        <p>Experience Kyoto's most iconic sights before the crowds arrive! Our early morning walking tour takes you through the historic streets of Gion, visiting Kiyomizu-dera Temple, Yasaka Shrine, Hanamikoji Street, and Sannenzaka & Ninenzaka with a knowledgeable and friendly English-speaking guide.</p>
                                         <p>⚠️ Prior to the tour, please ensure that WhatsApp is available for easy communication. Our guide will contact you through these platforms.</p>
-                                        <p>✅ English Guided Walking Tour – Walking through Kyoto’s most scenic streets. </p>
-                                        <p>✅ Visit Five Must-See Locations – Explore Kiyomizu Temple, Yasaka Shrine, Gion’s historic streets, and Sannenzaka & Ninenzaka.</p>
-                                        <p>✅ Learn Kyoto’s History & Culture – Discover the stories behind Kyoto’s geisha district, samurai history, and old temples with our expert guide.</p>
+                                        <p>✅ English Guided Walking Tour – Walking through Kyoto's most scenic streets. </p>
+                                        <p>✅ Visit Five Must-See Locations – Explore Kiyomizu Temple, Yasaka Shrine, Gion's historic streets, and Sannenzaka & Ninenzaka.</p>
+                                        <p>✅ Learn Kyoto's History & Culture – Discover the stories behind Kyoto's geisha district, samurai history, and old temples with our expert guide.</p>
                                         <p>✅ Capture Stunning Photos – Enjoy a crowd-free Kyoto and take beautiful photos in its most picturesque locations.</p>
                                         <p>✅ Get Local Tips & Recommendations – Our guide will share insider tips to explore after the tour.</p>
                                     </div>
@@ -205,12 +205,12 @@ const GionTour = () => {
                                     </div>
                                 }
                             </div>
-                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Gion tour" price={tourPrice} />
+                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Gion tour" price={tourPrice} cancellationCutoffHours={tourData['cancellation-cutoff-hours']} cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']} />
                                 : null}
                         </div>
                     </div>
                     {!isMobile ?
-                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Gion tour" price={tourPrice} />
+                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Gion tour" price={tourPrice} cancellationCutoffHours={tourData['cancellation-cutoff-hours']} cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']} />
                         : null
                     }
                 </div>

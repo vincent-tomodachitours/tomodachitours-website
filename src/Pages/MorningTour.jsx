@@ -200,12 +200,12 @@ const MorningTour = () => {
                                     </div>
                                 }
                             </div>
-                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Morning tour" price={tourPrice} />
+                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Morning tour" price={tourPrice} cancellationCutoffHours={tourData['cancellation-cutoff-hours']} cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']} />
                                 : null}
                         </div>
                     </div>
                     {!isMobile ?
-                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Morning tour" price={tourPrice} />
+                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Morning tour" price={tourPrice} cancellationCutoffHours={tourData['cancellation-cutoff-hours']} cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']} />
                         : null
                     }
                 </div>

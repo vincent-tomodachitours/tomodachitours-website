@@ -6,7 +6,7 @@ import { ReactComponent as Clock } from '../SVG/Clock.svg'
 import Checkout from './Checkout'
 import { supabase } from '../lib/supabase';
 
-function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price }) {
+function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant }) {
     const [checkout, setCheckout] = useState(false);
     const handleOpenCheckout = () => setCheckout(true);
     const handleCloseCheckout = () => setCheckout(false);
@@ -23,9 +23,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const totalPrice = (adultParticipants + childParticipants) * price;
 
     const [tourTime, setTourTime] = useState(availableTimes[0]);
-    const handleTourTimeChange = (event) => {
-        setTourTime(event.target.value);
-    }
+    const [userSetTourTime, setUserSetTourTime] = useState(false);
 
     const [calendarSelectedDate, setCalendarSelectedDate] = useState(new Date());
 
@@ -66,39 +64,72 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const returnAvailableTimes = useCallback((date, participants) => {
         const formattedDate = date.toLocaleDateString("en-CA");
         console.log('Checking available times for:', { formattedDate, participants });
-        const dayData = participantsByDate[formattedDate];
+        const dayData = participantsByDate[formattedDate] || {};
         console.log('Day data:', dayData);
 
         const options = [...availableTimes];
         console.log('Initial time options:', options);
 
-        if (dayData) {
-            for (let i = 0; i < options.length; i++) {
-                const currentSlot = options[i];
-                const currentParticipants = dayData[currentSlot] || 0;
-                console.log('Checking time slot:', { currentSlot, currentParticipants, maxSlots, participants });
+        const nowJST = getNowInJST();
 
-                if (currentParticipants > (maxSlots - participants)) {
-                    console.log('Removing time slot:', currentSlot);
-                    options.splice(i, 1);
-                    i--;
-                }
+        for (let i = 0; i < options.length; i++) {
+            const currentSlot = options[i];
+            const currentParticipants = dayData[currentSlot] || 0;
+            const tourDateTimeJST = getTourDateTimeJST(date, currentSlot);
+            const hoursUntilTour = (tourDateTimeJST - nowJST) / (1000 * 60 * 60);
+            const hasParticipants = currentParticipants > 0;
+            const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
+
+            console.log('Checking time slot:', {
+                currentSlot,
+                currentParticipants,
+                maxSlots,
+                participants,
+                hoursUntilTour,
+                hasParticipants,
+                cutoffHours
+            });
+
+            // Remove slot if it's either full or past cutoff
+            if (currentParticipants > (maxSlots - participants) || hoursUntilTour < cutoffHours) {
+                console.log('Removing time slot:', currentSlot,
+                    currentParticipants > (maxSlots - participants) ? '(full)' : '(past cutoff)');
+                options.splice(i, 1);
+                i--;
             }
         }
 
         console.log('Final available times:', options);
         return options;
-    }, [bookings, availableTimes, maxSlots, participantsByDate]);
+    }, [bookings, availableTimes, maxSlots, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant]);
 
     useEffect(() => {
         fetchBookings();
     }, [sheetId, fetchBookings]);
 
     useEffect(() => {
-        if (calendarState === 1) {
-            setTourTime(returnAvailableTimes(calendarSelectedDate, participants)[0])
+        if (calendarState === 1 && !userSetTourTime) {
+            setTourTime(returnAvailableTimes(calendarSelectedDate, participants)[0]);
         }
-    }, [calendarState, calendarSelectedDate, participants, returnAvailableTimes]);
+    }, [calendarState, calendarSelectedDate, participants, returnAvailableTimes, userSetTourTime]);
+
+    useEffect(() => {
+        if (calendarState === 1) {
+            const formattedDate = calendarSelectedDate.toLocaleDateString("en-CA");
+            const nowJST = getNowInJST();
+            const dayData = participantsByDate[formattedDate] || {};
+            const enabledOptions = availableTimes.filter(slot => {
+                const tourDateTimeJST = getTourDateTimeJST(calendarSelectedDate, slot);
+                const hoursUntilTour = (tourDateTimeJST - nowJST) / (1000 * 60 * 60);
+                const hasParticipants = (dayData[slot] || 0) > 0;
+                const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
+                return hoursUntilTour >= cutoffHours;
+            });
+            if (!enabledOptions.includes(tourTime)) {
+                setTourTime(enabledOptions[0] || "");
+            }
+        }
+    }, [calendarState, calendarSelectedDate, participants, returnAvailableTimes, userSetTourTime, availableTimes, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant]);
 
     useEffect(() => {
         const appContainer = document.getElementById('app-container');
@@ -153,15 +184,46 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     }
 
     const timeSlotSelector = (options) => {
-        return <div>
-            <select name="time" id="time" value={tourTime} onChange={handleTourTimeChange} className="w-full h-10 rounded-lg border border-gray-700 bg-slate-100 px-2 font-ubuntu font-bold">
-                {options.map((_, i) => (
-                    <option value={options[i]}>
-                        {options[i]}
-                    </option>
-                ))}
-            </select>
-        </div>
+        const formattedDate = calendarSelectedDate.toLocaleDateString("en-CA");
+        const dayData = participantsByDate[formattedDate] || {};
+        const nowJST = getNowInJST();
+        return (
+            <div className="custom-select-wrapper">
+                <select
+                    name="time"
+                    id="time"
+                    value={tourTime}
+                    onChange={handleTourTimeChange}
+                    className="custom-select w-full h-10 rounded-lg border border-gray-700 bg-slate-100 px-2 font-ubuntu font-bold cursor-pointer"
+                    style={{
+                        color: tourTime ? 'inherit' : '#9CA3AF',
+                        backgroundColor: '#F8FAFC'
+                    }}
+                >
+                    {options.map((slot, i) => {
+                        const tourDateTimeJST = getTourDateTimeJST(calendarSelectedDate, slot);
+                        const hoursUntilTour = (tourDateTimeJST - nowJST) / (1000 * 60 * 60);
+                        const hasParticipants = dayData[slot] > 0;
+                        const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
+                        const enabled = hoursUntilTour >= cutoffHours;
+                        console.log({ slot, hoursUntilTour, hasParticipants, cutoffHours, enabled });
+                        return (
+                            <option
+                                value={slot}
+                                key={slot}
+                                disabled={!enabled}
+                                style={{
+                                    color: enabled ? 'inherit' : '#9CA3AF',
+                                    backgroundColor: enabled ? '#F8FAFC' : '#F3F4F6'
+                                }}
+                            >
+                                {slot}
+                            </option>
+                        );
+                    })}
+                </select>
+            </div>
+        );
     }
 
     const isDateFull = (date, participants) => {
@@ -179,14 +241,61 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         return true;
     };
 
+    // Helper to get current time in JST
+    function getNowInJST() {
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        return new Date(utc + (9 * 60 * 60000)); // JST is UTC+9
+    }
+
+    // Helper to get a Date object for a tour slot in JST
+    function getTourDateTimeJST(date, time) {
+        const [hour, minute] = time.split(":");
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        // Format: YYYY-MM-DDTHH:mm:00+09:00
+        const dtString = `${y}-${m}-${d}T${hour}:${minute}:00+09:00`;
+        return new Date(dtString);
+    }
 
     const disableDates = ({ date }) => {
-        return date < today || isDateFull(date, participants);
+        const todayJST = getNowInJST();
+        const dateJST = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const todayDateJST = new Date(todayJST.getFullYear(), todayJST.getMonth(), todayJST.getDate());
+        if (dateJST < todayDateJST) return true;
+        const nowJST = getNowInJST();
+        const formattedDate = date.toLocaleDateString("en-CA");
+        const dayData = participantsByDate[formattedDate] || {};
+        let allSlotsPastCutoff = true;
+        for (let i = 0; i < availableTimes.length; i++) {
+            const slot = availableTimes[i];
+            const tourDateTimeJST = getTourDateTimeJST(date, slot);
+            const hoursUntilTour = (tourDateTimeJST - nowJST) / (1000 * 60 * 60);
+            const hasParticipants = dayData[slot] > 0;
+            const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
+            if (hoursUntilTour >= cutoffHours) {
+                allSlotsPastCutoff = false;
+                break;
+            }
+        }
+        if (allSlotsPastCutoff) return true;
+        return isDateFull(date, participants);
     }
 
     function onCalendarChange(nextValue) {
         setCalendarSelectedDate(nextValue);
         setCalendarState(1);
+    }
+
+    const handleTourTimeChange = (event) => {
+        setTourTime(event.target.value);
+        setUserSetTourTime(true);
+    }
+
+    const handleGoBack = () => {
+        setCalendarState(0);
+        setUserSetTourTime(false);
     }
 
     const renderCalendarComponent = () => {
@@ -251,7 +360,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                         </div>
                     </div>
                 </div>
-                <button onClick={() => { setCalendarState(0) }}>&lt; Go back</button>
+                <button onClick={handleGoBack}>&lt; Go back</button>
                 <button className="w-full h-12 mt-4 bg-blue-700 rounded-md  text-white font-ubuntu" onClick={handleOpenCheckout}>Checkout</button>
             </div>
         }

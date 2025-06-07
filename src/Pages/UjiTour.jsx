@@ -137,7 +137,7 @@ const UjiTour = () => {
                                         <p>✅ English Guided Tour – Explore Uji City with our friendly and knowledgeable guide.</p>
                                         <p>✅ Hands-on Matcha Experience – Grind your own matcha powder using a traditional stone mill, then enjoy your freshly made tea with your choice of Japanese sweets or matcha ice cream.</p>
                                         <p>✅ Visit Byodo-in Temple – A UNESCO World Heritage Site, famous for its stunning architecture featured on the 10-yen coin.</p>
-                                        <p>✅ Learn the History of Uji Tea – Discover why Uji is known as Japan’s top region for high-quality green tea.</p>
+                                        <p>✅ Learn the History of Uji Tea – Discover why Uji is known as Japan's top region for high-quality green tea.</p>
                                     </div>
                                 }
                                 {activeContent === 2 &&
@@ -205,12 +205,12 @@ const UjiTour = () => {
                                     </div>
                                 }
                             </div>
-                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Uji tour" price={tourPrice} />
+                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Uji tour" price={tourPrice} cancellationCutoffHours={tourData['cancellation-cutoff-hours']} cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']} />
                                 : null}
                         </div>
                     </div>
                     {!isMobile ?
-                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Uji tour" price={tourPrice} />
+                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Uji tour" price={tourPrice} cancellationCutoffHours={tourData['cancellation-cutoff-hours']} cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']} />
                         : null
                     }
                 </div>

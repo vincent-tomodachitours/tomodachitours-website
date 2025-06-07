@@ -126,7 +126,7 @@ const NightTour = () => {
                                 </div>
                                 {activeContent === 1 &&
                                     <div className='font-ubuntu flex flex-col gap-6 mt-4'>
-                                        <p>Join us an unforgettable evening walking tour of the Fushimi-Inari Shrine, one of Kyoto’s most iconic and enchanting sites away from the daytime crowds and immerse yourselves in the beautiful lantern light up. </p>
+                                        <p>Join us an unforgettable evening walking tour of the Fushimi-Inari Shrine, one of Kyoto's most iconic and enchanting sites away from the daytime crowds and immerse yourselves in the beautiful lantern light up. </p>
                                         <p>⚠️ Sunset is around 5PM. During the winter season, we also offer a daytime option. </p>
                                         <p>⚠️ Prior to the tour, please ensure WhatsApp or SMS is available for easy communication. Our tour guide will use these platforms to contact you.</p>
                                         <p>✅ This is an English Guided Walking Tour. Explore the rich history and cultural significance of the shrine with a knowledgeable and friendly guide.</p>
@@ -175,12 +175,12 @@ const NightTour = () => {
                                     </div>
                                 }
                             </div>
-                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Night tour" price={tourPrice} />
+                            {isMobile ? <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Night tour" price={tourPrice} cancellationCutoffHours={tourData['cancellation-cutoff-hours']} cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']} />
                                 : null}
                         </div>
                     </div>
                     {!isMobile ?
-                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Night tour" price={tourPrice} />
+                        <DatePicker className="lg:basis-2/5" tourName={tourTitle} maxSlots={maxSlots} availableTimes={availableTimes} sheetId="Night tour" price={tourPrice} cancellationCutoffHours={tourData['cancellation-cutoff-hours']} cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']} />
                         : null
                     }
                 </div>
