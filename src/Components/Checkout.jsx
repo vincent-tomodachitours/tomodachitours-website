@@ -17,6 +17,10 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
     const [discountLoading, setDiscountLoading] = useState(false);
     const [discountError, setDiscountError] = useState('');
 
+    // Add email validation state
+    const [emailError, setEmailError] = useState('');
+    const [emailTouched, setEmailTouched] = useState(false);
+
     //Pay now button from parent(Checkout.jsx) to child(CardForm.jsx)
     const childRef = useRef();
     const handlePayNowButton = () => {
@@ -37,6 +41,18 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
     });
 
     const formRef = useRef({});
+
+    // Email validation function
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email) {
+            return 'Email is required';
+        }
+        if (!emailRegex.test(email)) {
+            return 'Please enter a valid email address';
+        }
+        return '';
+    };
 
     // Add discount application function
     const handleApplyDiscount = async () => {
@@ -83,15 +99,23 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
 
     useEffect(() => {
         const { fname, lname, email, phone, terms } = formData;
+        const emailValidationError = validateEmail(email);
+
+        // Only set error if field has been touched
+        if (emailTouched) {
+            setEmailError(emailValidationError);
+        }
+
         const allFieldsFilled =
             fname.trim() !== '' &&
             lname.trim() !== '' &&
             email.trim() !== '' &&
+            (!emailTouched || !emailValidationError) && // Only check email validation if touched
             phone.trim() !== '' &&
             terms === true;
 
         setPaymentAllowed(allFieldsFilled);
-    }, [formData]);
+    }, [formData, emailTouched]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -144,8 +168,22 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                         <input className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' type="text" id='lname' name='lname' value={formData.lname} onChange={handleInputChange} />
                                     </div>
                                     <div>
-                                        <label className="font-ubuntu text-md" for="email">Email address</label><br />
-                                        <input className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' type="text" id='email' name='email' value={formData.email} onChange={handleInputChange} />
+                                        <label className="font-ubuntu text-md" htmlFor="email">Email address</label><br />
+                                        <input
+                                            className={`w-full h-10 rounded-md border ${emailTouched && emailError ? 'border-red-500' : 'border-gray-300'} px-2 font-ubuntu`}
+                                            type="email"
+                                            id='email'
+                                            name='email'
+                                            value={formData.email}
+                                            onChange={handleInputChange}
+                                            onBlur={() => {
+                                                setEmailTouched(true);
+                                                setEmailError(validateEmail(formData.email));
+                                            }}
+                                        />
+                                        {emailTouched && emailError && (
+                                            <p className="text-red-500 text-sm mt-1 font-ubuntu">{emailError}</p>
+                                        )}
                                     </div>
                                     <div>
                                         <label className="font-ubuntu text-md" for="phone">Phone number</label><br />

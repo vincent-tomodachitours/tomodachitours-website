@@ -4,7 +4,7 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,6 +32,29 @@ Deno.serve(async (req) => {
     const payjpKey = Deno.env.get('PAYJP_SECRET_KEY')
     if (!payjpKey) {
       throw new Error('PAYJP_SECRET_KEY not configured')
+    }
+
+    // Create Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { auth: { persistSession: false } }
+    )
+
+    // If there's a discount code, get its ID
+    let discountCodeId = null
+    let discountAmount = null
+    if (discountCode) {
+      const { data: discountData } = await supabaseClient
+        .from('discount_codes')
+        .select('id')
+        .eq('code', discountCode)
+        .single()
+
+      if (discountData) {
+        discountCodeId = discountData.id
+        discountAmount = originalAmount - amount
+      }
     }
 
     console.log("Creating charge with Pay.jp...")
@@ -69,31 +92,25 @@ Deno.serve(async (req) => {
 
     console.log("✅ Charge successful:", charge.id)
 
-    // Update booking with charge ID in Supabase
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
-    const { error: updateError } = await supabase
+    // Update booking with charge ID and discount info in Supabase
+    const { error: updateError } = await supabaseClient
       .from('bookings')
       .update({
         charge_id: charge.id,
+        discount_code_id: discountCodeId,
+        discount_amount: discountAmount,
         status: 'CONFIRMED'
       })
       .eq('id', bookingId)
 
     if (updateError) {
-      console.error('Failed to update booking:', updateError)
-      // Payment succeeded, but booking update failed - log for manual resolution
-      console.error(`MANUAL ACTION REQUIRED: Charge ${charge.id} succeeded but booking ${bookingId} update failed`)
-    } else {
-      console.log("✅ Booking updated successfully")
+      console.error("Failed to update booking:", updateError)
+      // Don't throw error here, as payment was successful
     }
 
     // Send confirmation email
     try {
-      const { data: booking } = await supabase
+      const { data: booking } = await supabaseClient
         .from('bookings')
         .select('*')
         .eq('id', bookingId)
@@ -128,7 +145,10 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, charge }),
+      JSON.stringify({
+        success: true,
+        charge
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
@@ -136,7 +156,7 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    console.error("Payment processing failed:", error)
+    console.error("Payment failed:", error)
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       {

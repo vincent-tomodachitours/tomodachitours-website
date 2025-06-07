@@ -2,20 +2,14 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-// Hard-coded discount codes (matching existing Firebase function)
-const discountCodes = {
-  'WELCOME10': { discount: 10, type: 'percentage' },
-  'SAVE1000': { discount: 1000, type: 'fixed' },
-  'FIRSTTIME': { discount: 15, type: 'percentage' },
-  'REPEAT20': { discount: 20, type: 'percentage' }
 }
 
 console.log("Discount validation function loaded")
@@ -37,11 +31,26 @@ Deno.serve(async (req) => {
 
     const upperCode = code.toUpperCase()
 
-    if (!discountCodes[upperCode]) {
+    // Create Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { auth: { persistSession: false } }
+    )
+
+    // Query the discount code
+    const { data: discountCode, error } = await supabaseClient
+      .from('discount_codes')
+      .select('*')
+      .eq('code', upperCode)
+      .eq('active', true)
+      .single()
+
+    if (error || !discountCode) {
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Invalid discount code'
+          message: 'Invalid or expired discount code'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -50,19 +59,58 @@ Deno.serve(async (req) => {
       )
     }
 
-    const discount = discountCodes[upperCode]
+    // Check if code is valid based on dates
+    const now = new Date()
+    if (discountCode.valid_until && new Date(discountCode.valid_until) < now) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'This discount code has expired'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      )
+    }
+
+    // Check usage limit
+    if (discountCode.max_uses && discountCode.used_count >= discountCode.max_uses) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'This discount code has reached its usage limit'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      )
+    }
+
+    // Calculate discount
     let discountAmount = 0
     let finalAmount = originalAmount
 
-    if (discount.type === 'percentage') {
-      discountAmount = Math.floor(originalAmount * (discount.discount / 100))
+    if (discountCode.type === 'percentage') {
+      discountAmount = Math.floor(originalAmount * (discountCode.value / 100))
       finalAmount = originalAmount - discountAmount
     } else {
-      discountAmount = discount.discount
+      discountAmount = discountCode.value
       finalAmount = Math.max(0, originalAmount - discountAmount)
     }
 
     console.log("✅ Discount applied:", { code: upperCode, discountAmount, finalAmount })
+
+    // Increment the used_count
+    const { error: updateError } = await supabaseClient
+      .from('discount_codes')
+      .update({ used_count: discountCode.used_count + 1 })
+      .eq('id', discountCode.id)
+
+    if (updateError) {
+      console.error("Failed to update discount code usage count:", updateError)
+    }
 
     return new Response(
       JSON.stringify({
@@ -70,8 +118,9 @@ Deno.serve(async (req) => {
         discount: {
           code: upperCode,
           amount: discountAmount,
-          type: discount.type,
-          percentage: discount.type === 'percentage' ? discount.discount : null
+          type: discountCode.type,
+          percentage: discountCode.type === 'percentage' ? discountCode.value : null,
+          id: discountCode.id
         },
         originalAmount,
         finalAmount
