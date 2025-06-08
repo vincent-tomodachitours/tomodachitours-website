@@ -8,6 +8,12 @@ on:
   schedule:
     - cron: '0 0 * * 0' # Run weekly at midnight on Sunday
 
+permissions:
+  contents: read
+  security-events: write
+  issues: write
+  actions: read
+
 jobs:
   security-scan:
     runs-on: ubuntu-latest
@@ -35,6 +41,7 @@ jobs:
 
       - name: Run Snyk Security Scan
         uses: snyk/actions/node@master
+        if: secrets.SNYK_TOKEN != ''
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
@@ -50,6 +57,7 @@ jobs:
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
+        if: secrets.SONAR_TOKEN != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -61,6 +69,7 @@ jobs:
 
       - name: Check for secrets in code
         uses: gitleaks/gitleaks-action@v2
+        if: secrets.GITLEAKS_LICENSE != ''
         env:
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
 
