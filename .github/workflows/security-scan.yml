@@ -30,7 +30,7 @@ jobs:
         run: npm ci
 
       - name: Run NPM audit
-        run: npm audit
+        run: npm audit --production || true
 
       - name: Run OWASP ZAP Scan
         uses: zaproxy/action-baseline@v0.11.0

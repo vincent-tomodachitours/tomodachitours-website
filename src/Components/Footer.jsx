@@ -28,7 +28,6 @@ const Footer = () => {
             </div>
             <div className='flex flex-col gap-2 justify-center items-center font-ubuntu text-xs md:text-base text-green-700 underline'>
                 <Link to="/cancellation-policy">Cancellation Policy</Link>
-                <Link to="/cancel-booking">Cancel Booking</Link>
                 <Link to="/commercial-disclosure">Commercial Disclosure</Link>
             </div>
         </div>

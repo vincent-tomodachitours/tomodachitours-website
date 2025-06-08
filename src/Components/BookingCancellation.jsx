@@ -3,6 +3,7 @@ import Header from './Headers/Header1';
 import Footer from './Footer';
 import { supabase } from '../lib/supabase';
 import { fetchTours } from '../services/toursService';
+import { Link } from 'react-router-dom';
 
 const BookingCancellation = () => {
     const [email, setEmail] = useState('');
@@ -54,6 +55,17 @@ const BookingCancellation = () => {
         const totalParticipants = (booking.adults || 0) + (booking.children || 0);
 
         return tourPrice * totalParticipants;
+    };
+
+    // Helper function to get tour URL from tour type
+    const getTourUrl = (tourType) => {
+        const urlMap = {
+            'NIGHT_TOUR': '/tours/kyoto-fushimi-inari-night-walking-tour',
+            'MORNING_TOUR': '/tours/kyoto-early-bird-english-tour',
+            'UJI_TOUR': '/tours/kyoto-uji-tea-tour',
+            'GION_TOUR': '/tours/kyoto-gion-early-morning-walking-tour'
+        };
+        return urlMap[tourType] || '/tours';
     };
 
     const handleLookupBookings = async () => {
@@ -156,7 +168,7 @@ const BookingCancellation = () => {
                     <label className="block font-ubuntu text-lg font-medium mb-4 text-gray-700">
                         Email Address (used for booking)
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                         <input
                             type="email"
                             value={email}
@@ -167,9 +179,19 @@ const BookingCancellation = () => {
                         <button
                             onClick={handleLookupBookings}
                             disabled={loading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md font-roboto font-bold disabled:bg-gray-400"
+                            className="group relative inline-flex items-center justify-center w-full sm:w-auto px-8 py-2 text-lg font-bold text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
-                            {loading ? 'Looking up...' : 'Find Bookings'}
+                            <span className="absolute inset-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent rounded-xl"></span>
+                            <span className="relative flex items-center">
+                                {loading ? 'Looking up...' : (
+                                    <>
+                                        Find Bookings
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                        </svg>
+                                    </>
+                                )}
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -197,7 +219,9 @@ const BookingCancellation = () => {
 
                                 return (
                                     <div key={booking.id} className="bg-white border border-gray-300 rounded-lg p-6 mb-4">
-                                        <h3 className="font-roboto text-xl font-bold text-blue-600 mb-3">{tourName}</h3>
+                                        <Link to={getTourUrl(booking.tour_type)}>
+                                            <h3 className="font-roboto text-xl font-bold text-blue-600 mb-3 hover:text-blue-800 transition-colors">{tourName}</h3>
+                                        </Link>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                             <div>
