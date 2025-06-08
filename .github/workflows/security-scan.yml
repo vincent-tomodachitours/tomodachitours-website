@@ -85,12 +85,23 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
 
+      - name: Verify Trivy results
+        run: |
+          if [ -f trivy-results.sarif ]; then
+            echo "Trivy results file exists"
+            ls -l trivy-results.sarif
+          else
+            echo "Trivy results file not found"
+            exit 0
+          fi
+
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('trivy-results.sarif') != ''
         continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'trivy'
 
       - name: Run security headers check
         continue-on-error: true
