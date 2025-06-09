@@ -1,11 +1,3 @@
--- Add discount code fields to bookings table
-ALTER TABLE public.bookings
-ADD COLUMN discount_code_id INTEGER REFERENCES public.discount_codes(id),
-ADD COLUMN discount_amount INTEGER;
-
--- Add index for discount code lookups
-CREATE INDEX idx_bookings_discount_code ON public.bookings(discount_code_id);
-
 -- Add RLS policies for discount_codes table
 ALTER TABLE public.discount_codes ENABLE ROW LEVEL SECURITY;
 

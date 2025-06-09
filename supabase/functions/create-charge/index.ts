@@ -4,10 +4,9 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createClient } from '@supabase/supabase-js'
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { Payjp } from 'https://esm.sh/payjp-typescript'
-import { validateRequest, paymentSchema, addSecurityHeaders, sanitizeOutput } from '../validation-middleware'
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { validateRequest, paymentSchema, addSecurityHeaders, sanitizeOutput } from './validation.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,16 +15,19 @@ const corsHeaders = {
 
 console.log("Payment processing function loaded")
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    console.log('Received payment request')
+
     // Validate request data
     const { data, error } = await validateRequest(req, paymentSchema)
     if (error) {
+      console.error('Validation error:', error)
       return new Response(
         JSON.stringify({ success: false, error }),
         {
@@ -36,50 +38,114 @@ Deno.serve(async (req) => {
     }
 
     const { token, amount, bookingId, discountCode, originalAmount } = data!
+    console.log('Payment details:', { amount, bookingId, discountCode, originalAmount, hasToken: !!token })
 
-    // Initialize clients
-    const payjp = new Payjp(Deno.env.get('PAYJP_SECRET_KEY') || '')
+    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') || '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     )
 
-    // Create charge with PayJP
+    // Create charge with PayJP REST API
     try {
-      const charge = await payjp.charges.create({
-        amount,
-        currency: 'jpy',
-        card: token,
-        capture: true,
-        metadata: {
-          booking_id: bookingId.toString(),
-          discount_code: discountCode || '',
-          original_amount: originalAmount?.toString() || amount.toString()
-        }
+      console.log('Creating PayJP charge...')
+      const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
+      console.log('PayJP key available:', !!secretKey)
+      console.log('PayJP key length:', secretKey?.length)
+      const payjpResponse = await fetch('https://api.pay.jp/v1/charges', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          amount: amount.toString(),
+          currency: 'jpy',
+          card: token,
+          capture: 'true',
+          'metadata[booking_id]': bookingId.toString(),
+          'metadata[discount_code]': discountCode || '',
+          'metadata[original_amount]': originalAmount?.toString() || amount.toString()
+        }).toString()
       })
 
+      const charge = await payjpResponse.json()
+      console.log('PayJP response:', charge)
+
+      if (!payjpResponse.ok) {
+        console.error('PayJP error:', charge.error)
+        throw new Error(charge.error?.message || 'Payment failed')
+      }
+
       if (!charge.paid) {
+        console.error('Payment not marked as paid:', charge)
         throw new Error('Payment failed')
       }
 
-      // Update booking status in database
+      console.log('Payment successful, updating booking status...')
+      console.log('Charge ID to be stored:', charge.id)
+
+      // Update booking status in database - only use fields that exist in schema
       const { error: updateError } = await supabase
         .from('bookings')
         .update({
           status: 'CONFIRMED',
-          payment_id: charge.id,
-          payment_status: 'PAID',
-          updated_at: new Date().toISOString()
+          charge_id: charge.id
         })
         .eq('id', bookingId)
 
       if (updateError) {
         console.error('Failed to update booking:', updateError)
-        throw new Error('Failed to update booking status')
+        console.log('Error details:', updateError)
+        throw new Error('Failed to update booking status: ' + updateError.message)
+      }
+
+      console.log('Booking update successful, charge_id stored')
+
+      console.log('Booking status updated, fetching booking details...')
+
+      // Get booking details for email
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('id', bookingId)
+        .single()
+
+      if (bookingError || !booking) {
+        console.error('Failed to fetch booking details:', bookingError)
+        // Don't throw error as payment was successful
+      } else {
+        // Send confirmation email
+        try {
+          console.log('Sending confirmation email...')
+          const notificationResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+            },
+            body: JSON.stringify({
+              type: 'confirmation',
+              bookingId: bookingId
+            })
+          })
+
+          const notificationResult = await notificationResponse.json()
+          if (!notificationResult.success) {
+            console.error('Failed to send confirmation email:', notificationResult.error)
+            // Don't throw error as payment was successful
+          } else {
+            console.log('Confirmation email sent successfully')
+          }
+        } catch (emailError) {
+          console.error('Failed to send confirmation email:', emailError)
+          // Don't throw error as payment was successful
+        }
       }
 
       // If discount code was used, increment its usage
       if (discountCode) {
+        console.log('Updating discount code usage...')
         const { error: discountError } = await supabase
           .rpc('increment_discount_code_usage', {
             code: discountCode
@@ -88,8 +154,12 @@ Deno.serve(async (req) => {
         if (discountError) {
           console.error('Failed to update discount code usage:', discountError)
           // Don't throw error here as payment was successful
+        } else {
+          console.log('Discount code usage updated')
         }
       }
+
+      console.log('Payment process completed successfully')
 
       // Return sanitized response
       return new Response(

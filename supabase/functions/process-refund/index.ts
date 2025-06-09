@@ -106,6 +106,30 @@ Deno.serve(async (req) => {
       throw new Error('Failed to update booking status')
     }
 
+    // Send cancellation email
+    try {
+      const notificationResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+        },
+        body: JSON.stringify({
+          type: 'cancellation',
+          bookingId: bookingId
+        })
+      })
+
+      const notificationResult = await notificationResponse.json()
+      if (!notificationResult.success) {
+        console.error('Failed to send cancellation email:', notificationResult.error)
+        // Don't throw error as refund was successful
+      }
+    } catch (emailError) {
+      console.error('Failed to send cancellation email:', emailError)
+      // Don't throw error as refund was successful
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
