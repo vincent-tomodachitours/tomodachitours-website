@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts"
 
 // Common validation schemas
 const emailSchema = z.string().email()
@@ -38,7 +38,7 @@ export const paymentSchema = z.object({
 
 // Refund validation schema
 export const refundSchema = z.object({
-    bookingId: z.string().uuid(),
+    bookingId: z.number().int().positive(),
     email: z.string().email()
 })
 
@@ -63,59 +63,29 @@ export const chargeSchema = z.object({
 })
 
 // Security headers
-const securityHeaders = {
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https:;",
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
-}
-
-// Add security headers to response
-export function addSecurityHeaders(headers: Headers): Headers {
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-        headers.set(key, value)
-    })
+export const addSecurityHeaders = (headers: Headers): Headers => {
+    headers.set('X-Content-Type-Options', 'nosniff')
+    headers.set('X-Frame-Options', 'DENY')
+    headers.set('X-XSS-Protection', '1; mode=block')
+    headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    headers.set('Content-Security-Policy', "default-src 'self'")
     return headers
 }
 
-// Sensitive field patterns to remove
-const sensitivePatterns = [
-    'password',
-    'token',
-    'secret',
-    'key',
-    'auth',
-    'card',
-    'cvv',
-    'cvc',
-    'pin'
-]
-
-// Sanitize output data
-export function sanitizeOutput(data: any): any {
-    if (typeof data !== 'object' || data === null) {
-        return data
-    }
-
-    const sanitized: any = Array.isArray(data) ? [] : {}
-
-    for (const [key, value] of Object.entries(data)) {
-        // Skip sensitive fields
-        if (sensitivePatterns.some(pattern => key.toLowerCase().includes(pattern))) {
-            continue
+// Sanitize sensitive data from output
+export const sanitizeOutput = (data: any): any => {
+    if (!data) return data
+    const sensitiveFields = ['secret', 'key', 'password', 'token']
+    if (typeof data === 'object') {
+        const sanitized = { ...data }
+        for (const field of sensitiveFields) {
+            if (field in sanitized) {
+                delete sanitized[field]
+            }
         }
-
-        // Recursively sanitize nested objects
-        if (typeof value === 'object' && value !== null) {
-            sanitized[key] = sanitizeOutput(value)
-        } else {
-            sanitized[key] = value
-        }
+        return sanitized
     }
-
-    return sanitized
+    return data
 }
 
 // Validate request data against schema

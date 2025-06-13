@@ -1,9 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+/// <reference lib="deno.ns" />
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 // Rate limit configuration
-const RATE_LIMIT_WINDOW = process.env.NODE_ENV === 'test' ? 1000 : 60 * 1000 // 1 second in test, 1 minute in prod
-const MAX_REQUESTS = process.env.NODE_ENV === 'test' ? 3 : 60 // 3 requests in test, 60 in prod
-const BLOCK_DURATION = process.env.NODE_ENV === 'test' ? 1000 : 15 * 60 * 1000 // 1 second in test, 15 minutes in prod
+const IS_TEST = Deno.env.get('NODE_ENV') === 'test'
+const RATE_LIMIT_WINDOW = IS_TEST ? 1000 : 60 * 1000 // 1 second in test, 1 minute in prod
+const MAX_REQUESTS = IS_TEST ? 3 : 60 // 3 requests in test, 60 in prod
+const BLOCK_DURATION = IS_TEST ? 1000 : 15 * 60 * 1000 // 1 second in test, 15 minutes in prod
 
 // Rate limit tracking interface
 interface RateLimitInfo {
@@ -15,8 +17,8 @@ interface RateLimitInfo {
 
 // Initialize Supabase client
 function getSupabaseClient() {
-    const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if (!supabaseUrl || !supabaseKey) {
         throw new Error('Missing required environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')

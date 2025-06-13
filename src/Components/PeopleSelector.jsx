@@ -2,7 +2,7 @@ import React from 'react'
 import { ReactComponent as MinusCircle } from '../SVG/MinusCircle.svg'
 import { ReactComponent as PlusCircle } from '../SVG/PlusCircle.svg'
 
-const PeopleSelector = ({ min = 0, max = 9, title = "NAME", participants, setParticipants, value, onChange }) => {
+const PeopleSelector = ({ min = 0, max = 9, title = "NAME", participants, setParticipants, value, onChange, ageRange, price }) => {
 
     const decrease = () => {
         if (value > min) {
@@ -45,15 +45,14 @@ const PeopleSelector = ({ min = 0, max = 9, title = "NAME", participants, setPar
     return (
         <div className='w-full flex justify-between my-2 font-ubuntu'>
             <div>
-                <h3 className='font-bold text-lg'>{title}</h3>
-                <p className='text-sm'>Age 18 - 90</p>
+                <h3 className='font-bold text-lg'>{title}s <span className="font-normal text-sm text-gray-700">Age {ageRange}</span></h3>
+                {price !== undefined && (
+                    <div className="text-sm text-gray-700">{price === 0 ? 'Free' : `¥${price.toLocaleString('en-US')}`}</div>
+                )}
             </div>
-
             <div className='flex align-middle justify-center'>
                 {minusButton()}
-
                 <span className='grid place-items-center mx-2 font-ubuntu font-bold text-lg'>{value}</span>
-
                 {plusButton()}
             </div>
         </div>

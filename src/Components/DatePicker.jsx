@@ -6,7 +6,7 @@ import { ReactComponent as Clock } from '../SVG/Clock.svg'
 import Checkout from './Checkout'
 import { supabase } from '../lib/supabase';
 
-function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant }) {
+function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, specificCutoffTimes, nextDayCutoffTime }) {
     const [checkout, setCheckout] = useState(false);
     const handleOpenCheckout = () => setCheckout(true);
     const handleCloseCheckout = () => setCheckout(false);
@@ -62,6 +62,43 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         const options = [...availableTimes];
         const nowJST = getNowInJST();
 
+        // Check if this is a booking for tomorrow
+        const dateJST = new Date(date);
+        const todayJST = new Date(nowJST);
+
+        // Reset times to start of day for date comparison
+        const dateStart = new Date(dateJST.getFullYear(), dateJST.getMonth(), dateJST.getDate());
+        const todayStart = new Date(todayJST.getFullYear(), todayJST.getMonth(), todayJST.getDate());
+
+        const isBookingForTomorrow =
+            dateStart.getTime() === todayStart.getTime() + (24 * 60 * 60 * 1000);
+
+        console.log('Time Debug (returnAvailableTimes):', {
+            nowJST: nowJST.toISOString(),
+            dateJST: dateJST.toISOString(),
+            todayJST: todayJST.toISOString(),
+            isBookingForTomorrow,
+            nextDayCutoffTime
+        });
+
+        // If booking for tomorrow and there's a next-day cut-off time
+        if (isBookingForTomorrow && nextDayCutoffTime) {
+            const [cutoffHour, cutoffMinute] = nextDayCutoffTime.split(':').map(Number);
+            const todayCutoff = new Date(todayStart); // Use todayStart to ensure correct date
+            todayCutoff.setHours(cutoffHour, cutoffMinute, 0, 0);
+
+            console.log('Cutoff Time Debug:', {
+                todayCutoff: todayCutoff.toISOString(),
+                nowJST: nowJST.toISOString(),
+                isPastCutoff: nowJST.getTime() >= todayCutoff.getTime()
+            });
+
+            if (nowJST.getTime() >= todayCutoff.getTime()) {
+                console.log('Blocking booking - past cutoff time');
+                return []; // Past cut-off time for tomorrow's bookings
+            }
+        }
+
         for (let i = 0; i < options.length; i++) {
             const currentSlot = options[i];
             const currentParticipants = dayData[currentSlot] || 0;
@@ -78,7 +115,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         }
 
         return options;
-    }, [bookings, availableTimes, maxSlots, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant]);
+    }, [bookings, availableTimes, maxSlots, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime]);
 
     useEffect(() => {
         fetchBookings();
@@ -221,8 +258,8 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     // Helper to get current time in JST
     function getNowInJST() {
         const now = new Date();
-        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-        return new Date(utc + (9 * 60 * 60000)); // JST is UTC+9
+        // Since you're already in JST timezone, we don't need to convert
+        return now;
     }
 
     // Helper to get a Date object for a tour slot in JST
@@ -231,24 +268,57 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const d = String(date.getDate()).padStart(2, '0');
-        // Format: YYYY-MM-DDTHH:mm:00+09:00
-        const dtString = `${y}-${m}-${d}T${hour}:${minute}:00+09:00`;
-        return new Date(dtString);
+        // Since we're already in JST, we can create the date directly
+        return new Date(`${y}-${m}-${d}T${hour}:${minute}:00`);
     }
 
     const disableDates = ({ date }) => {
         const todayJST = getNowInJST();
-        const dateJST = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const todayDateJST = new Date(todayJST.getFullYear(), todayJST.getMonth(), todayJST.getDate());
-        if (dateJST < todayDateJST) return true;
-        const nowJST = getNowInJST();
+        const dateJST = new Date(date);
+
+        // Reset times to start of day for date comparison
+        const dateStart = new Date(dateJST.getFullYear(), dateJST.getMonth(), dateJST.getDate());
+        const todayStart = new Date(todayJST.getFullYear(), todayJST.getMonth(), todayJST.getDate());
+
+        if (dateStart < todayStart) return true;
+
+        // Check if this is a booking for tomorrow
+        const isBookingForTomorrow =
+            dateStart.getTime() === todayStart.getTime() + (24 * 60 * 60 * 1000);
+
+        console.log('Time Debug (disableDates):', {
+            todayJST: todayJST.toISOString(),
+            dateJST: dateJST.toISOString(),
+            todayStart: todayStart.toISOString(),
+            isBookingForTomorrow,
+            nextDayCutoffTime
+        });
+
+        // If booking for tomorrow and there's a next-day cut-off time
+        if (isBookingForTomorrow && nextDayCutoffTime) {
+            const [cutoffHour, cutoffMinute] = nextDayCutoffTime.split(':').map(Number);
+            const todayCutoff = new Date(todayStart); // Use todayStart to ensure correct date
+            todayCutoff.setHours(cutoffHour, cutoffMinute, 0, 0);
+
+            console.log('Cutoff Time Debug (disableDates):', {
+                todayCutoff: todayCutoff.toISOString(),
+                todayJST: todayJST.toISOString(),
+                isPastCutoff: todayJST.getTime() >= todayCutoff.getTime()
+            });
+
+            if (todayJST.getTime() >= todayCutoff.getTime()) {
+                console.log('Disabling date - past cutoff time');
+                return true; // Past cut-off time for tomorrow's bookings
+            }
+        }
+
         const formattedDate = date.toLocaleDateString("en-CA");
         const dayData = participantsByDate[formattedDate] || {};
         let allSlotsPastCutoff = true;
         for (let i = 0; i < availableTimes.length; i++) {
             const slot = availableTimes[i];
             const tourDateTimeJST = getTourDateTimeJST(date, slot);
-            const hoursUntilTour = (tourDateTimeJST - nowJST) / (1000 * 60 * 60);
+            const hoursUntilTour = (tourDateTimeJST - todayJST) / (1000 * 60 * 60);
             const hasParticipants = dayData[slot] > 0;
             const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
             if (hoursUntilTour >= cutoffHours) {
@@ -280,9 +350,9 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             return <div>
                 <div className="mb-8">
                     <h1 className='font-ubuntu font-black text-2xl'>Who's going?</h1>
-                    <PeopleSelector min={1} max={maxSlots} title={"Adult"} participants={participants} setParticipants={setParticipants} value={adultParticipants} onChange={setAdultParticipants} />
-                    <PeopleSelector min={0} max={maxSlots} title={"Child"} participants={participants} setParticipants={setParticipants} value={childParticipants} onChange={setChildParticipants} />
-                    <PeopleSelector min={0} max={maxSlots} title={"Infant"} participants={participants} setParticipants={setParticipants} value={infantParticipants} onChange={setInfantParticipants} />
+                    <PeopleSelector min={1} max={maxSlots} title={"Adult"} ageRange="18 - 90" price={price} participants={participants} setParticipants={setParticipants} value={adultParticipants} onChange={setAdultParticipants} />
+                    <PeopleSelector min={0} max={maxSlots} title={"Child"} ageRange="3 - 17" price={price} participants={participants} setParticipants={setParticipants} value={childParticipants} onChange={setChildParticipants} />
+                    <PeopleSelector min={0} max={maxSlots} title={"Infant"} ageRange="0 - 2" price={0} participants={participants} setParticipants={setParticipants} value={infantParticipants} onChange={setInfantParticipants} />
                 </div>
                 <h1 className='font-ubuntu font-black text-2xl my-4'>Choose a date</h1>
                 <Calendar
@@ -344,7 +414,10 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     }
 
     return (
-        <div className='w-full md:w-2/3 lg:w-2/5 h-full border border-gray-300 rounded-md p-4 mx-auto text-gray-700'>
+        <div className='w-full md:w-2/3 lg:w-full border border-gray-300 rounded-md p-4 mx-auto text-gray-700 flex-none'>
+            <div className='mb-6'>
+                <h2 className='text-3xl font-bold'>¥ {price.toLocaleString('en-US')} / Adult</h2>
+            </div>
             {renderCalendarComponent()}
             {checkout === true ? (
                 <Checkout onClose={handleCloseCheckout} tourName={tourName} sheetId={sheetId} tourDate={calendarSelectedDate.toLocaleDateString("en-CA")} tourTime={tourTime} adult={adultParticipants} child={childParticipants} infant={infantParticipants} tourPrice={price} />

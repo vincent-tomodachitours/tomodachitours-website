@@ -180,3 +180,31 @@ To run from source:
 # Go >= 1.22
 go run . help
 ```
+
+## Cancellation Email System Setup
+
+1. Create a new Google Apps Script project:
+   - Go to https://script.google.com
+   - Click "New Project"
+   - Copy the contents of `cancellation-email.gs` into the script editor
+   - Replace `YOUR_SECRET_KEY_HERE` with a secure random string
+
+2. Deploy the web app:
+   - Click "Deploy" > "New deployment"
+   - Choose "Web app" as the deployment type
+   - Set "Execute as" to your Google account
+   - Set "Who has access" to "Anyone"
+   - Click "Deploy"
+   - Copy the deployment URL
+
+3. Update environment variables:
+   - Add the following to your environment:
+     ```
+     APPS_SCRIPT_CANCELLATION_URL=your_deployment_url
+     APP_SCRIPT_EMAIL_KEY=your_secret_key
+     ```
+
+4. Test the system:
+   - Make a test booking
+   - Try cancelling it
+   - Verify that the cancellation email is received

@@ -38,6 +38,7 @@ export async function fetchTours() {
                 'max-participants': tour.max_participants,
                 'cancellation-cutoff-hours': tour.cancellation_cutoff_hours ?? 24,
                 'cancellation-cutoff-hours-with-participant': tour.cancellation_cutoff_hours_with_participant ?? tour.cancellation_cutoff_hours ?? 24,
+                'next-day-cutoff-time': tour.next_day_cutoff_time ?? null,
                 id: tour.id,
                 type: tour.type,
                 updated_at: tour.updated_at

@@ -2,18 +2,23 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createClient } from '@supabase/supabase-js'
-import { validateRequest, refundSchema, addSecurityHeaders, sanitizeOutput } from '../validation-middleware'
+// @deno-types="https://esm.sh/v128/@supabase/supabase-js@2.38.4/dist/module/index.d.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { validateRequest, refundSchema, addSecurityHeaders, sanitizeOutput } from '../validation-middleware/index.ts'
+
+interface RefundInfo {
+  id: string;
+  amount: number;
+  status: string;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -31,7 +36,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { bookingId, email } = data!
+    const { bookingId } = data!
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -43,97 +48,118 @@ Deno.serve(async (req) => {
       .from('bookings')
       .select('*')
       .eq('id', bookingId)
-      .eq('customer_email', email)
       .single()
 
     if (bookingError || !booking) {
       throw new Error('Booking not found')
     }
 
-    // Check 24-hour cancellation policy
-    const bookingTime = booking.booking_time.padStart(5, '0') // Fix time format
-    const bookingDateTime = new Date(`${booking.booking_date}T${bookingTime}`)
+    const typedBooking = booking as any
+
+    // Check if booking is already cancelled
+    if (typedBooking.status === 'cancelled') {
+      throw new Error('Booking is already cancelled')
+    }
+
+    // Get tour price from tours table
+    const { data: tour, error: tourError } = await supabase
+      .from('tours')
+      .select('base_price')
+      .eq('type', typedBooking.tour_type)
+      .single()
+
+    if (tourError || !tour) {
+      console.error('Failed to fetch tour price:', tourError)
+      throw new Error('Failed to fetch tour price')
+    }
+
+    // Calculate refund amount based on cancellation policy
+    const bookingDate = new Date(typedBooking.booking_date)
     const now = new Date()
-    const hoursDifference = (bookingDateTime.getTime() - now.getTime()) / (1000 * 3600)
+    const hoursUntilTour = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-    if (hoursDifference < 24) {
-      throw new Error('Cancellation must be made at least 24 hours before the tour date')
-    }
+    let refundInfo: RefundInfo | null = null
+    const originalAmount = tour.base_price * (typedBooking.adults + typedBooking.children)
 
-    let refundInfo = null
+    // Check if booking was already refunded
+    const { data: existingRefund } = await supabase
+      .from('refunds')
+      .select('*')
+      .eq('booking_id', bookingId)
+      .single()
 
-    // Process refund if charge_id exists
-    if (booking.charge_id) {
-      const payjpKey = Deno.env.get('PAYJP_SECRET_KEY')
-      if (!payjpKey) {
-        throw new Error('PAYJP_SECRET_KEY not configured')
-      }
-
-      const refundResponse = await fetch(`https://api.pay.jp/v1/charges/${booking.charge_id}/refund`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${btoa(payjpKey + ':')}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: ''
-      })
-
-      const refund = await refundResponse.json()
-
-      if (refund.error) {
-        throw new Error(refund.error.message || 'Refund processing failed')
-      }
-
+    if (existingRefund) {
       refundInfo = {
-        amount: refund.amount,
-        id: refund.id
+        id: 'previously_refunded',
+        amount: existingRefund.amount,
+        status: existingRefund.status
+      }
+    } else if (hoursUntilTour >= 48) {
+      // Full refund if cancelled more than 48 hours before
+      refundInfo = {
+        id: crypto.randomUUID(),
+        amount: originalAmount,
+        status: 'pending'
+      }
+    } else if (hoursUntilTour >= 24) {
+      // 50% refund if cancelled between 24-48 hours before
+      refundInfo = {
+        id: crypto.randomUUID(),
+        amount: originalAmount * 0.5,
+        status: 'pending'
       }
     }
+    // No refund if cancelled less than 24 hours before
 
     // Update booking status
     const { error: updateError } = await supabase
       .from('bookings')
-      .update({
-        status: 'CANCELLED',
-        payment_status: 'REFUNDED',
-        refund_id: refundInfo?.id,
-        refund_amount: refundInfo?.amount,
-        updated_at: new Date().toISOString()
-      })
+      .update({ status: 'cancelled' })
       .eq('id', bookingId)
 
     if (updateError) {
       throw new Error('Failed to update booking status')
     }
 
-    // Send cancellation email
-    try {
-      const notificationResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-        },
-        body: JSON.stringify({
-          type: 'cancellation',
-          bookingId: bookingId
+    // Create refund record if applicable
+    if (refundInfo && refundInfo.id !== 'previously_refunded') {
+      const { error: refundError } = await supabase
+        .from('refunds')
+        .insert({
+          id: refundInfo.id,
+          booking_id: bookingId,
+          amount: refundInfo.amount,
+          status: refundInfo.status
         })
-      })
 
-      const notificationResult = await notificationResponse.json()
-      if (!notificationResult.success) {
-        console.error('Failed to send cancellation email:', notificationResult.error)
-        // Don't throw error as refund was successful
+      if (refundError) {
+        console.error('Failed to create refund record:', refundError)
+        throw new Error('Failed to create refund record')
       }
-    } catch (emailError) {
-      console.error('Failed to send cancellation email:', emailError)
-      // Don't throw error as refund was successful
     }
+
+    // Get updated booking for email
+    const { data: updatedBooking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .single()
+
+    if (fetchError) {
+      throw new Error('Failed to fetch updated booking')
+    }
+
+    // Remove email sending functionality for now
+    // We'll implement a new email system later
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Booking cancelled successfully',
+        message: refundInfo?.id === 'previously_refunded'
+          ? 'Booking cancelled. This booking was already refunded.'
+          : refundInfo
+            ? `Booking cancelled successfully. A refund will be processed.`
+            : 'Booking cancelled successfully.',
         refund: sanitizeOutput(refundInfo)
       }),
       {
@@ -145,16 +171,14 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Error in process-refund:', error)
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error.message
       }),
       {
-        headers: addSecurityHeaders(new Headers({
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        })),
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       }
     )

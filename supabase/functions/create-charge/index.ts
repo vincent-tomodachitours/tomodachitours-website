@@ -115,32 +115,8 @@ serve(async (req) => {
         console.error('Failed to fetch booking details:', bookingError)
         // Don't throw error as payment was successful
       } else {
-        // Send confirmation email
-        try {
-          console.log('Sending confirmation email...')
-          const notificationResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-            },
-            body: JSON.stringify({
-              type: 'confirmation',
-              bookingId: bookingId
-            })
-          })
-
-          const notificationResult = await notificationResponse.json()
-          if (!notificationResult.success) {
-            console.error('Failed to send confirmation email:', notificationResult.error)
-            // Don't throw error as payment was successful
-          } else {
-            console.log('Confirmation email sent successfully')
-          }
-        } catch (emailError) {
-          console.error('Failed to send confirmation email:', emailError)
-          // Don't throw error as payment was successful
-        }
+        // Email functionality removed - will be reimplemented later
+        console.log('Email notification system is being updated')
       }
 
       // If discount code was used, increment its usage

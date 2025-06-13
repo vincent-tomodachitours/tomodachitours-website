@@ -1,7 +1,16 @@
 import fs from 'fs';
 import fetch from 'node-fetch';
+import dotenv from 'dotenv';
 
-const CONFIG_URL = "https://script.google.com/macros/s/AKfycbx0SYiaVfJzwFdcLlTEz6-T_zxlhPMOgr3pHwZlm8m5Zsk7KwANi-ApP-msf5ZZTDWv/exec";
+// Load environment variables
+dotenv.config();
+
+const CONFIG_URL = process.env.APPS_SCRIPT_CONFIG_URL;
+if (!CONFIG_URL) {
+    console.error("Error: APPS_SCRIPT_CONFIG_URL environment variable is not set");
+    process.exit(1);
+}
+
 const OUTPUT_PATH = "./src/config.json";
 
 async function fetchConfig() {

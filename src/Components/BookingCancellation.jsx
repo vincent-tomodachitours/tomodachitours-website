@@ -78,7 +78,9 @@ const BookingCancellation = () => {
             const { data, error } = await supabase
                 .from('bookings')
                 .select('*')
-                .ilike('customer_email', email); // case-insensitive
+                .ilike('customer_email', email) // case-insensitive
+                .order('booking_date', { ascending: false })
+                .order('booking_time', { ascending: false });
 
             if (error) {
                 setMessage('Failed to lookup bookings');
@@ -154,9 +156,13 @@ const BookingCancellation = () => {
     }
 
     const now = new Date();
-    const futureBookings = bookings.filter(
-        booking => getBookingDateTime(booking) > now && booking.status !== 'CANCELLED'
-    );
+    const futureBookings = bookings
+        .filter(booking => getBookingDateTime(booking) > now && booking.status !== 'CANCELLED')
+        .sort((a, b) => {
+            const dateA = getBookingDateTime(a);
+            const dateB = getBookingDateTime(b);
+            return dateB.getTime() - dateA.getTime(); // Most recent first
+        });
 
     return (
         <div className='w-full h-screen min-h-screen flex flex-col overflow-y-auto bg-stone-300'>
