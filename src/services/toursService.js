@@ -39,6 +39,11 @@ export async function fetchTours() {
                 'cancellation-cutoff-hours': tour.cancellation_cutoff_hours ?? 24,
                 'cancellation-cutoff-hours-with-participant': tour.cancellation_cutoff_hours_with_participant ?? tour.cancellation_cutoff_hours ?? 24,
                 'next-day-cutoff-time': tour.next_day_cutoff_time ?? null,
+                'meeting-point': tour.meeting_point ?? {
+                    location: '7-Eleven Heart-in - JR Kyoto Station Central Entrance Store',
+                    google_maps_url: 'https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9',
+                    additional_info: 'Warning: There are multiple 7-Elevens at Kyoto station. The 7-Eleven for the meetup location is in the central exit of Kyoto station.'
+                },
                 id: tour.id,
                 type: tour.type,
                 updated_at: tour.updated_at

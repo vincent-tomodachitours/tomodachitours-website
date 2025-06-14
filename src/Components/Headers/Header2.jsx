@@ -10,7 +10,6 @@ const Header2 = () => {
             </div>
             <div className='absolute right-0 flex gap-6 text-white text-md border-2 border-red-500'>
                 <Link to="/" className='underline cursor-pointer'>Home</Link>
-                <Link to="/tours" className='underline cursor-pointer'>Tours</Link>
                 <Link to="/about" className='underline cursor-pointer'>About</Link>
                 <Link to="/recommendations" className='underline cursor-pointer'>Recommendations</Link>
             </div>

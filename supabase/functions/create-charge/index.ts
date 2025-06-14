@@ -34,26 +34,47 @@ const SENDGRID_FROM = {
   name: 'Tomodachi Tours'
 }
 
-async function getTourName(supabase: any, tourType: string): Promise<string> {
+async function getTourName(supabase: any, tourType: string): Promise<{ name: string; meetingPoint: any }> {
   try {
     const { data: tour, error } = await supabase
       .from('tours')
-      .select('name')
+      .select('name, meeting_point')
       .eq('type', tourType)
       .single();
 
     if (error || !tour) {
       console.error('Failed to fetch tour name:', error);
       // Fallback to formatted tour type if database fetch fails
-      return tourType.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ');
+      return {
+        name: tourType.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' '),
+        meetingPoint: {
+          location: '7-Eleven Heart-in - JR Kyoto Station Central Entrance Store',
+          google_maps_url: 'https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9',
+          additional_info: 'Warning: There are multiple 7-Elevens at Kyoto station. The 7-Eleven for the meetup location is in the central exit of Kyoto station.'
+        }
+      };
     }
 
-    // Transform the name to match the format used in the frontend
-    return tour.name;
+    // Return both name and meeting point
+    return {
+      name: tour.name,
+      meetingPoint: tour.meeting_point || {
+        location: '7-Eleven Heart-in - JR Kyoto Station Central Entrance Store',
+        google_maps_url: 'https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9',
+        additional_info: 'Warning: There are multiple 7-Elevens at Kyoto station. The 7-Eleven for the meetup location is in the central exit of Kyoto station.'
+      }
+    };
   } catch (error) {
     console.error('Error fetching tour name:', error);
     // Fallback to formatted tour type
-    return tourType.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ');
+    return {
+      name: tourType.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' '),
+      meetingPoint: {
+        location: '7-Eleven Heart-in - JR Kyoto Station Central Entrance Store',
+        google_maps_url: 'https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9',
+        additional_info: 'Warning: There are multiple 7-Elevens at Kyoto station. The 7-Eleven for the meetup location is in the central exit of Kyoto station.'
+      }
+    };
   }
 }
 
@@ -73,8 +94,8 @@ async function sendBookingEmails(supabase: any, booking: any) {
       day: 'numeric'
     });
 
-    // Get proper tour name from database
-    const tourName = await getTourName(supabase, booking.tour_type);
+    // Get proper tour name and meeting point from database
+    const { name: tourName, meetingPoint } = await getTourName(supabase, booking.tour_type);
 
     // Send customer confirmation email
     await sgMail.send({
@@ -89,7 +110,8 @@ async function sendBookingEmails(supabase: any, booking: any) {
         adults: booking.adults,
         children: booking.children || 0,
         infants: booking.infants || 0,
-        totalAmount: booking.amount?.toLocaleString() || '0'
+        totalAmount: booking.amount?.toLocaleString() || '0',
+        meetingPoint: meetingPoint
       }
     });
 
@@ -116,7 +138,8 @@ async function sendBookingEmails(supabase: any, booking: any) {
         infants: booking.infants || 0,
         createdDate: now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }),
         createdTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        totalAmount: booking.amount?.toLocaleString() || '0'
+        totalAmount: booking.amount?.toLocaleString() || '0',
+        meetingPoint: meetingPoint
       }
     });
 

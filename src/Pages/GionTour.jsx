@@ -322,7 +322,7 @@ const GionTour = () => {
                                         <div className='flex flex-col gap-6 basis-11/12 font-roboto'>
                                             <div className='relative overflow-visible'>
                                                 <h4 className='font-bold'>You'll start at</h4>
-                                                <p>Statue of Izumo-no-Okuni</p>
+                                                <p>Statue of Izumo-no-Okuni on the east side of the Shijo bridge in the Gion district</p>
                                                 <a
                                                     href='https://maps.app.goo.gl/ZErESUEc65kkLbx16' target='_blank' rel="noopener noreferrer"
                                                     className='font-semibold underline'

@@ -15,10 +15,6 @@ const Header1 = () => {
                         Home
                         <span className='absolute inset-x-0 bottom-0 h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left'></span>
                     </Link>
-                    <Link to="/tours" className='text-gray-700 hover:text-blue-600 transition-colors relative group'>
-                        Tours
-                        <span className='absolute inset-x-0 bottom-0 h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left'></span>
-                    </Link>
                     <Link to="/about" className='text-gray-700 hover:text-blue-600 transition-colors relative group'>
                         About
                         <span className='absolute inset-x-0 bottom-0 h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left'></span>
@@ -47,9 +43,6 @@ const Header1 = () => {
                                 <ul className='font-ubuntu text-4xl text-center flex flex-col space-y-10'>
                                     <li onClick={() => setMenuOpen(false)}>
                                         <Link to="/" className='text-gray-700 hover:text-blue-600 transition-colors'>Home</Link>
-                                    </li>
-                                    <li onClick={() => setMenuOpen(false)}>
-                                        <Link to="/tours" className='text-gray-700 hover:text-blue-600 transition-colors'>Tours</Link>
                                     </li>
                                     <li onClick={() => setMenuOpen(false)}>
                                         <Link to="/about" className='text-gray-700 hover:text-blue-600 transition-colors'>About</Link>
