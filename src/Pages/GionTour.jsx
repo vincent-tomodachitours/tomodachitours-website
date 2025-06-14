@@ -387,7 +387,7 @@ const GionTour = () => {
                                 tourName={tourTitle}
                                 maxSlots={maxSlots}
                                 availableTimes={availableTimes}
-                                sheetId="Gion tour"
+                                sheetId="GION_TOUR"
                                 price={tourPrice}
                                 cancellationCutoffHours={tourData['cancellation-cutoff-hours']}
                                 cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']}

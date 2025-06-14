@@ -32,6 +32,11 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const fetchBookings = useCallback(async () => {
         // Convert sheetId to match database tour_type format
         const tourTypeMap = {
+            'NIGHT_TOUR': 'NIGHT_TOUR',
+            'MORNING_TOUR': 'MORNING_TOUR',
+            'UJI_TOUR': 'UJI_TOUR',
+            'GION_TOUR': 'GION_TOUR',
+            // Keep backwards compatibility
             'Night tour': 'NIGHT_TOUR',
             'Morning tour': 'MORNING_TOUR',
             'Uji tour': 'UJI_TOUR',

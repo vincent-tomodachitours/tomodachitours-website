@@ -115,8 +115,13 @@ const BookingCancellation = () => {
         }
 
         setCancelling(prev => ({ ...prev, [booking.id]: true }));
+        setMessage(''); // Clear any previous messages
 
         try {
+            if (!process.env.REACT_APP_SUPABASE_URL || !process.env.REACT_APP_SUPABASE_ANON_KEY) {
+                throw new Error('Missing Supabase configuration');
+            }
+
             // Call Supabase Edge Function for refund processing
             const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/process-refund`, {
                 method: "POST",
@@ -130,6 +135,12 @@ const BookingCancellation = () => {
                 }),
             });
 
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error response:', errorText);
+                throw new Error('Failed to process cancellation request');
+            }
+
             const result = await response.json();
 
             if (result.success) {
@@ -141,9 +152,11 @@ const BookingCancellation = () => {
                 // Remove cancelled booking from list
                 setBookings(prev => prev.filter(b => b.id !== booking.id));
             } else {
+                console.error('Error from server:', result.error);
                 setMessage(result.error || 'Failed to cancel booking');
             }
         } catch (error) {
+            console.error('Error cancelling booking:', error);
             setMessage('Failed to cancel booking: ' + (error.message || 'An error occurred'));
         } finally {
             setCancelling(prev => ({ ...prev, [booking.id]: false }));
@@ -157,7 +170,7 @@ const BookingCancellation = () => {
 
     const now = new Date();
     const futureBookings = bookings
-        .filter(booking => getBookingDateTime(booking) > now && booking.status !== 'CANCELLED')
+        .filter(booking => getBookingDateTime(booking) > now && booking.status !== 'CANCELLED' && booking.status !== 'REFUNDED')
         .sort((a, b) => {
             const dateA = getBookingDateTime(a);
             const dateB = getBookingDateTime(b);

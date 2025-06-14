@@ -98,26 +98,41 @@ Deno.serve(async (req) => {
                 Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
             )
 
-            const { error: updateError } = await supabase
+            // Get current booking status
+            const { data: currentBooking, error: fetchError } = await supabase
                 .from('bookings')
-                .update({
-                    status: 'CONFIRMED',
-                    payment_status: 'PAID',
-                    three_d_secure_status: finishData.three_d_secure_status,
-                    updated_at: new Date().toISOString()
-                })
+                .select('status')
                 .eq('payment_id', chargeId)
+                .single()
 
-            if (updateError) {
-                console.error("Failed to update booking status:", updateError)
-                // Continue to success page anyway as payment was successful
+            if (fetchError) {
+                console.error("Failed to fetch current booking:", fetchError)
+                return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
+            }
+
+            // Only update if the booking is in PENDING_PAYMENT status
+            if (currentBooking.status === 'PENDING_PAYMENT') {
+                const { error: updateError } = await supabase
+                    .from('bookings')
+                    .update({
+                        status: 'CONFIRMED',
+                        three_d_secure_status: finishData.three_d_secure_status,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('payment_id', chargeId)
+
+                if (updateError) {
+                    console.error("Failed to update booking status:", updateError)
+                    return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
+                }
+            } else {
+                console.log("Booking is not in PENDING_PAYMENT status, skipping update")
             }
 
             return Response.redirect('https://tomodachitours.vercel.app/thankyou', 302)
         }
 
         return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
-
     } catch (error) {
         console.error("3D Secure redirect processing error:", error)
         return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)

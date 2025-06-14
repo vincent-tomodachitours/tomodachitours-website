@@ -381,7 +381,7 @@ const MorningTour = () => {
                                 tourName={tourTitle}
                                 maxSlots={maxSlots}
                                 availableTimes={availableTimes}
-                                sheetId="Morning tour"
+                                sheetId="MORNING_TOUR"
                                 price={tourPrice}
                                 cancellationCutoffHours={tourData['cancellation-cutoff-hours']}
                                 cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']}

@@ -387,7 +387,7 @@ const UjiTour = () => {
                                 tourName={tourTitle}
                                 maxSlots={maxSlots}
                                 availableTimes={availableTimes}
-                                sheetId="Uji tour"
+                                sheetId="UJI_TOUR"
                                 price={tourPrice}
                                 cancellationCutoffHours={tourData['cancellation-cutoff-hours']}
                                 cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']}

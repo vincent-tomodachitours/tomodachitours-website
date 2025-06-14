@@ -19,15 +19,14 @@ CREATE POLICY "Users can read their own bookings"
 ON public.bookings
 FOR SELECT
 TO public
-USING (customer_email = current_user OR user_id = auth.uid());
+USING (customer_email = current_user);
 
 -- Allow users to update their own bookings
 CREATE POLICY "Users can update their own bookings"
 ON public.bookings
 FOR UPDATE
 TO public
-USING (customer_email = current_user OR user_id = auth.uid())
-WITH CHECK (customer_email = current_user OR user_id = auth.uid());
+USING (customer_email = current_user);
 
 -- Allow the service role to do everything
 CREATE POLICY "Service role has full access to bookings"
