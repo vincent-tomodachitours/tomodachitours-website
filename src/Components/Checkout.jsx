@@ -78,18 +78,20 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
             const result = await response.json();
 
             if (result.success) {
-                // Store the complete discount data with originalAmount and finalAmount
                 setAppliedDiscount({
-                    ...result.discount,
+                    code: result.code,
+                    type: result.type,
+                    value: result.value,
                     originalAmount: result.originalAmount,
-                    finalAmount: result.finalAmount
+                    finalAmount: result.discountedPrice
                 });
                 setDiscountError('');
             } else {
-                setDiscountError(result.message);
+                setDiscountError(result.message || 'Failed to apply discount code');
                 setAppliedDiscount(null);
             }
         } catch (error) {
+            console.error('Discount validation error:', error);
             setDiscountError('Failed to validate discount code');
             setAppliedDiscount(null);
         } finally {
@@ -293,8 +295,8 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                             {appliedDiscount && (
                                 <p className="text-green-500 text-sm mt-1 font-ubuntu">
                                     Discount applied: -{appliedDiscount.type === 'percentage' ?
-                                        `${appliedDiscount.percentage}%` :
-                                        `¥${appliedDiscount.amount}`}
+                                        `${appliedDiscount.value}%` :
+                                        `¥${appliedDiscount.value.toLocaleString('en-US')}`}
                                 </p>
                             )}
                         </div>

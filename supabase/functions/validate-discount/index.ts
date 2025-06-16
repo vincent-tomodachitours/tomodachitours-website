@@ -19,7 +19,7 @@ const corsHeaders = {
 // Validation schema for discount code request
 const discountRequestSchema = z.object({
   code: z.string().min(1).max(50),
-  tourPrice: z.number().int().positive()
+  originalAmount: z.number().int().positive()
 })
 
 console.log("Discount validation function loaded")
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     const { data, error } = await validateRequest(req, discountRequestSchema)
     if (error) {
       return new Response(
-        JSON.stringify({ success: false, error }),
+        JSON.stringify({ success: false, message: error.message }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { code, tourPrice } = data!
+    const { code, originalAmount } = data!
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
       .from('discount_codes')
       .select('*')
       .eq('code', code.toUpperCase())
+      .eq('active', true)
       .single()
 
     if (discountError) {
@@ -71,30 +72,30 @@ Deno.serve(async (req) => {
       throw new Error('Discount code has expired or is not yet valid')
     }
 
-    if (discountCode.max_uses && discountCode.times_used >= discountCode.max_uses) {
+    if (discountCode.max_uses && discountCode.used_count >= discountCode.max_uses) {
       throw new Error('Discount code has reached maximum usage')
     }
 
     // Calculate discounted price
-    let discountedPrice = tourPrice
-    if (discountCode.discount_type === 'percentage') {
-      discountedPrice = Math.round(tourPrice * (1 - discountCode.discount_value / 100))
-    } else if (discountCode.discount_type === 'fixed') {
-      discountedPrice = tourPrice - discountCode.discount_value
+    let discountedPrice = originalAmount
+    if (discountCode.type === 'percentage') {
+      discountedPrice = Math.round(originalAmount * (1 - discountCode.value / 100))
+    } else if (discountCode.type === 'fixed') {
+      discountedPrice = originalAmount - discountCode.value
     }
 
-    // Ensure minimum price
-    if (discountCode.minimum_price && discountedPrice < discountCode.minimum_price) {
-      discountedPrice = discountCode.minimum_price
+    // Ensure minimum price is not negative
+    if (discountedPrice < 0) {
+      discountedPrice = 0
     }
 
     const response = {
       success: true,
       code: discountCode.code,
-      originalPrice: tourPrice,
+      originalAmount: originalAmount,
       discountedPrice,
-      discountType: discountCode.discount_type,
-      discountValue: discountCode.discount_value
+      type: discountCode.type,
+      value: discountCode.value
     }
 
     return new Response(
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error'
       }),
       {
         headers: addSecurityHeaders(new Headers({
