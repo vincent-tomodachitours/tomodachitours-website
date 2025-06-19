@@ -6,7 +6,7 @@ import { ReactComponent as Clock } from '../SVG/Clock.svg'
 import Checkout from './Checkout'
 import { supabase } from '../lib/supabase';
 
-function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, specificCutoffTimes, nextDayCutoffTime }) {
+function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime }) {
     const [checkout, setCheckout] = useState(false);
     const handleOpenCheckout = () => setCheckout(true);
     const handleCloseCheckout = () => setCheckout(false);
@@ -14,11 +14,12 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
     const [calendarState, setCalendarState] = useState(0);
 
-    const [participants, setParticipants] = useState(1);
-
     const [adultParticipants, setAdultParticipants] = useState(1);
     const [childParticipants, setChildParticipants] = useState(0);
     const [infantParticipants, setInfantParticipants] = useState(0);
+
+    // Calculate total participants dynamically instead of using separate state
+    const participants = adultParticipants + childParticipants + infantParticipants;
 
     const totalPrice = (adultParticipants + childParticipants) * price;
 
@@ -113,7 +114,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
 
             // Remove slot if it's either full or past cutoff
-            if (currentParticipants > (maxSlots - participants) || hoursUntilTour < cutoffHours) {
+            if (currentParticipants + participants > maxSlots || hoursUntilTour < cutoffHours) {
                 options.splice(i, 1);
                 i--;
             }
@@ -252,12 +253,14 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         if (!dayData) return false;
 
         for (let i = 0; i < availableTimes.length; i++) {
-            if (dayData[availableTimes[i]] < (maxSlots - participants)) {
-                return false;
+            const currentParticipants = dayData[availableTimes[i]] || 0;
+            // Check if this slot can accommodate the requested number of participants
+            if (currentParticipants + participants <= maxSlots) {
+                return false; // Date is NOT full because at least one slot is available
             }
         }
 
-        return true;
+        return true; // Date IS full because no slots can accommodate the participants
     };
 
     // Helper to get current time in JST
@@ -353,12 +356,11 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const renderCalendarComponent = () => {
         if (calendarState === 0) {
             return <div>
-                <div className="mb-8">
-                    <h1 className='font-ubuntu font-bold text-2xl text-gray-800 mb-6'>Who's going?</h1>
-                    <div className="space-y-3">
-                        <PeopleSelector min={1} max={maxSlots} title={"Adult"} ageRange="18 - 90" price={price} participants={participants} setParticipants={setParticipants} value={adultParticipants} onChange={setAdultParticipants} />
-                        <PeopleSelector min={0} max={maxSlots} title={"Child"} ageRange="3 - 17" price={price} participants={participants} setParticipants={setParticipants} value={childParticipants} onChange={setChildParticipants} />
-                        <PeopleSelector min={0} max={maxSlots} title={"Infant"} ageRange="0 - 2" price={0} participants={participants} setParticipants={setParticipants} value={infantParticipants} onChange={setInfantParticipants} />
+                <div className="mb-4">
+                    <div className="space-y-2">
+                        <PeopleSelector min={1} max={maxSlots} title={"Adult"} ageRange="18 - 90" price={price} participants={participants} value={adultParticipants} onChange={setAdultParticipants} />
+                        <PeopleSelector min={0} max={maxSlots} title={"Child"} ageRange="3 - 17" price={price} participants={participants} value={childParticipants} onChange={setChildParticipants} />
+                        <PeopleSelector min={0} max={maxSlots} title={"Infant"} ageRange="0 - 2" price={0} participants={participants} value={infantParticipants} onChange={setInfantParticipants} />
                     </div>
                 </div>
                 <h1 className='font-ubuntu font-bold text-2xl text-gray-800 mb-6'>Choose a date</h1>
@@ -394,13 +396,34 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
                 <div className="bg-gray-50 rounded-xl p-6 mb-6">
                     <h1 className='font-ubuntu font-bold text-xl text-gray-800 mb-4'>Booking Summary</h1>
-                    <div className="w-full flex justify-between items-start mb-4">
+
+                    {/* Tour name */}
+                    <div className="mb-4">
                         <h2 className="font-ubuntu font-semibold text-base text-gray-700">{tourName}</h2>
-                        <div className="text-right">
-                            <div className="font-ubuntu font-bold text-blue-600 text-xl">{tourTime}</div>
-                            <div className="font-ubuntu font-medium text-blue-600 text-sm">{calendarSelectedDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}</div>
+                    </div>
+
+                    {/* Date and Time - More prominent */}
+                    <div className="bg-white rounded-lg p-4 mb-4 border border-gray-200">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-sm text-gray-500 font-medium">Date</div>
+                                <div className="font-ubuntu font-bold text-lg text-gray-800">
+                                    {calendarSelectedDate.toLocaleDateString("en-US", {
+                                        weekday: 'short',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                    })}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm text-gray-500 font-medium">Time</div>
+                                <div className="font-ubuntu font-bold text-lg text-blue-600">{tourTime}</div>
+                            </div>
                         </div>
                     </div>
+
+                    {/* Participants and Total */}
                     <div className="flex justify-between items-end">
                         <div className="text-sm text-gray-600 space-y-1">
                             <div>Adults: {adultParticipants}</div>
@@ -438,7 +461,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     return (
         <div className='w-full md:w-2/3 lg:w-full bg-white border border-gray-200 rounded-2xl p-6 mx-auto text-gray-700 flex-none shadow-sm'>
             <div className='mb-8'>
-                <h2 className='text-3xl font-bold text-gray-800'>¥ {price.toLocaleString('en-US')} <span className='text-lg font-medium text-gray-600'>/ Adult</span></h2>
+                <h2 className='text-3xl font-bold text-gray-800'>¥ {price.toLocaleString('en-US')} <span className='text-lg font-medium text-gray-600'>/ Guest</span></h2>
             </div>
             {renderCalendarComponent()}
             {checkout === true ? (

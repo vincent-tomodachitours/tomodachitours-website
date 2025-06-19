@@ -75,7 +75,21 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                 }),
             });
 
-            const result = await response.json();
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+
+            if (!responseText) {
+                throw new Error('Empty response from server');
+            }
+
+            const result = JSON.parse(responseText);
 
             if (result.success) {
                 setAppliedDiscount({
@@ -87,12 +101,12 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                 });
                 setDiscountError('');
             } else {
-                setDiscountError(result.message || 'Failed to apply discount code');
+                setDiscountError(result.error || result.message || 'Failed to apply discount code');
                 setAppliedDiscount(null);
             }
         } catch (error) {
             console.error('Discount validation error:', error);
-            setDiscountError('Failed to validate discount code');
+            setDiscountError(`Failed to validate discount code: ${error.message}`);
             setAppliedDiscount(null);
         } finally {
             setDiscountLoading(false);
@@ -272,6 +286,11 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                     name='discount'
                                     value={discountCode}
                                     onChange={(e) => setDiscountCode(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && discountCode.trim() && !discountLoading && !appliedDiscount) {
+                                            handleApplyDiscount();
+                                        }
+                                    }}
                                     disabled={appliedDiscount !== null}
                                 />
                                 <button

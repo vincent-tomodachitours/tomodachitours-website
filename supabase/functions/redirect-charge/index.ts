@@ -11,7 +11,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import { addSecurityHeaders } from '../validation-middleware/index.ts'
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 import { validateRequest } from '../validation-middleware/index.ts'
-import { withRateLimit } from '../rate-limit-middleware/wrapper.ts'
+// import { withRateLimit } from '../rate-limit-middleware/wrapper.ts' // Temporarily disabled
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -39,14 +39,20 @@ const handler = async (req: Request): Promise<Response> => {
         if (error) {
             return new Response(
                 JSON.stringify({ success: false, error }),
-                { status: 400 }
+                {
+                    status: 400,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                }
             )
         }
 
         if (!data) {
             return new Response(
                 JSON.stringify({ success: false, error: 'Invalid request data' }),
-                { status: 400 }
+                {
+                    status: 400,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                }
             )
         }
 
@@ -81,8 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
         const { error: updateError } = await supabase
             .from('bookings')
             .update({
-                status: 'CONFIRMED',
-                payment_status: 'PAID'
+                status: 'CONFIRMED'
             })
             .eq('id', data.booking_id)
 
@@ -93,7 +98,10 @@ const handler = async (req: Request): Promise<Response> => {
                     success: false,
                     error: 'Failed to update booking status'
                 }),
-                { status: 500 }
+                {
+                    status: 500,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                }
             )
         }
 
@@ -106,7 +114,10 @@ const handler = async (req: Request): Promise<Response> => {
                     status: charge.status
                 }
             }),
-            { status: 200 }
+            {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
         )
 
     } catch (error) {
@@ -116,13 +127,16 @@ const handler = async (req: Request): Promise<Response> => {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error'
             }),
-            { status: 500 }
+            {
+                status: 500,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
         )
     }
 }
 
 // Export the wrapped handler
-export default serve(withRateLimit(handler))
+export default serve(handler) // Temporarily removed withRateLimit wrapper
 
 /* To invoke locally:
 

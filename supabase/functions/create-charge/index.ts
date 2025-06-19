@@ -9,7 +9,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { validateRequest, paymentSchema, addSecurityHeaders, sanitizeOutput } from '../validation-middleware/index.ts'
-import { withRateLimit } from '../rate-limit-middleware/wrapper.ts'
+// import { withRateLimit } from '../rate-limit-middleware/wrapper.ts' // Temporarily disabled due to broken wrapper
 import sgMail from "npm:@sendgrid/mail"
 
 const corsHeaders = {
@@ -189,7 +189,10 @@ const handler = async (req: Request): Promise<Response> => {
     if (!data) {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid request data' }),
-        { status: 400 }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
@@ -233,8 +236,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from('bookings')
       .update({
         charge_id: charge.id,
-        status: 'CONFIRMED',
-        payment_status: 'PAID'
+        status: 'CONFIRMED'
       })
       .eq('id', data.bookingId)
 
@@ -245,21 +247,24 @@ const handler = async (req: Request): Promise<Response> => {
           success: false,
           error: 'Failed to update booking status'
         }),
-        { status: 500 }
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
     console.log('Booking status updated, fetching booking details...')
 
     // Get booking details for email
-    const { data: booking, error: bookingError } = await supabase
+    const { data: booking, error: fetchError } = await supabase
       .from('bookings')
       .select('*')
       .eq('id', data.bookingId)
       .single()
 
-    if (bookingError || !booking) {
-      console.error('Failed to fetch booking details:', bookingError)
+    if (fetchError || !booking) {
+      console.error('Failed to fetch booking details:', fetchError)
       // Don't throw error as payment was successful
     } else {
       // Send confirmation emails
@@ -318,7 +323,7 @@ const handler = async (req: Request): Promise<Response> => {
 }
 
 // Export the wrapped handler
-export default serve(withRateLimit(handler))
+export default serve(handler) // Temporarily removed withRateLimit wrapper
 
 /* To invoke locally:
 

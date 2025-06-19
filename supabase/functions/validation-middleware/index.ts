@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 // Common validation schemas
 const emailSchema = z.string().email()
@@ -10,7 +10,7 @@ const countSchema = z.number().int().min(0).max(99)
 const priceSchema = z.number().int().min(0).max(1000000)
 const idSchema = z.number().int().positive()
 const statusSchema = z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'REFUNDED'])
-const discountCodeSchema = z.string().max(50).optional()
+const discountCodeSchema = z.string().max(50).nullable().optional()
 
 // Booking validation schema
 export const bookingSchema = z.object({
@@ -38,7 +38,7 @@ export const paymentSchema = z.object({
 
 // Refund validation schema
 export const refundSchema = z.object({
-    bookingId: z.string().uuid(),
+    bookingId: idSchema, // Using idSchema (number) instead of UUID string
     email: z.string().email()
 })
 

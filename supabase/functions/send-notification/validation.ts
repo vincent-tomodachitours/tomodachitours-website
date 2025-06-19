@@ -28,16 +28,9 @@ export const sanitizeOutput = (data: any): any => {
 
 // Notification schema
 export const notificationSchema = z.object({
-    bookingId: z.number().int().positive(),
-    email: z.string().email().optional(),
-    name: z.string().optional(),
-    tour_type: z.string().optional(),
-    date: z.string().optional(),
-    time: z.string().optional(),
-    adults: z.number().int().optional(),
-    children: z.number().int().optional(),
-    infants: z.number().int().optional(),
-    refundAmount: z.number().optional()
+    to: z.string().email(),
+    templateId: z.string(),
+    templateData: z.record(z.any())
 })
 
 // Request validation

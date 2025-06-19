@@ -178,110 +178,209 @@ const BookingCancellation = () => {
         });
 
     return (
-        <div className='w-full h-screen min-h-screen flex flex-col overflow-y-auto bg-stone-300'>
+        <div className='min-h-screen bg-gray-50 flex flex-col'>
             <Header />
-            <div className="w-4/5 md:w-3/4 mx-auto flex-1 mt-10">
-                <h1 className="font-roboto text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-12 text-gray-700">Cancel Your Booking</h1>
 
-                <div className="mb-6 bg-white p-6 rounded-lg border border-gray-300">
-                    <label className="block font-ubuntu text-lg font-medium mb-4 text-gray-700">
-                        Email Address (used for booking)
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="flex-1 h-10 px-3 py-2 border border-gray-300 rounded-md font-ubuntu"
-                            placeholder="Enter your email"
-                        />
-                        <button
-                            onClick={handleLookupBookings}
-                            disabled={loading}
-                            className="group relative inline-flex items-center justify-center w-full sm:w-auto px-8 py-2 text-lg font-bold text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                        >
-                            <span className="absolute inset-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent rounded-xl"></span>
-                            <span className="relative flex items-center">
-                                {loading ? 'Looking up...' : (
-                                    <>
-                                        Find Bookings
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                        </svg>
-                                    </>
-                                )}
-                            </span>
-                        </button>
+            {/* Hero Section */}
+            <div className="bg-white">
+                <div className="max-w-4xl mx-auto px-6 py-16">
+                    <div className="text-center">
+                        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                            Cancel Your Booking
+                        </h1>
+                        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                            We understand plans can change. Cancel your tour booking quickly and easily below.
+                        </p>
                     </div>
                 </div>
-
-                {message && (
-                    <div className={`p-4 rounded-md mb-4 font-ubuntu ${message.includes('successfully') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                        {message}
-                    </div>
-                )}
-
-                {futureBookings.length > 0 && (
-                    <div>
-                        <h2 className="font-roboto text-2xl font-bold mb-6 text-gray-700">Your Bookings</h2>
-                        {!tours ? (
-                            <div className="bg-white border border-gray-300 rounded-lg p-6 mb-4">
-                                <p className="text-gray-600 font-ubuntu">Loading booking details...</p>
-                            </div>
-                        ) : (
-                            futureBookings.map((booking) => {
-                                const bookingDateTime = getBookingDateTime(booking);
-                                const canCancel = (bookingDateTime - now) > (24 * 60 * 60 * 1000);
-                                const tourName = getTourName(booking.tour_type);
-                                const refundAmount = calculateRefundAmount(booking);
-
-                                return (
-                                    <div key={booking.id} className="bg-white border border-gray-300 rounded-lg p-6 mb-4">
-                                        <Link to={getTourUrl(booking.tour_type)}>
-                                            <h3 className="font-roboto text-xl font-bold text-blue-600 mb-3 hover:text-blue-800 transition-colors">{tourName}</h3>
-                                        </Link>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                            <div>
-                                                <p className="text-gray-700 font-ubuntu mb-2">
-                                                    <strong>Lead Traveler:</strong> {booking.customer_name || 'N/A'}
-                                                </p>
-                                                <p className="text-gray-700 font-ubuntu mb-2">
-                                                    <strong>Date:</strong> {new Date(booking.booking_date).toLocaleDateString()} at {booking.booking_time}
-                                                </p>
-                                                <p className="text-gray-700 font-ubuntu">
-                                                    <strong>Participants:</strong> {booking.adults} adults, {booking.children} children
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center justify-end">
-                                                <p className="text-gray-700 font-ubuntu">
-                                                    <strong>Refund Amount:</strong> <span className="text-green-600 font-bold text-xl ml-2">¥{refundAmount.toLocaleString('en-US')}</span>
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-4 pt-4 border-t border-gray-200">
-                                            {canCancel ? (
-                                                <button
-                                                    onClick={() => handleCancelBooking(booking)}
-                                                    disabled={cancelling[booking.id]}
-                                                    className="px-6 py-3 bg-red-600 text-white rounded-md font-roboto font-bold disabled:bg-gray-400 hover:bg-red-700 transition-colors"
-                                                >
-                                                    {cancelling[booking.id] ? 'Cancelling...' : 'Cancel Booking'}
-                                                </button>
-                                            ) : (
-                                                <p className="text-red-600 font-ubuntu font-bold">
-                                                    Cannot cancel - less than 24 hours before tour
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            }))}
-                    </div>
-                )}
             </div>
+
+            {/* Main Content */}
+            <div className="flex-1 py-12">
+                <div className="max-w-4xl mx-auto px-6">
+
+                    {/* Email Lookup Card */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Find Your Booking</h2>
+                            <p className="text-gray-600">Enter the email address you used when making your booking</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && email.trim() && !loading) {
+                                            handleLookupBookings();
+                                        }
+                                    }}
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
+                                    placeholder="your.email@example.com"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleLookupBookings}
+                                disabled={loading || !email.trim()}
+                                className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            >
+                                {loading ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                        Searching...
+                                    </div>
+                                ) : (
+                                    'Find My Bookings'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Message Display */}
+                    {message && (
+                        <div className={`rounded-xl p-4 mb-8 ${message.includes('successfully')
+                            ? 'bg-green-50 text-green-800 border border-green-200'
+                            : 'bg-red-50 text-red-800 border border-red-200'
+                            }`}>
+                            <div className="flex items-start">
+                                <div className="flex-shrink-0">
+                                    {message.includes('successfully') ? (
+                                        <svg className="w-5 h-5 text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-5 h-5 text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                        </svg>
+                                    )}
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm font-medium">{message}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Bookings List */}
+                    {futureBookings.length > 0 && (
+                        <div>
+                            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Your Upcoming Bookings</h2>
+
+                            {!tours ? (
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                                    <div className="flex items-center justify-center">
+                                        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-3"></div>
+                                        <p className="text-gray-600">Loading booking details...</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {futureBookings.map((booking) => {
+                                        const bookingDateTime = getBookingDateTime(booking);
+                                        const canCancel = (bookingDateTime - now) > (24 * 60 * 60 * 1000);
+                                        const tourName = getTourName(booking.tour_type);
+                                        const refundAmount = calculateRefundAmount(booking);
+
+                                        return (
+                                            <div key={booking.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200">
+                                                {/* Tour Header */}
+                                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-8 py-6 border-b border-gray-100">
+                                                    <Link to={getTourUrl(booking.tour_type)}>
+                                                        <h3 className="text-xl font-semibold text-blue-900 hover:text-blue-700 transition-colors">
+                                                            {tourName}
+                                                        </h3>
+                                                    </Link>
+                                                </div>
+
+                                                {/* Booking Details */}
+                                                <div className="p-8">
+                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
+                                                        <div className="space-y-4">
+                                                            <div>
+                                                                <p className="text-sm font-medium text-gray-500 mb-1">Lead Traveler</p>
+                                                                <p className="text-lg text-gray-900">{booking.customer_name || 'N/A'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-medium text-gray-500 mb-1">Tour Date & Time</p>
+                                                                <p className="text-lg text-gray-900">
+                                                                    {new Date(booking.booking_date).toLocaleDateString('en-US', {
+                                                                        weekday: 'long',
+                                                                        year: 'numeric',
+                                                                        month: 'long',
+                                                                        day: 'numeric'
+                                                                    })}
+                                                                </p>
+                                                                <p className="text-lg text-gray-900">{booking.booking_time}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-medium text-gray-500 mb-1">Participants</p>
+                                                                <p className="text-lg text-gray-900">
+                                                                    {booking.adults} adult{booking.adults !== 1 ? 's' : ''}
+                                                                    {booking.children > 0 && `, ${booking.children} child${booking.children !== 1 ? 'ren' : ''}`}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="lg:text-right">
+                                                            <div className="bg-gray-50 rounded-xl p-6">
+                                                                <p className="text-sm font-medium text-gray-500 mb-2">Refund Amount</p>
+                                                                <p className="text-3xl font-bold text-green-600">
+                                                                    ¥{refundAmount.toLocaleString('en-US')}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Action Section */}
+                                                    <div className="pt-6 border-t border-gray-100">
+                                                        {canCancel ? (
+                                                            <button
+                                                                onClick={() => handleCancelBooking(booking)}
+                                                                disabled={cancelling[booking.id]}
+                                                                className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 shadow-sm hover:shadow-md focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                                            >
+                                                                {cancelling[booking.id] ? (
+                                                                    <div className="flex items-center">
+                                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                                        Cancelling...
+                                                                    </div>
+                                                                ) : (
+                                                                    'Cancel This Booking'
+                                                                )}
+                                                            </button>
+                                                        ) : (
+                                                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                                                <div className="flex items-start">
+                                                                    <svg className="w-5 h-5 text-amber-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                    <div>
+                                                                        <p className="text-sm font-medium text-amber-800">Cannot Cancel</p>
+                                                                        <p className="text-sm text-amber-700 mt-1">
+                                                                            Cancellations must be made at least 24 hours before the tour time.
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
             <Footer />
         </div>
     );

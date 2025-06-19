@@ -1,19 +1,15 @@
 import React from 'react'
-import { ReactComponent as MinusCircle } from '../SVG/MinusCircle.svg'
-import { ReactComponent as PlusCircle } from '../SVG/PlusCircle.svg'
 
-const PeopleSelector = ({ min = 0, max = 9, title = "NAME", participants, setParticipants, value, onChange, ageRange, price }) => {
+const PeopleSelector = ({ min = 0, max = 9, title = "NAME", participants, value, onChange, ageRange, price }) => {
 
     const decrease = () => {
         if (value > min) {
-            setParticipants(participants - 1);
             onChange(value - 1);
         }
     };
 
     const increase = () => {
-        if (value < max) {
-            setParticipants(participants + 1);
+        if (value < max && participants < max) {
             onChange(value + 1);
         }
     };

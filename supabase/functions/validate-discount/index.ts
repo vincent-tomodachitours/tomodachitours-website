@@ -12,8 +12,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import { addSecurityHeaders } from '../validation-middleware/index.ts'
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 import { validateRequest } from '../validation-middleware/index.ts'
-import { withRateLimit } from '../rate-limit-middleware/wrapper.ts'
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-test-mode',
@@ -40,14 +38,20 @@ const handler = async (req: Request): Promise<Response> => {
     if (error) {
       return new Response(
         JSON.stringify({ success: false, error }),
-        { status: 400 }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
     if (!data) {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid request data' }),
-        { status: 400 }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
@@ -71,7 +75,10 @@ const handler = async (req: Request): Promise<Response> => {
           success: false,
           error: 'Invalid discount code'
         }),
-        { status: 400 }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
@@ -83,7 +90,10 @@ const handler = async (req: Request): Promise<Response> => {
           success: false,
           error: 'Discount code is not yet valid'
         }),
-        { status: 400 }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
@@ -93,17 +103,23 @@ const handler = async (req: Request): Promise<Response> => {
           success: false,
           error: 'Discount code has expired'
         }),
-        { status: 400 }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
-    if (discountCode.max_uses && discountCode.current_uses >= discountCode.max_uses) {
+    if (discountCode.max_uses && discountCode.used_count >= discountCode.max_uses) {
       return new Response(
         JSON.stringify({
           success: false,
           error: 'Discount code has reached maximum usage'
         }),
-        { status: 400 }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
@@ -124,7 +140,10 @@ const handler = async (req: Request): Promise<Response> => {
           success: false,
           error: `Minimum booking amount is ¥${discountCode.min_booking_amount}`
         }),
-        { status: 400 }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       )
     }
 
@@ -149,6 +168,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify(response),
       {
         headers: addSecurityHeaders(new Headers({
+          ...corsHeaders,
           'Content-Type': 'application/json'
         }))
       }
@@ -161,13 +181,16 @@ const handler = async (req: Request): Promise<Response> => {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { status: 500 }
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     )
   }
 }
 
-// Export the wrapped handler
-export default serve(withRateLimit(handler))
+// Export the handler directly (temporarily removing rate limiting to debug)
+export default serve(handler)
 
 /* To invoke locally:
 

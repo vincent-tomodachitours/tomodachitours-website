@@ -39,7 +39,7 @@
     "dev": "react-scripts start",
     "build": "react-scripts build",
     "start": "react-scripts start",
-    "test": "vitest",
+    "test": "react-scripts test",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
@@ -54,7 +54,8 @@
     "security:report": "node scripts/security-weekly-report.js",
     "security:health-check": "node -e \"console.log('Security system health check - implement based on your monitoring needs')\"",
     "script:blacklist": "ts-node scripts/manage-blacklist.ts",
-    "script:review-queue": "ts-node scripts/manage-review-queue.ts"
+    "script:review-queue": "ts-node scripts/manage-review-queue.ts",
+    "test:supabase": "node -e \"require('dotenv').config(); require('./tests/supabase-functions-test.js')\""
   },
   "eslintConfig": {
     "extends": [
