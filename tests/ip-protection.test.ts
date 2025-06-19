@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Redis } from '@upstash/redis';
 import { Request, Response } from 'express';
-import { IPProtection } from '../supabase/functions/ip-protection-middleware';
+import { IPProtection } from '../src/services/ip-protection';
 
 // Mock Redis
 vi.mock('@upstash/redis');

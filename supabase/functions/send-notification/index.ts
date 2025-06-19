@@ -1,57 +1,102 @@
+/// <reference lib="deno.ns" />
+/// <reference lib="dom" />
+
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
-import { validateRequest, addSecurityHeaders, sanitizeOutput, notificationSchema } from './validation.ts'
+import { validateRequest, addSecurityHeaders, notificationSchema } from './validation.ts'
+import { withRateLimit } from '../rate-limit-middleware/wrapper.ts'
+import sgMail from "npm:@sendgrid/mail"
+
+console.log("Notification service loaded")
+
+// Initialize SendGrid
+const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY')
+if (SENDGRID_API_KEY) {
+  sgMail.setApiKey(SENDGRID_API_KEY)
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-test-mode',
+  'Access-Control-Expose-Headers': 'x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset'
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
+const handler = async (req: Request): Promise<Response> => {
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders })
+    }
+
     // Validate request data
     const { data, error } = await validateRequest(req, notificationSchema)
     if (error) {
       return new Response(
         JSON.stringify({ success: false, error }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
+        { status: 400 }
       )
     }
 
-    // Email functionality removed - will be reimplemented later
-    console.log('Email notification system is being updated')
+    if (!data) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid request data' }),
+        { status: 400 }
+      )
+    }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Notification system is being updated'
-      }),
-      {
-        headers: addSecurityHeaders(new Headers({
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }))
-      }
-    )
+    if (!SENDGRID_API_KEY) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Email service not configured'
+        }),
+        { status: 500 }
+      )
+    }
+
+    // Send email using SendGrid
+    try {
+      await sgMail.send({
+        to: data.to,
+        from: {
+          email: 'contact@tomodachitours.com',
+          name: 'Tomodachi Tours'
+        },
+        templateId: data.templateId,
+        dynamicTemplateData: data.templateData
+      })
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Email sent successfully'
+        }),
+        { status: 200 }
+      )
+
+    } catch (emailError) {
+      console.error('SendGrid error:', emailError)
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Failed to send email'
+        }),
+        { status: 500 }
+      )
+    }
 
   } catch (error) {
-    console.error('Failed to send notification:', error)
+    console.error('Notification error:', error)
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
+      { status: 500 }
     )
   }
-}) 
+}
+
+// Export the wrapped handler
+export default serve(withRateLimit(handler)) 

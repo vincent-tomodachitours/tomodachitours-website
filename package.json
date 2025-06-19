@@ -15,6 +15,7 @@
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^14.2.1",
     "@testing-library/user-event": "^14.5.2",
+    "@upstash/redis": "^1.28.4",
     "autoprefixer": "^10.4.17",
     "classnames": "^2.5.1",
     "googleapis": "^133.0.0",
@@ -30,8 +31,9 @@
     "react-scripts": "5.0.1",
     "web-vitals": "^3.5.2",
     "webpack-dev-server": "^5.2.2",
+    "yargs": "^17.7.2",
     "yet-another-react-lightbox": "^3.15.6",
-    "zod": "^3.22.4"
+    "zod": "^3.25.67"
   },
   "scripts": {
     "dev": "react-scripts start",
@@ -43,7 +45,16 @@
     "test:coverage": "vitest run --coverage",
     "vercel-build": "CI=false react-scripts build",
     "eject": "react-scripts eject",
-    "fetch-config": "node scripts/fetchConfig.js"
+    "fetch-config": "node scripts/fetchConfig.js",
+    "blacklist": "ts-node scripts/manage-blacklist.ts",
+    "review-queue": "ts-node scripts/manage-review-queue.ts",
+    "security:daily-check": "node scripts/security-daily-check.js",
+    "security:weekly-report": "node scripts/security-weekly-report.js",
+    "security:analyze": "node scripts/security-daily-check.js",
+    "security:report": "node scripts/security-weekly-report.js",
+    "security:health-check": "node -e \"console.log('Security system health check - implement based on your monitoring needs')\"",
+    "script:blacklist": "ts-node scripts/manage-blacklist.ts",
+    "script:review-queue": "ts-node scripts/manage-review-queue.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -64,8 +75,13 @@
     ]
   },
   "devDependencies": {
+    "@types/express": "^4.17.23",
+    "@types/yargs": "^17.0.32",
+    "@upstash/ratelimit": "^2.0.5",
+    "@upstash/redis": "^1.35.0",
     "@vitest/coverage-v8": "^3.2.2",
     "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "identity-obj-proxy": "^3.0.0",
     "tailwindcss": "^3.4.17",
     "vitest": "^3.2.2"

@@ -1,6 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
-import { Redis } from '@upstash/redis';
-import { NextFunction, Request, Response } from 'express';
+// @deno-types="https://esm.sh/@upstash/redis@1.20.6"
+import { Redis } from 'https://esm.sh/@upstash/redis@1.20.6';
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { corsHeaders } from '../_shared/cors.ts';
 
 interface IPConfig {
     allowedCountries: string[];
@@ -9,7 +10,7 @@ interface IPConfig {
     trackingWindowInMinutes: number;
 }
 
-export class IPProtection {
+class IPProtection {
     private redis: Redis;
     private config: IPConfig;
 
@@ -60,14 +61,23 @@ export class IPProtection {
         }
     }
 
-    middleware = async (req: Request, res: Response, next: NextFunction) => {
-        const clientIP = req.headers['x-forwarded-for']?.toString() || req.ip;
+    async handleRequest(req: Request): Promise<Response> {
+        const clientIP = req.headers.get('x-forwarded-for');
 
         // Ensure we have a valid IP
         if (!clientIP) {
-            return res.status(400).json({
-                error: 'Invalid IP address',
-            });
+            return new Response(
+                JSON.stringify({
+                    error: 'Invalid IP address',
+                }),
+                {
+                    status: 400,
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
         }
 
         // Use the first IP if x-forwarded-for contains multiple IPs
@@ -76,39 +86,84 @@ export class IPProtection {
         try {
             // Check if IP is blacklisted
             if (await this.isIPBlacklisted(ip)) {
-                return res.status(403).json({
-                    error: 'Access denied: IP is blacklisted',
-                });
+                return new Response(
+                    JSON.stringify({
+                        error: 'Access denied: IP is blacklisted',
+                    }),
+                    {
+                        status: 403,
+                        headers: {
+                            ...corsHeaders,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
             }
 
             // Check country restriction
             if (!(await this.isCountryAllowed(ip))) {
                 await this.addToBlacklist(ip, 'Country not allowed');
-                return res.status(403).json({
-                    error: 'Access denied: Country not allowed',
-                });
+                return new Response(
+                    JSON.stringify({
+                        error: 'Access denied: Country not allowed',
+                    }),
+                    {
+                        status: 403,
+                        headers: {
+                            ...corsHeaders,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
             }
 
             // Track request count
             const requestCount = await this.trackIPRequest(ip);
             if (requestCount > this.config.maxRequestsPerIP) {
                 await this.addToBlacklist(ip, 'Exceeded request limit');
-                return res.status(429).json({
-                    error: 'Too many requests from this IP',
-                });
+                return new Response(
+                    JSON.stringify({
+                        error: 'Too many requests from this IP',
+                    }),
+                    {
+                        status: 429,
+                        headers: {
+                            ...corsHeaders,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
             }
 
-            // Add IP tracking headers
-            res.setHeader('X-IP-Requests-Remaining',
-                Math.max(0, this.config.maxRequestsPerIP - requestCount).toString()
+            // Return success response with IP tracking headers
+            return new Response(
+                JSON.stringify({ success: true }),
+                {
+                    status: 200,
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json',
+                        'X-IP-Requests-Remaining': Math.max(0, this.config.maxRequestsPerIP - requestCount).toString()
+                    }
+                }
             );
-
-            next();
         } catch (error) {
             console.error('IP Protection Error:', error);
-            next(error);
+            return new Response(
+                JSON.stringify({
+                    error: 'Internal server error',
+                    details: error instanceof Error ? error.message : 'Unknown error'
+                }),
+                {
+                    status: 500,
+                    headers: {
+                        ...corsHeaders,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
         }
-    };
+    }
 }
 
 // Default configuration
@@ -119,11 +174,19 @@ const defaultConfig: IPConfig = {
     trackingWindowInMinutes: 60,
 };
 
-// Create middleware instance
+// Initialize Redis client
 const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL!,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    url: Deno.env.get('UPSTASH_REDIS_REST_URL')!,
+    token: Deno.env.get('UPSTASH_REDIS_REST_TOKEN')!,
 });
 
-export const ipProtection = new IPProtection(redis, defaultConfig);
-export const ipProtectionMiddleware = ipProtection.middleware; 
+const ipProtection = new IPProtection(redis, defaultConfig);
+
+serve(async (req) => {
+    // Handle CORS
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders });
+    }
+
+    return ipProtection.handleRequest(req);
+}); 

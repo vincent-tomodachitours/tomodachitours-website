@@ -1,3 +1,5 @@
+/// <reference lib="deno.ns" />
+/// <reference lib="dom" />
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -6,12 +8,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { validateRequest, paymentSchema, addSecurityHeaders, sanitizeOutput } from './validation.ts'
+import { validateRequest, paymentSchema, addSecurityHeaders, sanitizeOutput } from '../validation-middleware/index.ts'
+import { withRateLimit } from '../rate-limit-middleware/wrapper.ts'
 import sgMail from "npm:@sendgrid/mail"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-test-mode',
+  'Access-Control-Expose-Headers': 'x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset'
 }
 
 console.log("Payment processing function loaded")
@@ -150,13 +154,23 @@ async function sendBookingEmails(supabase: any, booking: any) {
   }
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+interface PayJPCharge {
+  id: string
+  amount: number
+  status: string
+  paid: boolean
+  error?: {
+    message: string
   }
+}
 
+const handler = async (req: Request): Promise<Response> => {
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders })
+    }
+
     console.log('Received payment request')
 
     // Validate request data
@@ -172,131 +186,128 @@ serve(async (req) => {
       )
     }
 
-    const { token, amount, bookingId, discountCode, originalAmount } = data!
-    console.log('Payment details:', { amount, bookingId, discountCode, originalAmount, hasToken: !!token })
+    if (!data) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid request data' }),
+        { status: 400 }
+      )
+    }
 
-    // Initialize Supabase client
+    // Create charge with PayJP REST API
+    const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
+    if (!secretKey) {
+      throw new Error('PayJP secret key not configured')
+    }
+
+    const payjpResponse = await fetch('https://api.pay.jp/v1/charges', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        amount: data.amount.toString(),
+        currency: 'jpy',
+        card: data.token,
+        capture: 'true',
+        'metadata[booking_id]': data.bookingId.toString(),
+        'metadata[discount_code]': data.discountCode || '',
+        'metadata[original_amount]': (data.originalAmount || data.amount).toString()
+      }).toString()
+    })
+
+    const charge: PayJPCharge = await payjpResponse.json()
+
+    if (!payjpResponse.ok || !charge.paid) {
+      console.error('PayJP error:', charge.error || charge)
+      throw new Error(charge.error?.message || 'Payment failed')
+    }
+
+    // Update booking with charge information
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') || '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     )
 
-    // Create charge with PayJP REST API
-    try {
-      console.log('Creating PayJP charge...')
-      const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
-      console.log('PayJP key available:', !!secretKey)
-      console.log('PayJP key length:', secretKey?.length)
-      const payjpResponse = await fetch('https://api.pay.jp/v1/charges', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-          amount: amount.toString(),
-          currency: 'jpy',
-          card: token,
-          capture: 'true',
-          'metadata[booking_id]': bookingId.toString(),
-          'metadata[discount_code]': discountCode || '',
-          'metadata[original_amount]': originalAmount?.toString() || amount.toString()
-        }).toString()
+    const { error: bookingError } = await supabase
+      .from('bookings')
+      .update({
+        charge_id: charge.id,
+        status: 'CONFIRMED',
+        payment_status: 'PAID'
       })
+      .eq('id', data.bookingId)
 
-      const charge = await payjpResponse.json()
-      console.log('PayJP response:', charge)
-
-      if (!payjpResponse.ok) {
-        console.error('PayJP error:', charge.error)
-        throw new Error(charge.error?.message || 'Payment failed')
-      }
-
-      if (!charge.paid) {
-        console.error('Payment not marked as paid:', charge)
-        throw new Error('Payment failed')
-      }
-
-      console.log('Payment successful, updating booking status...')
-      console.log('Charge ID to be stored:', charge.id)
-
-      // Update booking status in database - only use fields that exist in schema
-      const { error: updateError } = await supabase
-        .from('bookings')
-        .update({
-          status: 'CONFIRMED',
-          charge_id: charge.id
-        })
-        .eq('id', bookingId)
-
-      if (updateError) {
-        console.error('Failed to update booking:', updateError)
-        console.log('Error details:', updateError)
-        throw new Error('Failed to update booking status: ' + updateError.message)
-      }
-
-      console.log('Booking update successful, charge_id stored')
-
-      console.log('Booking status updated, fetching booking details...')
-
-      // Get booking details for email
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('id', bookingId)
-        .single()
-
-      if (bookingError || !booking) {
-        console.error('Failed to fetch booking details:', bookingError)
-        // Don't throw error as payment was successful
-      } else {
-        // Send confirmation emails
-        await sendBookingEmails(supabase, booking)
-      }
-
-      // If discount code was used, increment its usage
-      if (discountCode) {
-        console.log('Updating discount code usage...')
-        const { error: discountError } = await supabase
-          .rpc('increment_discount_code_usage', {
-            code: discountCode
-          })
-
-        if (discountError) {
-          console.error('Failed to update discount code usage:', discountError)
-          // Don't throw error here as payment was successful
-        } else {
-          console.log('Discount code usage updated')
-        }
-      }
-
-      console.log('Payment process completed successfully')
-
-      // Return sanitized response
+    if (bookingError) {
+      console.error('Failed to update booking:', bookingError)
       return new Response(
         JSON.stringify({
-          success: true,
-          charge: sanitizeOutput(charge)
+          success: false,
+          error: 'Failed to update booking status'
         }),
-        {
-          headers: addSecurityHeaders(new Headers({
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }))
-        }
+        { status: 500 }
       )
-
-    } catch (error) {
-      console.error('Payment processing error:', error)
-      throw error
     }
 
+    console.log('Booking status updated, fetching booking details...')
+
+    // Get booking details for email
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', data.bookingId)
+      .single()
+
+    if (bookingError || !booking) {
+      console.error('Failed to fetch booking details:', bookingError)
+      // Don't throw error as payment was successful
+    } else {
+      // Send confirmation emails
+      await sendBookingEmails(supabase, booking)
+    }
+
+    // If discount code was used, increment its usage
+    if (data.discountCode) {
+      console.log('Updating discount code usage...')
+      const { error: discountError } = await supabase
+        .rpc('increment_discount_code_usage', {
+          code: data.discountCode
+        })
+
+      if (discountError) {
+        console.error('Failed to update discount code usage:', discountError)
+        // Don't throw error here as payment was successful
+      } else {
+        console.log('Discount code usage updated')
+      }
+    }
+
+    console.log('Payment process completed successfully')
+
+    // Return sanitized response
+    return new Response(
+      JSON.stringify({
+        success: true,
+        charge: {
+          id: charge.id,
+          amount: charge.amount,
+          status: charge.status
+        }
+      }),
+      {
+        headers: addSecurityHeaders(new Headers({
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }))
+      }
+    )
+
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Payment processing error:', error)
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -304,7 +315,10 @@ serve(async (req) => {
       }
     )
   }
-})
+}
+
+// Export the wrapped handler
+export default serve(withRateLimit(handler))
 
 /* To invoke locally:
 

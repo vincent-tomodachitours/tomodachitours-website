@@ -1,4 +1,4 @@
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts"
+import { z } from 'zod';
 
 // Common validation schemas
 const emailSchema = z.string().email()
@@ -38,7 +38,7 @@ export const paymentSchema = z.object({
 
 // Refund validation schema
 export const refundSchema = z.object({
-    bookingId: z.number().int().positive(),
+    bookingId: z.string().uuid(),
     email: z.string().email()
 })
 
@@ -64,28 +64,74 @@ export const chargeSchema = z.object({
 
 // Security headers
 export const addSecurityHeaders = (headers: Headers): Headers => {
-    headers.set('X-Content-Type-Options', 'nosniff')
-    headers.set('X-Frame-Options', 'DENY')
-    headers.set('X-XSS-Protection', '1; mode=block')
-    headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    headers.set('Content-Security-Policy', "default-src 'self'")
-    return headers
+    // Content type protection
+    headers.set('X-Content-Type-Options', 'nosniff');
+
+    // Frame protection
+    headers.set('X-Frame-Options', 'DENY');
+
+    // XSS protection
+    headers.set('X-XSS-Protection', '1; mode=block');
+
+    // HTTPS enforcement
+    headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+
+    // Content Security Policy
+    headers.set('Content-Security-Policy', [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.pay.jp",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https:",
+        "font-src 'self' data:",
+        "connect-src 'self' https://api.pay.jp",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'"
+    ].join('; '));
+
+    // Referrer policy
+    headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+    // Permissions policy (replaces Feature-Policy)
+    headers.set('Permissions-Policy', [
+        "camera=()",
+        "microphone=()",
+        "geolocation=()",
+        "payment=(self)",
+        "usb=()",
+        "magnetometer=()",
+        "accelerometer=()",
+        "gyroscope=()"
+    ].join(', '));
+
+    // Additional security headers
+    headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+    headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+    headers.set('Cross-Origin-Resource-Policy', 'same-site');
+
+    return headers;
 }
 
 // Sanitize sensitive data from output
 export const sanitizeOutput = (data: any): any => {
-    if (!data) return data
-    const sensitiveFields = ['secret', 'key', 'password', 'token']
+    if (!data) return data;
+    const sensitiveFields = ['secret', 'key', 'password', 'token', 'cardNumber'];
+
+    if (Array.isArray(data)) {
+        return data.map(item => sanitizeOutput(item));
+    }
+
     if (typeof data === 'object') {
-        const sanitized = { ...data }
-        for (const field of sensitiveFields) {
-            if (field in sanitized) {
-                delete sanitized[field]
+        const sanitized: Record<string, any> = {};
+        for (const [key, value] of Object.entries(data)) {
+            if (!sensitiveFields.includes(key)) {
+                sanitized[key] = sanitizeOutput(value);
             }
         }
-        return sanitized
+        return sanitized;
     }
-    return data
+
+    return data;
 }
 
 // Validate request data against schema
@@ -116,32 +162,3 @@ export async function validateRequest<T>(
     }
 }
 
-// Rate limiting helper
-const rateLimits = new Map<string, { count: number; timestamp: number }>()
-
-export function checkRateLimit(
-    ip: string,
-    limit: number = 100,
-    windowMs: number = 900000 // 15 minutes
-): boolean {
-    const now = Date.now()
-    const record = rateLimits.get(ip)
-
-    // Clean up old records
-    if (record && now - record.timestamp > windowMs) {
-        rateLimits.delete(ip)
-        return false
-    }
-
-    if (!record) {
-        rateLimits.set(ip, { count: 1, timestamp: now })
-        return false
-    }
-
-    if (record.count >= limit) {
-        return true
-    }
-
-    record.count++
-    return false
-} 

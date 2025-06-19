@@ -3,17 +3,21 @@
 // This enables autocomplete, go to definition, etc.
 
 /// <reference lib="deno.ns" />
+/// <reference lib="dom" />
+
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import { addSecurityHeaders } from '../validation-middleware/index.ts'
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
-import { validateRequest, sanitizeOutput } from '../validation-middleware/index.ts'
+import { validateRequest } from '../validation-middleware/index.ts'
+import { withRateLimit } from '../rate-limit-middleware/wrapper.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-test-mode',
+  'Access-Control-Expose-Headers': 'x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset'
 }
 
 // Validation schema for discount code request
@@ -24,69 +28,112 @@ const discountRequestSchema = z.object({
 
 console.log("Discount validation function loaded")
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
+const handler = async (req: Request): Promise<Response> => {
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders })
+    }
+
     // Validate request data
     const { data, error } = await validateRequest(req, discountRequestSchema)
     if (error) {
       return new Response(
-        JSON.stringify({ success: false, message: error.message }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
+        JSON.stringify({ success: false, error }),
+        { status: 400 }
       )
     }
 
-    const { code, originalAmount } = data!
+    if (!data) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid request data' }),
+        { status: 400 }
+      )
+    }
 
     // Initialize Supabase client
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     )
 
-    // Get discount code details
+    // Get discount code from database
     const { data: discountCode, error: discountError } = await supabase
       .from('discount_codes')
       .select('*')
-      .eq('code', code.toUpperCase())
+      .eq('code', data.code)
       .eq('active', true)
       .single()
 
     if (discountError) {
-      throw new Error('Invalid discount code')
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid discount code'
+        }),
+        { status: 400 }
+      )
     }
 
     // Validate discount code
     const now = new Date()
-    const startDate = new Date(discountCode.valid_from)
-    const endDate = discountCode.valid_until ? new Date(discountCode.valid_until) : null
-
-    if (now < startDate || (endDate && now > endDate)) {
-      throw new Error('Discount code has expired or is not yet valid')
+    if (discountCode.valid_from && new Date(discountCode.valid_from) > now) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Discount code is not yet valid'
+        }),
+        { status: 400 }
+      )
     }
 
-    if (discountCode.max_uses && discountCode.used_count >= discountCode.max_uses) {
-      throw new Error('Discount code has reached maximum usage')
+    if (discountCode.valid_until && new Date(discountCode.valid_until) < now) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Discount code has expired'
+        }),
+        { status: 400 }
+      )
+    }
+
+    if (discountCode.max_uses && discountCode.current_uses >= discountCode.max_uses) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Discount code has reached maximum usage'
+        }),
+        { status: 400 }
+      )
     }
 
     // Calculate discounted price
+    const originalAmount = data.originalAmount
     let discountedPrice = originalAmount
+
     if (discountCode.type === 'percentage') {
-      discountedPrice = Math.round(originalAmount * (1 - discountCode.value / 100))
+      discountedPrice = Math.floor(originalAmount * (1 - discountCode.value / 100))
     } else if (discountCode.type === 'fixed') {
-      discountedPrice = originalAmount - discountCode.value
+      discountedPrice = Math.max(0, originalAmount - discountCode.value)
     }
 
-    // Ensure minimum price is not negative
-    if (discountedPrice < 0) {
-      discountedPrice = 0
+    // Apply minimum booking amount if set
+    if (discountCode.min_booking_amount && originalAmount < discountCode.min_booking_amount) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Minimum booking amount is ¥${discountCode.min_booking_amount}`
+        }),
+        { status: 400 }
+      )
+    }
+
+    // Apply maximum discount amount if set
+    if (discountCode.max_discount_amount) {
+      const discount = originalAmount - discountedPrice
+      if (discount > discountCode.max_discount_amount) {
+        discountedPrice = originalAmount - discountCode.max_discount_amount
+      }
     }
 
     const response = {
@@ -99,10 +146,9 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify(sanitizeOutput(response)),
+      JSON.stringify(response),
       {
         headers: addSecurityHeaders(new Headers({
-          ...corsHeaders,
           'Content-Type': 'application/json'
         }))
       }
@@ -113,18 +159,15 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
-      {
-        headers: addSecurityHeaders(new Headers({
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        })),
-        status: 400
-      }
+      { status: 500 }
     )
   }
-})
+}
+
+// Export the wrapped handler
+export default serve(withRateLimit(handler))
 
 /* To invoke locally:
 

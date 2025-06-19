@@ -10,7 +10,7 @@ process.env.NODE_ENV = 'test'
 export default defineConfig({
     test: {
         environment: 'node',
-        include: ['tests/**/*.test.ts'],
+        include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
         testTimeout: 10000, // 10 second timeout for all tests
         coverage: {
             provider: 'v8',

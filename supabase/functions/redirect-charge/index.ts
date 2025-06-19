@@ -1,4 +1,5 @@
 /// <reference lib="deno.ns" />
+/// <reference lib="dom" />
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -9,135 +10,119 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import { addSecurityHeaders } from '../validation-middleware/index.ts'
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
+import { validateRequest } from '../validation-middleware/index.ts'
+import { withRateLimit } from '../rate-limit-middleware/wrapper.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-test-mode',
+    'Access-Control-Expose-Headers': 'x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset'
 }
 
 console.log("3D Secure redirect handler loaded")
 
-// URL parameter validation schema
-const urlParamsSchema = z.object({
-    charge_id: z.string().optional(),
-    token_id: z.string().optional()
-}).refine(data => data.charge_id || data.token_id, {
-    message: "Either charge_id or token_id must be provided"
+// Validation schema for 3D Secure redirect
+const redirectSchema = z.object({
+    charge_id: z.string().min(1),
+    booking_id: z.number().int().positive()
 })
 
-Deno.serve(async (req) => {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
-    }
-
+const handler = async (req: Request): Promise<Response> => {
     try {
-        const url = new URL(req.url)
-        const params = {
-            charge_id: url.searchParams.get('charge_id'),
-            token_id: url.searchParams.get('token_id')
+        // Handle CORS preflight requests
+        if (req.method === 'OPTIONS') {
+            return new Response('ok', { headers: corsHeaders })
         }
 
-        // Validate URL parameters
-        const result = urlParamsSchema.safeParse(params)
-        if (!result.success) {
-            console.error("Invalid URL parameters:", result.error)
-            return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
+        // Validate request data
+        const { data, error } = await validateRequest(req, redirectSchema)
+        if (error) {
+            return new Response(
+                JSON.stringify({ success: false, error }),
+                { status: 400 }
+            )
         }
 
-        const chargeId = params.charge_id || params.token_id
-        console.log("3D Secure redirect request:", { chargeId, url: req.url })
-
-        const payjpKey = Deno.env.get('PAYJP_SECRET_KEY')
-        if (!payjpKey) {
-            console.error("PAYJP_SECRET_KEY not configured")
-            return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
+        if (!data) {
+            return new Response(
+                JSON.stringify({ success: false, error: 'Invalid request data' }),
+                { status: 400 }
+            )
         }
 
-        // Step 1: Fetch the charge info
-        const chargeResponse = await fetch(`https://api.pay.jp/v1/charges/${chargeId}`, {
+        // Initialize Supabase client
+        const supabase = createClient(
+            Deno.env.get('SUPABASE_URL') || '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+        )
+
+        // Get charge status from PayJP
+        const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
+        if (!secretKey) {
+            throw new Error('PayJP secret key not configured')
+        }
+
+        const chargeResponse = await fetch(`https://api.pay.jp/v1/charges/${data.charge_id}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Basic ${btoa(payjpKey + ':')}`
+                'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
             }
         })
 
-        const chargeData = await chargeResponse.json()
+        const charge = await chargeResponse.json()
 
-        if (chargeData.error) {
-            console.error("Failed to fetch charge:", chargeData.error)
-            return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
+        if (!chargeResponse.ok || !charge.paid) {
+            console.error('PayJP charge verification failed:', charge)
+            throw new Error('Payment verification failed')
         }
 
-        // If 3D Secure was not completed properly
-        if (chargeData.three_d_secure_status === 'attempted') {
-            console.log("3D Secure attempted but not completed")
-            return Response.redirect('https://tomodachitours.vercel.app/cancellation-policy', 302)
-        }
+        // Update booking status
+        const { error: updateError } = await supabase
+            .from('bookings')
+            .update({
+                status: 'CONFIRMED',
+                payment_status: 'PAID'
+            })
+            .eq('id', data.booking_id)
 
-        // Step 2: Finish the 3DS redirect flow
-        const finishResponse = await fetch(`https://api.pay.jp/v1/charges/${chargeId}/tds_finish`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization': `Basic ${btoa(payjpKey + ':')}`
-            }
-        })
-
-        const finishData = await finishResponse.json()
-
-        if (finishData.error) {
-            console.error("Failed to finish 3D Secure:", finishData.error)
-            return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
-        }
-
-        // Update booking status if payment was successful
-        if (finishData.paid) {
-            const supabase = createClient(
-                Deno.env.get('SUPABASE_URL') || '',
-                Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+        if (updateError) {
+            console.error('Failed to update booking:', updateError)
+            return new Response(
+                JSON.stringify({
+                    success: false,
+                    error: 'Failed to update booking status'
+                }),
+                { status: 500 }
             )
-
-            // Get current booking status
-            const { data: currentBooking, error: fetchError } = await supabase
-                .from('bookings')
-                .select('status')
-                .eq('payment_id', chargeId)
-                .single()
-
-            if (fetchError) {
-                console.error("Failed to fetch current booking:", fetchError)
-                return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
-            }
-
-            // Only update if the booking is in PENDING_PAYMENT status
-            if (currentBooking.status === 'PENDING_PAYMENT') {
-                const { error: updateError } = await supabase
-                    .from('bookings')
-                    .update({
-                        status: 'CONFIRMED',
-                        three_d_secure_status: finishData.three_d_secure_status,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('payment_id', chargeId)
-
-                if (updateError) {
-                    console.error("Failed to update booking status:", updateError)
-                    return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
-                }
-            } else {
-                console.log("Booking is not in PENDING_PAYMENT status, skipping update")
-            }
-
-            return Response.redirect('https://tomodachitours.vercel.app/thankyou', 302)
         }
 
-        return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
+        return new Response(
+            JSON.stringify({
+                success: true,
+                charge: {
+                    id: charge.id,
+                    amount: charge.amount,
+                    status: charge.status
+                }
+            }),
+            { status: 200 }
+        )
+
     } catch (error) {
-        console.error("3D Secure redirect processing error:", error)
-        return Response.redirect('https://tomodachitours.vercel.app/commercial-disclosure', 302)
+        console.error('3D Secure redirect error:', error)
+        return new Response(
+            JSON.stringify({
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            }),
+            { status: 500 }
+        )
     }
-})
+}
+
+// Export the wrapped handler
+export default serve(withRateLimit(handler))
 
 /* To invoke locally:
 
