@@ -23,6 +23,10 @@ const Header1 = () => {
                         Recommendations
                         <span className='absolute inset-x-0 bottom-0 h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left'></span>
                     </Link>
+                    <Link to="/jobs" className='text-gray-700 hover:text-blue-600 transition-colors relative group'>
+                        Jobs
+                        <span className='absolute inset-x-0 bottom-0 h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left'></span>
+                    </Link>
                 </div>
                 <div className='flex justify-center items-center ml-6 lg:ml-0'>
                     <Link to="/"><img src={logo} alt="Tomodachi Tours logo" className='h-16' /></Link>
@@ -49,6 +53,9 @@ const Header1 = () => {
                                     </li>
                                     <li onClick={() => setMenuOpen(false)}>
                                         <Link to="/recommendations" className='text-gray-700 hover:text-blue-600 transition-colors'>Guide</Link>
+                                    </li>
+                                    <li onClick={() => setMenuOpen(false)}>
+                                        <Link to="/jobs" className='text-gray-700 hover:text-blue-600 transition-colors'>Jobs</Link>
                                     </li>
                                 </ul>
                             </div>

@@ -213,10 +213,10 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                     id="time"
                     value={tourTime}
                     onChange={handleTourTimeChange}
-                    className="custom-select w-full h-10 rounded-lg border border-gray-700 bg-slate-100 px-2 font-ubuntu font-bold cursor-pointer"
+                    className="custom-select w-full h-12 rounded-xl border border-gray-200 bg-white px-4 font-ubuntu font-semibold cursor-pointer shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
                     style={{
                         color: tourTime ? 'inherit' : '#9CA3AF',
-                        backgroundColor: '#F8FAFC'
+                        backgroundColor: '#FFFFFF'
                     }}
                 >
                     {options.map((slot, i) => {
@@ -233,7 +233,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                                 disabled={!enabled}
                                 style={{
                                     color: enabled ? 'inherit' : '#9CA3AF',
-                                    backgroundColor: enabled ? '#F8FAFC' : '#F3F4F6'
+                                    backgroundColor: enabled ? '#FFFFFF' : '#F3F4F6'
                                 }}
                             >
                                 {slot}
@@ -354,12 +354,14 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         if (calendarState === 0) {
             return <div>
                 <div className="mb-8">
-                    <h1 className='font-ubuntu font-black text-2xl'>Who's going?</h1>
-                    <PeopleSelector min={1} max={maxSlots} title={"Adult"} ageRange="18 - 90" price={price} participants={participants} setParticipants={setParticipants} value={adultParticipants} onChange={setAdultParticipants} />
-                    <PeopleSelector min={0} max={maxSlots} title={"Child"} ageRange="3 - 17" price={price} participants={participants} setParticipants={setParticipants} value={childParticipants} onChange={setChildParticipants} />
-                    <PeopleSelector min={0} max={maxSlots} title={"Infant"} ageRange="0 - 2" price={0} participants={participants} setParticipants={setParticipants} value={infantParticipants} onChange={setInfantParticipants} />
+                    <h1 className='font-ubuntu font-bold text-2xl text-gray-800 mb-6'>Who's going?</h1>
+                    <div className="space-y-3">
+                        <PeopleSelector min={1} max={maxSlots} title={"Adult"} ageRange="18 - 90" price={price} participants={participants} setParticipants={setParticipants} value={adultParticipants} onChange={setAdultParticipants} />
+                        <PeopleSelector min={0} max={maxSlots} title={"Child"} ageRange="3 - 17" price={price} participants={participants} setParticipants={setParticipants} value={childParticipants} onChange={setChildParticipants} />
+                        <PeopleSelector min={0} max={maxSlots} title={"Infant"} ageRange="0 - 2" price={0} participants={participants} setParticipants={setParticipants} value={infantParticipants} onChange={setInfantParticipants} />
+                    </div>
                 </div>
-                <h1 className='font-ubuntu font-black text-2xl my-4'>Choose a date</h1>
+                <h1 className='font-ubuntu font-bold text-2xl text-gray-800 mb-6'>Choose a date</h1>
                 <Calendar
                     tileDisabled={disableDates}
                     onChange={onCalendarChange}
@@ -368,6 +370,9 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                     prev2Label={null}
                     maxDate={oneYearsLater}
                     minDate={minViewLimit}
+                    calendarType="gregory"
+                    showNavigation={true}
+                    navigationLabel={({ date }) => date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 />
                 {/** 
                 <p className="font-ubuntu font-bold text-md h-full mt-4">{maxSlots - checkParticipants(calendarSelectedDate) > 0 ? maxSlots - checkParticipants(calendarSelectedDate) : 0} slots left</p>
@@ -375,53 +380,65 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             </div>
         } else if (calendarState === 1) {
             return <div className="time-selection">
-                <h1 className='font-ubuntu font-black text-2xl'>{calendarSelectedDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}</h1>
-                <br />
-                <div className="flex items-center mb-2">
-                    <Clock className='w-6 h-6 text-gray-700 mr-2' />
-                    <h2 className="font-ubuntu font-black text-lg">Choose a time</h2>
+                <h1 className='font-ubuntu font-bold text-2xl text-gray-800 mb-6'>{calendarSelectedDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}</h1>
+
+                <div className="mb-6">
+                    <div className="flex items-center mb-4">
+                        <Clock className='w-5 h-5 text-gray-600 mr-2' />
+                        <h2 className="font-ubuntu font-semibold text-lg text-gray-800">Choose a time</h2>
+                    </div>
+                    {
+                        timeSlotSelector(returnAvailableTimes(calendarSelectedDate, participants))
+                    }
                 </div>
-                {
-                    timeSlotSelector(returnAvailableTimes(calendarSelectedDate, participants))
-                }
-                <div className="mt-6 booking-summary">
-                    <h1 className='font-ubuntu font-black text-2xl my-4'>Booking Summary</h1>
-                    <div className="w-full flex justify-between">
-                        <h2 className="font-ubuntu font-black text-lg">{tourName}</h2>
-                        <div className="w-full text-right">
-                            <span className="font-ubuntu font-extrabold text-blue-700 text-2xl">{tourTime}</span><br />
-                            <span className="font-ubuntu font-extrabold text-blue-700 text-md">{calendarSelectedDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}</span>
+
+                <div className="bg-gray-50 rounded-xl p-6 mb-6">
+                    <h1 className='font-ubuntu font-bold text-xl text-gray-800 mb-4'>Booking Summary</h1>
+                    <div className="w-full flex justify-between items-start mb-4">
+                        <h2 className="font-ubuntu font-semibold text-base text-gray-700">{tourName}</h2>
+                        <div className="text-right">
+                            <div className="font-ubuntu font-bold text-blue-600 text-xl">{tourTime}</div>
+                            <div className="font-ubuntu font-medium text-blue-600 text-sm">{calendarSelectedDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}</div>
                         </div>
                     </div>
-                    <div className="flex w-full my-4">
-                        <div>
-                            <span>Adults: {adultParticipants}</span>
-                            {childParticipants !== 0 ?
-                                <div>
-                                    <span>Children: {childParticipants}</span>
-                                </div> : null}
-                            {infantParticipants !== 0 ?
-                                <div>
-                                    <span>Infants: {infantParticipants}</span>
-                                </div> : null
-                            }
+                    <div className="flex justify-between items-end">
+                        <div className="text-sm text-gray-600 space-y-1">
+                            <div>Adults: {adultParticipants}</div>
+                            {childParticipants !== 0 && <div>Children: {childParticipants}</div>}
+                            {infantParticipants !== 0 && <div>Infants: {infantParticipants}</div>}
                         </div>
-                        <div className="ml-auto mt-auto text-black">
-                            <span>Total (¥): </span>
-                            <span>{totalPrice}</span>
+                        <div className="text-right">
+                            <div className="text-sm text-gray-600">Total</div>
+                            <div className="font-bold text-xl text-gray-800">¥{totalPrice.toLocaleString('en-US')}</div>
                         </div>
                     </div>
                 </div>
-                <button onClick={handleGoBack}>&lt; Go back</button>
-                <button className="w-full h-12 mt-4 bg-blue-700 rounded-md  text-white font-ubuntu" onClick={handleOpenCheckout}>Checkout</button>
+
+                <div className="space-y-3">
+                    <button
+                        onClick={handleGoBack}
+                        className="text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200 flex items-center"
+                    >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Go back
+                    </button>
+                    <button
+                        className="w-full h-12 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-ubuntu font-semibold transition-colors duration-200 shadow-sm hover:shadow-md"
+                        onClick={handleOpenCheckout}
+                    >
+                        Checkout
+                    </button>
+                </div>
             </div>
         }
     }
 
     return (
-        <div className='w-full md:w-2/3 lg:w-full border border-gray-300 rounded-md p-4 mx-auto text-gray-700 flex-none'>
-            <div className='mb-6'>
-                <h2 className='text-3xl font-bold'>¥ {price.toLocaleString('en-US')} / Adult</h2>
+        <div className='w-full md:w-2/3 lg:w-full bg-white border border-gray-200 rounded-2xl p-6 mx-auto text-gray-700 flex-none shadow-sm'>
+            <div className='mb-8'>
+                <h2 className='text-3xl font-bold text-gray-800'>¥ {price.toLocaleString('en-US')} <span className='text-lg font-medium text-gray-600'>/ Adult</span></h2>
             </div>
             {renderCalendarComponent()}
             {checkout === true ? (
