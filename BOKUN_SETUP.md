@@ -3,29 +3,68 @@
 ## Overview
 This document outlines the setup steps for the Bokun REST API integration that manages available timeslots.
 
+## Prerequisites - What You Need From Bokun
+
+Before implementing the technical integration, you need to set up your Bokun account properly:
+
+### 1. Create a Booking Channel in Bokun
+1. Log into your Bokun dashboard
+2. Go to **Settings** → **Booking Channels**
+3. Click **"Create New Booking Channel"**
+4. Configure the channel:
+   - Name: "Website Direct Bookings" (or similar)
+   - Currency: Your preferred currency (USD, EUR, JPY, etc.)
+   - Set booking permissions as needed
+
+### 2. Create an API Key
+1. In Bokun dashboard, go to **Settings** → **API Keys**
+2. Click **"Create New API Key"**
+3. Select your booking channel
+4. Set permissions:
+   - ✅ **Read activities**
+   - ✅ **Read availability**
+   - ✅ **Create bookings**
+   - ✅ **Read bookings**
+   - ✅ **Cancel bookings**
+5. Save and copy:
+   - **Access Key** (this is your `BOKUN_PUBLIC_KEY`)
+   - **Secret Key** (this is your `BOKUN_SECRET_KEY`)
+
+### 3. Find Your Activity ID
+1. Go to **Products** → **Activities** in Bokun
+2. Find your Night Tour activity
+3. Click to edit it
+4. The Activity ID is shown in the URL or activity details
+5. Copy this ID (this is your `NIGHT_TOUR_PRODUCT_ID`)
+
 ## Current Implementation Status
 
 ### ✅ Completed
 1. **Database Schema** - Created Bokun integration tables
-2. **API Client** - Basic Bokun API client with authentication
+2. **API Client** - HMAC-SHA1 authenticated API client for Bokun
 3. **Availability Service** - Service for managing timeslots with caching
 4. **Webhook Handler** - Supabase Edge Function for real-time updates
 5. **Tours Service Integration** - Enhanced existing service with Bokun support
 
-### 📋 Next Steps
+### 📋 Implementation Steps
 
 #### 1. Environment Configuration
 Add these environment variables to your `.env` file:
 
 ```bash
-# Bokun API Configuration (TEST ENVIRONMENT ONLY)
-REACT_APP_BOKUN_API_KEY=your_test_api_key
-REACT_APP_BOKUN_API_SECRET=your_test_api_secret  
-REACT_APP_BOKUN_API_URL=https://api.test.bokun.io/booking
-BOKUN_WEBHOOK_SECRET=your_webhook_secret
+# Bokun API Configuration
+BOKUN_PUBLIC_KEY=your_bokun_access_key
+BOKUN_SECRET_KEY=your_bokun_secret_key
+BOKUN_API_URL=https://api.bokuntest.com  # Test environment
+# BOKUN_API_URL=https://api.bokun.io     # Production environment
+BOKUN_WEBHOOK_SECRET=your_generated_webhook_secret
+NIGHT_TOUR_PRODUCT_ID=your_bokun_activity_id
 ```
 
-⚠️ **IMPORTANT**: Always use the TEST environment API for development!
+⚠️ **IMPORTANT**: 
+- Bokun uses HMAC-SHA1 signature authentication, NOT OAuth
+- Always use the TEST environment (api.bokuntest.com) for development
+- You need to create a booking channel in Bokun before getting API keys
 
 #### 2. Database Migration
 Run the Bokun tables migration:
@@ -34,14 +73,19 @@ supabase db push
 ```
 
 #### 3. Configure Product Mappings
-Update the `bokun_products` table with your actual Bokun product IDs:
+Update the `bokun_products` table with your actual Bokun activity ID:
 
 ```sql
+-- Replace 'YOUR_ACTUAL_NIGHT_TOUR_ACTIVITY_ID' with your Bokun activity ID
 UPDATE bokun_products 
-SET bokun_product_id = 'actual_bokun_product_id', is_active = true 
+SET bokun_product_id = 'YOUR_ACTUAL_NIGHT_TOUR_ACTIVITY_ID', is_active = true 
 WHERE local_tour_type = 'NIGHT_TOUR';
 
--- Repeat for other tour types
+-- Or insert if not exists
+INSERT INTO bokun_products (local_tour_type, bokun_product_id, is_active) 
+VALUES ('NIGHT_TOUR', 'YOUR_ACTUAL_NIGHT_TOUR_ACTIVITY_ID', true)
+ON CONFLICT (local_tour_type, bokun_product_id) 
+DO UPDATE SET is_active = true, updated_at = NOW();
 ```
 
 #### 4. Deploy Webhook Handler

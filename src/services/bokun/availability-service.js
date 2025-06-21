@@ -157,20 +157,25 @@ class BokunAvailabilityService {
 
             // Fetch from Bokun API
             console.log(`Fetching fresh availability from Bokun for ${tourType} on ${date}`);
-            const availability = await bokunAPI.getProductAvailability(
+            const availability = await bokunAPI.getActivityAvailability(
                 bokunProduct.bokun_product_id,
                 date,
                 timeSlot ? { time: timeSlot } : {}
             );
 
             // Update cache
-            if (availability && availability.slots) {
+            if (availability && availability.dates && availability.dates[0] && availability.dates[0].times) {
+                const slots = availability.dates[0].times.map(time => ({
+                    time: time.startTime,
+                    availableSpots: time.availableSeats || 0
+                }));
+
                 await this.updateAvailabilityCache(
                     bokunProduct.bokun_product_id,
                     date,
-                    availability.slots
+                    slots
                 );
-                return this.formatAvailabilityData(availability.slots);
+                return this.formatAvailabilityData(slots);
             }
 
             return [];

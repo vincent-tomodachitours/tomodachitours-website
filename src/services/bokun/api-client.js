@@ -1,61 +1,58 @@
 /**
  * Bokun REST API Client
- * Handles authentication and API communication with Bokun booking system
+ * Handles HMAC-SHA1 authentication and API communication with Bokun booking system
  */
+
+import crypto from 'crypto';
 
 class BokunAPI {
     constructor() {
-        this.apiKey = process.env.REACT_APP_BOKUN_API_KEY;
-        this.apiSecret = process.env.REACT_APP_BOKUN_API_SECRET;
-        this.baseURL = process.env.REACT_APP_BOKUN_API_URL || 'https://api.bokun.io/booking';
-        this.accessToken = null;
-        this.tokenExpiry = null;
+        this.accessKey = process.env.REACT_APP_BOKUN_PUBLIC_KEY || process.env.BOKUN_PUBLIC_KEY;
+        this.secretKey = process.env.REACT_APP_BOKUN_SECRET_KEY || process.env.BOKUN_SECRET_KEY;
+        this.baseURL = process.env.REACT_APP_BOKUN_API_URL || process.env.BOKUN_API_URL || 'https://api.bokun.io';
 
-        if (!this.apiKey || !this.apiSecret) {
+        if (!this.accessKey || !this.secretKey) {
             console.warn('Bokun API credentials not configured. Bokun integration will be disabled.');
         }
     }
 
     /**
-     * Authenticate with Bokun API using OAuth 2.0
-     * @returns {Promise<string>} Access token
+     * Create HMAC-SHA1 signature for Bokun API authentication
+     * @param {string} date - UTC date string in format "yyyy-MM-dd HH:mm:ss"
+     * @param {string} method - HTTP method (uppercase)
+     * @param {string} path - API path including query string
+     * @returns {string} Base64 encoded signature
      */
-    async authenticate() {
-        if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
-            return this.accessToken;
-        }
+    createSignature(date, method, path) {
+        // Concatenate: date + accessKey + method + path
+        const stringToSign = date + this.accessKey + method.toUpperCase() + path;
 
-        try {
-            const response = await fetch(`${this.baseURL}/oauth/token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    grant_type: 'client_credentials',
-                    client_id: this.apiKey,
-                    client_secret: this.apiSecret,
-                    scope: 'booking:read booking:write'
-                })
-            });
+        // Create HMAC-SHA1 signature
+        const hmac = crypto.createHmac('sha1', this.secretKey);
+        hmac.update(stringToSign);
 
-            if (!response.ok) {
-                throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            this.accessToken = data.access_token;
-            this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // Refresh 1 minute early
-
-            return this.accessToken;
-        } catch (error) {
-            console.error('Bokun authentication error:', error);
-            throw error;
-        }
+        // Return base64 encoded signature
+        return hmac.digest('base64');
     }
 
     /**
-     * Make authenticated request to Bokun API
+     * Get current UTC date in Bokun format
+     * @returns {string} Date in "yyyy-MM-dd HH:mm:ss" format
+     */
+    getCurrentBokunDate() {
+        const now = new Date();
+        const year = now.getUTCFullYear();
+        const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(now.getUTCDate()).padStart(2, '0');
+        const hours = String(now.getUTCHours()).padStart(2, '0');
+        const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+        const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    /**
+     * Make authenticated request to Bokun API using HMAC-SHA1 authentication
      * @param {string} endpoint - API endpoint (without base URL)
      * @param {string} method - HTTP method
      * @param {Object} data - Request data
@@ -63,22 +60,27 @@ class BokunAPI {
      * @returns {Promise<Object>} API response
      */
     async makeRequest(endpoint, method = 'GET', data = null, options = {}) {
-        if (!this.apiKey || !this.apiSecret) {
+        if (!this.accessKey || !this.secretKey) {
             throw new Error('Bokun API credentials not configured');
         }
 
         try {
-            const token = await this.authenticate();
+            // Ensure endpoint starts with /
+            const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+            const date = this.getCurrentBokunDate();
+            const signature = this.createSignature(date, method, path);
 
             const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
+                'X-Bokun-Date': date,
+                'X-Bokun-AccessKey': this.accessKey,
+                'X-Bokun-Signature': signature,
+                'Content-Type': 'application/json;charset=UTF-8',
                 'Accept': 'application/json',
                 ...options.headers
             };
 
             const config = {
-                method,
+                method: method.toUpperCase(),
                 headers,
                 ...options
             };
@@ -87,7 +89,9 @@ class BokunAPI {
                 config.body = JSON.stringify(data);
             }
 
-            const url = `${this.baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+            const url = `${this.baseURL}${path}`;
+            console.log(`Making Bokun API request: ${method} ${url}`);
+
             const response = await fetch(url, config);
 
             if (!response.ok) {
@@ -105,12 +109,13 @@ class BokunAPI {
     }
 
     /**
-     * Test API connection
-     * @returns {Promise<boolean>} Connection status
-     */
+ * Test API connection by getting activity search
+ * @returns {Promise<boolean>} Connection status
+ */
     async testConnection() {
         try {
-            await this.makeRequest('/health', 'GET');
+            // Use activity search as a test endpoint
+            await this.makeRequest('/activity.json/search?lang=EN&currency=USD', 'GET');
             return true;
         } catch (error) {
             console.error('Bokun API connection test failed:', error);
@@ -119,36 +124,106 @@ class BokunAPI {
     }
 
     /**
-     * Get available products
-     * @returns {Promise<Array>} List of products
+     * Search for activities/products
+     * @param {Object} searchParams - Search parameters
+     * @returns {Promise<Object>} Search results
      */
-    async getProducts() {
-        return this.makeRequest('/products', 'GET');
+    async searchActivities(searchParams = {}) {
+        const params = new URLSearchParams({
+            lang: 'EN',
+            currency: 'USD',
+            ...searchParams
+        });
+
+        return this.makeRequest(`/activity.json/search?${params}`, 'POST');
     }
 
     /**
-     * Get product availability
-     * @param {string} productId - Bokun product ID
-     * @param {string} date - Date in YYYY-MM-DD format
-     * @param {Object} options - Additional query parameters
-     * @returns {Promise<Object>} Availability data
+     * Get activity details
+     * @param {string} activityId - Bokun activity ID
+     * @param {Object} options - Additional options (lang, currency)
+     * @returns {Promise<Object>} Activity details
      */
-    async getProductAvailability(productId, date, options = {}) {
-        const queryParams = new URLSearchParams({
-            date,
+    async getActivityDetails(activityId, options = {}) {
+        const params = new URLSearchParams({
+            lang: 'EN',
+            currency: 'USD',
             ...options
         });
 
-        return this.makeRequest(`/products/${productId}/availability?${queryParams}`, 'GET');
+        return this.makeRequest(`/activity.json/${activityId}?${params}`, 'GET');
     }
 
     /**
-     * Create a booking
-     * @param {Object} bookingData - Booking information
-     * @returns {Promise<Object>} Created booking
+     * Get availability for an activity
+     * @param {string} activityId - Bokun activity ID
+     * @param {string} date - Date in YYYY-MM-DD format
+     * @param {Object} options - Additional options
+     * @returns {Promise<Object>} Availability data
      */
-    async createBooking(bookingData) {
-        return this.makeRequest('/bookings', 'POST', bookingData);
+    async getActivityAvailability(activityId, date, options = {}) {
+        const params = new URLSearchParams({
+            lang: 'EN',
+            currency: 'USD',
+            ...options
+        });
+
+        const requestData = {
+            date: date,
+            ...options
+        };
+
+        return this.makeRequest(`/activity.json/${activityId}/availability?${params}`, 'POST', requestData);
+    }
+
+    /**
+     * Get pricing for an activity
+     * @param {string} activityId - Bokun activity ID
+     * @param {string} date - Date in YYYY-MM-DD format
+     * @param {Object} pricingParams - Pricing parameters
+     * @returns {Promise<Object>} Pricing data
+     */
+    async getActivityPricing(activityId, date, pricingParams = {}) {
+        const params = new URLSearchParams({
+            lang: 'EN',
+            currency: 'USD'
+        });
+
+        const requestData = {
+            date: date,
+            ...pricingParams
+        };
+
+        return this.makeRequest(`/activity.json/${activityId}/pricing?${params}`, 'POST', requestData);
+    }
+
+    /**
+     * Create a booking reservation
+     * @param {Object} bookingData - Booking information
+     * @returns {Promise<Object>} Reservation result
+     */
+    async createReservation(bookingData) {
+        const params = new URLSearchParams({
+            lang: 'EN',
+            currency: 'USD'
+        });
+
+        return this.makeRequest(`/booking.json/reservation?${params}`, 'POST', bookingData);
+    }
+
+    /**
+     * Confirm a booking
+     * @param {string} reservationId - Reservation ID from createReservation
+     * @param {Object} confirmationData - Confirmation data
+     * @returns {Promise<Object>} Confirmation result
+     */
+    async confirmBooking(reservationId, confirmationData) {
+        const params = new URLSearchParams({
+            lang: 'EN',
+            currency: 'USD'
+        });
+
+        return this.makeRequest(`/booking.json/${reservationId}/confirmation?${params}`, 'POST', confirmationData);
     }
 
     /**
@@ -157,7 +232,12 @@ class BokunAPI {
      * @returns {Promise<Object>} Booking details
      */
     async getBooking(bookingId) {
-        return this.makeRequest(`/bookings/${bookingId}`, 'GET');
+        const params = new URLSearchParams({
+            lang: 'EN',
+            currency: 'USD'
+        });
+
+        return this.makeRequest(`/booking.json/${bookingId}?${params}`, 'GET');
     }
 
     /**
@@ -167,17 +247,12 @@ class BokunAPI {
      * @returns {Promise<Object>} Cancellation result
      */
     async cancelBooking(bookingId, cancellationData = {}) {
-        return this.makeRequest(`/bookings/${bookingId}/cancel`, 'POST', cancellationData);
-    }
+        const params = new URLSearchParams({
+            lang: 'EN',
+            currency: 'USD'
+        });
 
-    /**
-     * Update booking
-     * @param {string} bookingId - Bokun booking ID
-     * @param {Object} updateData - Update information
-     * @returns {Promise<Object>} Updated booking
-     */
-    async updateBooking(bookingId, updateData) {
-        return this.makeRequest(`/bookings/${bookingId}`, 'PUT', updateData);
+        return this.makeRequest(`/booking.json/${bookingId}/cancellation?${params}`, 'POST', cancellationData);
     }
 }
 
