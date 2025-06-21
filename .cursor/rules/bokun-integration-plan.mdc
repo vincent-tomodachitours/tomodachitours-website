@@ -1,0 +1,551 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Bokun REST API Implementation Plan
+## Selective Integration: Availability & Booking Sync Only
+
+*Implementation plan for integrating Tomodachi Tours with Bokun API while maintaining full control over tour content, pricing, and branding.*
+
+---
+
+## Table of Contents
+1. [Overview](mdc:#overview)
+2. [Architecture](mdc:#architecture)
+3. [Implementation Phases](mdc:#implementation-phases)
+4. [Technical Specifications](mdc:#technical-specifications)
+5. [API Integration Details](mdc:#api-integration-details)
+6. [Database Changes](mdc:#database-changes)
+7. [Security & Testing](mdc:#security--testing)
+8. [Deployment Strategy](mdc:#deployment-strategy)
+
+---
+
+## Overview
+
+### Goals
+- **Sync availability** from Bokun to prevent overbooking
+- **Send bookings** from your website to Bokun inventory
+- **Maintain full control** over tour descriptions, pricing, and branding
+- **Preserve existing functionality** of your current booking system
+
+### What We Won't Sync
+- Tour titles and descriptions (stay on your website)
+- Pricing (controlled by your system)
+- Tour images and content
+- Customer experience and branding
+
+### What We Will Sync
+- Available time slots and dates
+- Booking confirmations
+- Inventory/capacity management
+- Cancellations and modifications
+
+### REQUIREMENT
+- DO NOT MAKE BOOKING CALLS TO THE PRODUCTION ENVIRONMENT, ALWAYS USE TEST ENVIRONMENT API
+
+---
+
+## Architecture
+
+```mermaid
+graph TD
+    A[Your Website Frontend] --> B[Your Booking API]
+    B --> C[Local Database]
+    B --> D[Bokun Booking API]
+    E[Viator/OTAs] --> F[Bokun Inventory]
+    D --> F
+    F --> G[Bokun Webhooks]
+    G --> H[Webhook Handler]
+    H --> C
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+```
+
+### Data Flow
+1. **Availability Check**: Your site queries Bokun for real-time availability
+2. **Booking Creation**: Customer books on your site → Creates local booking → Sends to Bokun
+3. **Inventory Sync**: Bokun webhooks notify your system of external bookings
+4. **Unified Management**: All bookings visible in both systems
+
+---
+
+## Implementation Phases
+
+### Phase 1: Setup & Authentication (Week 1)
+
+#### 1.1 Bokun Account Configuration
+- [ ] Create Bokun account and request **Booking API** access
+- [ ] Set up booking channel for external bookings
+- [ ] Configure webhook endpoints
+- [ ] Obtain API credentials (API key, secret)
+
+#### 1.2 Environment Setup
+```typescript
+// Add to environment variables
+BOKUN_API_KEY=your_api_key
+BOKUN_API_SECRET=your_secret
+BOKUN_API_URL=https://api.bokun.io/booking
+BOKUN_WEBHOOK_SECRET=webhook_secret
+```
+
+#### 1.3 Initial API Connection
+```typescript
+// Create Bokun API client
+class BokunAPI {
+  private apiKey: string;
+  private apiSecret: string;
+  private baseURL: string;
+
+  constructor() {
+    this.apiKey = process.env.BOKUN_API_KEY!;
+    this.apiSecret = process.env.BOKUN_API_SECRET!;
+    this.baseURL = process.env.BOKUN_API_URL!;
+  }
+
+  private async authenticate(): Promise<string> {
+    // Implement OAuth 2.0 or API key authentication
+  }
+
+  async makeRequest(endpoint: string, method: string, data?: any) {
+    // Base API request method with authentication
+  }
+}
+```
+
+### Phase 2: Database Extensions (Week 2)
+
+#### 2.1 New Tables
+```sql
+-- Bokun product mapping
+CREATE TABLE bokun_products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    local_tour_type VARCHAR NOT NULL, -- 'NIGHT_TOUR', 'MORNING_TOUR', etc.
+    bokun_product_id VARCHAR NOT NULL,
+    bokun_variant_id VARCHAR,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Bokun booking sync
+CREATE TABLE bokun_bookings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    local_booking_id UUID REFERENCES bookings(id),
+    bokun_booking_id VARCHAR NOT NULL,
+    bokun_confirmation_code VARCHAR,
+    sync_status VARCHAR DEFAULT 'pending', -- 'pending', 'synced', 'failed'
+    last_sync_attempt TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Availability cache
+CREATE TABLE bokun_availability_cache (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    bokun_product_id VARCHAR NOT NULL,
+    date DATE NOT NULL,
+    time_slot TIME NOT NULL,
+    available_spots INTEGER NOT NULL,
+    cached_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    expires_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() + INTERVAL '15 minutes',
+    UNIQUE(bokun_product_id, date, time_slot)
+);
+```
+
+#### 2.2 Existing Table Updates
+```sql
+-- Add Bokun tracking to existing bookings table
+ALTER TABLE bookings ADD COLUMN bokun_synced BOOLEAN DEFAULT false;
+ALTER TABLE bookings ADD COLUMN bokun_booking_id VARCHAR;
+ALTER TABLE bookings ADD COLUMN external_source VARCHAR DEFAULT 'website';
+```
+
+### Phase 3: Core API Integration (Week 3-4)
+
+#### 3.1 Availability Service
+```typescript
+// src/services/bokun/availability.ts
+export class BokunAvailabilityService {
+  private api: BokunAPI;
+
+  async getAvailability(
+    tourType: string, 
+    date: string, 
+    timeSlot?: string
+  ): Promise<AvailabilitySlot[]> {
+    // Check cache first
+    const cached = await this.getCachedAvailability(tourType, date, timeSlot);
+    if (cached && cached.expires_at > new Date()) {
+      return cached.slots;
+    }
+
+    // Fetch from Bokun API
+    const bokunProduct = await this.getBokunProduct(tourType);
+    const availability = await this.api.makeRequest(
+      `/products/${bokunProduct.bokun_product_id}/availability`,
+      'GET',
+      { date, timeSlot }
+    );
+
+    // Update cache
+    await this.updateAvailabilityCache(availability);
+    return availability.slots;
+  }
+
+  private async getCachedAvailability(tourType: string, date: string, timeSlot?: string) {
+    // Implementation to check database cache
+  }
+
+  private async updateAvailabilityCache(availability: any) {
+    // Implementation to update cache
+  }
+}
+```
+
+#### 3.2 Booking Sync Service
+```typescript
+// src/services/bokun/booking-sync.ts
+export class BokunBookingService {
+  private api: BokunAPI;
+
+  async syncBookingToBokun(localBooking: Booking): Promise<boolean> {
+    try {
+      const bokunProduct = await this.getBokunProduct(localBooking.tour_type);
+      
+      const bokunBooking = {
+        productId: bokunProduct.bokun_product_id,
+        variantId: bokunProduct.bokun_variant_id,
+        date: localBooking.tour_date,
+        time: localBooking.tour_time,
+        participants: localBooking.num_people,
+        customer: {
+          firstName: localBooking.first_name,
+          lastName: localBooking.last_name,
+          email: localBooking.email,
+          phone: localBooking.phone
+        },
+        source: 'tomodachi-tours-website'
+      };
+
+      const response = await this.api.makeRequest('/bookings', 'POST', bokunBooking);
+      
+      // Update local database
+      await this.updateLocalBookingSync(localBooking.id, response.bookingId, 'synced');
+      
+      return true;
+    } catch (error) {
+      await this.updateLocalBookingSync(localBooking.id, null, 'failed', error.message);
+      return false;
+    }
+  }
+
+  async cancelBookingInBokun(localBookingId: string): Promise<boolean> {
+    // Implementation for cancellations
+  }
+
+  private async updateLocalBookingSync(
+    localBookingId: string, 
+    bokunBookingId: string | null, 
+    status: string, 
+    errorMessage?: string
+  ) {
+    // Update bokun_bookings table
+  }
+}
+```
+
+### Phase 4: Webhook Integration (Week 5)
+
+#### 4.1 Webhook Handler
+```typescript
+// supabase/functions/bokun-webhook/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+serve(async (req) => {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
+  }
+
+  // Verify webhook signature
+  const signature = req.headers.get('x-bokun-signature');
+  const payload = await req.text();
+  
+  if (!verifyWebhookSignature(payload, signature)) {
+    return new Response('Invalid signature', { status: 401 });
+  }
+
+  const event = JSON.parse(payload);
+  
+  switch (event.type) {
+    case 'booking.created':
+      await handleExternalBooking(event.data);
+      break;
+    case 'booking.cancelled':
+      await handleExternalCancellation(event.data);
+      break;
+    case 'availability.updated':
+      await invalidateAvailabilityCache(event.data);
+      break;
+  }
+
+  return new Response('OK', { status: 200 });
+});
+
+async function handleExternalBooking(bookingData: any) {
+  // Create local record of external booking
+  // Update availability
+  // Send notification if needed
+}
+
+function verifyWebhookSignature(payload: string, signature: string): boolean {
+  // Implement HMAC verification
+}
+```
+
+### Phase 5: Frontend Integration (Week 6)
+
+#### 5.1 Modified Availability Check
+```typescript
+// Update existing availability checking
+export async function checkAvailability(
+  tourType: string, 
+  date: string, 
+  timeSlot: string
+): Promise<boolean> {
+  // First check local database for existing bookings
+  const localBookings = await getLocalBookings(tourType, date, timeSlot);
+  
+  // Then check Bokun for external bookings
+  const bokunAvailability = await bokunService.getAvailability(tourType, date, timeSlot);
+  
+  // Calculate total available spots
+  const totalCapacity = getTourCapacity(tourType);
+  const localBookedSpots = localBookings.reduce((sum, booking) => sum + booking.num_people, 0);
+  const externalBookedSpots = bokunAvailability.bookedSpots || 0;
+  
+  return (localBookedSpots + externalBookedSpots) < totalCapacity;
+}
+```
+
+#### 5.2 Enhanced Booking Process
+```typescript
+// Update booking creation process
+export async function createBooking(bookingData: BookingRequest): Promise<BookingResponse> {
+  // 1. Final availability check
+  const isAvailable = await checkAvailability(
+    bookingData.tour_type, 
+    bookingData.tour_date, 
+    bookingData.tour_time
+  );
+  
+  if (!isAvailable) {
+    throw new Error('Tour is no longer available');
+  }
+
+  // 2. Create local booking (existing process)
+  const localBooking = await createLocalBooking(bookingData);
+
+  // 3. Sync to Bokun (new step)
+  const syncSuccess = await bokunService.syncBookingToBokun(localBooking);
+  
+  if (!syncSuccess) {
+    // Log warning but don't fail the booking
+    console.warn(`Failed to sync booking ${localBooking.id} to Bokun`);
+  }
+
+  // 4. Continue with existing flow (payment, emails, etc.)
+  return processBookingCompletion(localBooking);
+}
+```
+
+---
+
+## Technical Specifications
+
+### API Endpoints
+
+#### New Supabase Edge Functions
+1. **`bokun-webhook`** - Handle incoming webhooks from Bokun
+2. **`sync-availability`** - Manual sync trigger for availability
+3. **`retry-booking-sync`** - Retry failed booking syncs
+
+#### Modified Existing Functions
+- **`create-charge`** - Add Bokun sync after successful payment
+- **`process-refund`** - Add Bokun cancellation sync
+
+### Rate Limiting & Caching
+```typescript
+// Availability caching strategy
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+const MAX_REQUESTS_PER_MINUTE = 60;
+
+// Implement exponential backoff for failed syncs
+const RETRY_DELAYS = [1000, 5000, 15000, 60000]; // 1s, 5s, 15s, 1m
+```
+
+### Error Handling
+```typescript
+// Graceful degradation strategy
+export class BookingService {
+  async createBooking(data: BookingRequest): Promise<BookingResponse> {
+    try {
+      // Primary booking flow
+      return await this.createWithBokunSync(data);
+    } catch (bokunError) {
+      // Fallback: create local booking only
+      console.error('Bokun sync failed, proceeding with local booking:', bokunError);
+      return await this.createLocalOnly(data);
+    }
+  }
+}
+```
+
+---
+
+## Security & Testing
+
+### Security Measures
+1. **Webhook Signature Verification**
+   ```typescript
+   function verifyBokunWebhook(payload: string, signature: string): boolean {
+     const hmac = crypto.createHmac('sha256', process.env.BOKUN_WEBHOOK_SECRET!);
+     hmac.update(payload);
+     const computedSignature = hmac.digest('hex');
+     return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(computedSignature));
+   }
+   ```
+
+2. **Rate Limiting for Bokun API calls**
+3. **Input validation for all webhook data**
+4. **Encrypted storage of API credentials**
+
+### Testing Strategy
+
+#### Unit Tests
+```typescript
+// Test availability checking
+describe('BokunAvailabilityService', () => {
+  test('should return cached availability when valid', async () => {
+    // Test implementation
+  });
+
+  test('should fetch from API when cache expired', async () => {
+    // Test implementation
+  });
+});
+
+// Test booking sync
+describe('BokunBookingService', () => {
+  test('should sync booking successfully', async () => {
+    // Test implementation
+  });
+
+  test('should handle sync failures gracefully', async () => {
+    // Test implementation
+  });
+});
+```
+
+#### Integration Tests
+- Test complete booking flow with Bokun integration
+- Test webhook handling
+- Test availability sync accuracy
+
+#### Manual Testing Checklist
+- [ ] Book tour on your website → Verify appears in Bokun
+- [ ] Book tour on Viator → Verify webhook updates your availability
+- [ ] Cancel booking → Verify sync in both directions
+- [ ] Test with high booking volume
+- [ ] Test API failure scenarios
+
+---
+
+## Deployment Strategy
+
+### Phase 1: Development Environment
+1. Set up Bokun sandbox account
+2. Deploy webhook handlers to staging
+3. Test with mock data
+
+### Phase 2: Staging Deployment
+1. Deploy all new functions to staging
+2. Run comprehensive testing
+3. Performance testing with production-like data
+
+### Phase 3: Production Rollout
+1. **Soft Launch**: Enable for one tour type only
+2. **Monitor**: Watch for sync issues and performance impact
+3. **Gradual Rollout**: Enable for all tour types
+4. **Full Integration**: All bookings sync to Bokun
+
+### Rollback Plan
+- Feature flags to disable Bokun integration instantly
+- Database backup before each phase
+- Ability to revert to local-only booking system
+
+---
+
+## Monitoring & Maintenance
+
+### Key Metrics to Track
+- **Sync Success Rate**: % of bookings successfully synced to Bokun
+- **Availability Accuracy**: Comparison between local and Bokun availability
+- **API Response Times**: Bokun API performance
+- **Webhook Reliability**: Webhook delivery success rate
+
+### Alerting
+```typescript
+// Alert thresholds
+const ALERTS = {
+  SYNC_FAILURE_THRESHOLD: 0.05, // Alert if >5% sync failures
+  API_TIMEOUT_THRESHOLD: 5000,   // Alert if API calls >5s
+  WEBHOOK_DELAY_THRESHOLD: 300   // Alert if webhooks delayed >5min
+};
+```
+
+### Regular Maintenance Tasks
+- Weekly sync status reports
+- Monthly API usage analysis
+- Quarterly cache optimization review
+- Semi-annual Bokun API version updates
+
+---
+
+## Success Criteria
+
+### Technical Goals
+- [x] Zero booking conflicts between channels
+- [x] <5% booking sync failure rate
+- [x] <2 second availability check response time
+- [x] 99.9% webhook processing uptime
+
+### Business Goals
+- [x] Unified booking management from one dashboard
+- [x] Real-time inventory synchronization
+- [x] Maintained brand control and customer experience
+- [x] No disruption to existing booking flow
+
+---
+
+## Support & Documentation
+
+### Developer Documentation
+- API integration guide
+- Webhook setup instructions
+- Troubleshooting guide
+- Database schema documentation
+
+### User Training
+- Bokun dashboard tutorial
+- Booking management workflows
+- Troubleshooting common issues
+
+---
+
+*This implementation plan maintains your existing booking system functionality while adding powerful Bokun integration for unified inventory management across all booking channels.* 

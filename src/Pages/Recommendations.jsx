@@ -21,7 +21,7 @@ import torikizoku from "../IMG/Recommendations/toriki.webp"
 import shareHappiness from "../IMG/Recommendations/sharehappiness.webp"
 import rockING from "../IMG/Recommendations/rockingbar.webp"
 import escamoteur from "../IMG/Recommendations/l-escamoteur-bar.webp"
-import zazapub from "../IMG/Recommendations/zazapub.webp"
+import inTheMoon from "../IMG/Recommendations/in-the-moon.webp"
 
 const RecommendationSection = ({ title, items }) => (
     <section className='container mx-auto px-4 py-16 max-w-7xl'>
@@ -33,30 +33,39 @@ const RecommendationSection = ({ title, items }) => (
         </div>
 
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8'>
-            {items.map((item, index) => (
-                <div key={index} className='bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl'>
-                    <div className='aspect-[4/3] overflow-hidden'>
-                        <img
-                            src={item.image}
-                            alt={`${item.title} (img)`}
-                            className='w-full h-full object-cover transform transition-transform duration-300 hover:scale-110'
-                        />
-                    </div>
-                    <div className='p-6'>
-                        {item.link ? (
-                            <Link
-                                to={item.link}
-                                className='text-blue-600 hover:text-blue-700 transition-colors duration-200 text-xl font-bold mb-3 block'
-                            >
+            {items.map((item, index) => {
+                const cardContent = (
+                    <>
+                        <div className='aspect-[4/3] overflow-hidden'>
+                            <img
+                                src={item.image}
+                                alt={`${item.title} (img)`}
+                                className='w-full h-full object-cover transform transition-transform duration-300 hover:scale-110'
+                            />
+                        </div>
+                        <div className='p-6'>
+                            <h3 className={`text-xl font-bold mb-3 ${item.link ? 'text-blue-600' : 'text-gray-900'}`}>
                                 {item.title}
-                            </Link>
-                        ) : (
-                            <h3 className='text-gray-900 text-xl font-bold mb-3'>{item.title}</h3>
-                        )}
-                        <p className='text-gray-600'>{item.description}</p>
+                            </h3>
+                            <p className='text-gray-600'>{item.description}</p>
+                        </div>
+                    </>
+                );
+
+                return item.link ? (
+                    <Link
+                        key={index}
+                        to={item.link}
+                        className='bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl block'
+                    >
+                        {cardContent}
+                    </Link>
+                ) : (
+                    <div key={index} className='bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl'>
+                        {cardContent}
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     </section>
 );
@@ -161,9 +170,9 @@ const Recommendations = () => {
                     description: "A popular bar with vintage cocktails, old-time atmosphere, magic house, elixirs and mystery"
                 },
                 {
-                    image: zazapub,
-                    title: "ZAZA Pub",
-                    description: "A popular and vibrant bar near Pontocho playing loud pop music. Have a couple of drinks, play darts, and speak to other travelers!"
+                    image: inTheMoon,
+                    title: "In the Moon",
+                    description: "A rooftop bar where you can overlook Kyoto and the Kamo river while enjoying drinks in a relaxed atmosphere with stunning city views!"
                 }
             ]
         }
