@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import bokunAvailabilityService from './bokun/availability-service.js';
+import { bokunAvailabilityService } from './bokun/availability-service.js';
 
 // Cache for tour data to avoid repeated API calls
 let toursCache = null;
@@ -139,14 +139,14 @@ export async function checkAvailability(tourType, date, timeSlot, participantCou
         const dbTourType = convertConfigKeyToTourType(tourType);
 
         // Use Bokun availability service (with fallback to local)
-        const isAvailable = await bokunAvailabilityService.isTimeSlotAvailable(
-            dbTourType,
-            date,
-            timeSlot,
-            participantCount
-        );
+        const availability = await bokunAvailabilityService.getAvailability(dbTourType, date, timeSlot);
 
-        return isAvailable;
+        if (availability) {
+            return availability.available && availability.availableSpots >= participantCount;
+        }
+
+        // Fallback to local availability check if no Bokun data
+        return checkLocalAvailability(tourType, date, timeSlot, participantCount);
     } catch (error) {
         console.error('Error checking availability:', error);
         // Fallback to local availability check
@@ -163,17 +163,15 @@ export async function getAvailableTimeSlots(tourType, date) {
         // Convert config key to tour type if needed
         const dbTourType = convertConfigKeyToTourType(tourType);
 
-        // Get availability from Bokun service
-        const availability = await bokunAvailabilityService.getAvailability(dbTourType, date);
+        // Get available time slots from Bokun service
+        const timeSlots = await bokunAvailabilityService.getAvailableTimeSlots(dbTourType, date);
 
-        // Filter only available slots
-        return availability
-            .filter(slot => slot.isAvailable)
-            .map(slot => ({
-                time: slot.time,
-                availableSpots: slot.availableSpots,
-                source: slot.source
-            }));
+        // Return formatted time slots
+        return timeSlots.map(slot => ({
+            time: slot.time,
+            availableSpots: slot.availableSpots,
+            source: 'bokun'
+        }));
     } catch (error) {
         console.error('Error getting available time slots:', error);
         // Fallback to tour configuration time slots
@@ -262,7 +260,12 @@ export async function invalidateAvailabilityCache(tourType, date) {
  */
 export async function refreshAvailabilityForDate(date) {
     try {
-        await bokunAvailabilityService.refreshAllAvailability(date);
+        // Invalidate cache for all tour types to force fresh data
+        const tourTypes = ['NIGHT_TOUR', 'MORNING_TOUR', 'UJI_TOUR', 'GION_TOUR'];
+
+        for (const tourType of tourTypes) {
+            await bokunAvailabilityService.invalidateCache(tourType, date);
+        }
     } catch (error) {
         console.error('Error refreshing availability:', error);
     }

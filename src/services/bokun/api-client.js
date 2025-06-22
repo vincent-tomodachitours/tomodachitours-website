@@ -3,8 +3,6 @@
  * Handles HMAC-SHA1 authentication and API communication with Bokun booking system
  */
 
-import crypto from 'crypto';
-
 class BokunAPI {
     constructor() {
         this.accessKey = process.env.REACT_APP_BOKUN_PUBLIC_KEY || process.env.BOKUN_PUBLIC_KEY;
@@ -17,22 +15,38 @@ class BokunAPI {
     }
 
     /**
-     * Create HMAC-SHA1 signature for Bokun API authentication
+     * Create HMAC-SHA1 signature using Web Crypto API (browser-compatible)
      * @param {string} date - UTC date string in format "yyyy-MM-dd HH:mm:ss"
      * @param {string} method - HTTP method (uppercase)
      * @param {string} path - API path including query string
-     * @returns {string} Base64 encoded signature
+     * @returns {Promise<string>} Base64 encoded signature
      */
-    createSignature(date, method, path) {
+    async createSignature(date, method, path) {
         // Concatenate: date + accessKey + method + path
         const stringToSign = date + this.accessKey + method.toUpperCase() + path;
 
-        // Create HMAC-SHA1 signature
-        const hmac = crypto.createHmac('sha1', this.secretKey);
-        hmac.update(stringToSign);
+        // Convert secret key and message to ArrayBuffer
+        const encoder = new TextEncoder();
+        const keyData = encoder.encode(this.secretKey);
+        const messageData = encoder.encode(stringToSign);
 
-        // Return base64 encoded signature
-        return hmac.digest('base64');
+        // Import the secret key
+        const cryptoKey = await crypto.subtle.importKey(
+            'raw',
+            keyData,
+            { name: 'HMAC', hash: 'SHA-1' },
+            false,
+            ['sign']
+        );
+
+        // Create HMAC-SHA1 signature
+        const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+
+        // Convert to base64
+        const signatureArray = new Uint8Array(signature);
+        const signatureBase64 = btoa(String.fromCharCode(...signatureArray));
+
+        return signatureBase64;
     }
 
     /**
@@ -52,13 +66,13 @@ class BokunAPI {
     }
 
     /**
-     * Make authenticated request to Bokun API using HMAC-SHA1 authentication
-     * @param {string} endpoint - API endpoint (without base URL)
-     * @param {string} method - HTTP method
-     * @param {Object} data - Request data
-     * @param {Object} options - Additional options
-     * @returns {Promise<Object>} API response
-     */
+ * Make authenticated request to Bokun API using HMAC-SHA1 authentication
+ * @param {string} endpoint - API endpoint (without base URL)
+ * @param {string} method - HTTP method
+ * @param {Object} data - Request data
+ * @param {Object} options - Additional options
+ * @returns {Promise<Object>} API response
+ */
     async makeRequest(endpoint, method = 'GET', data = null, options = {}) {
         if (!this.accessKey || !this.secretKey) {
             throw new Error('Bokun API credentials not configured');
@@ -68,7 +82,7 @@ class BokunAPI {
             // Ensure endpoint starts with /
             const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
             const date = this.getCurrentBokunDate();
-            const signature = this.createSignature(date, method, path);
+            const signature = await this.createSignature(date, method, path);
 
             const headers = {
                 'X-Bokun-Date': date,
@@ -256,6 +270,8 @@ class BokunAPI {
     }
 }
 
-// Export singleton instance
+// Export class and singleton instance
+export { BokunAPI };
+
 const bokunAPI = new BokunAPI();
 export default bokunAPI; 
