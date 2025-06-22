@@ -157,195 +157,368 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
     const finalPrice = appliedDiscount ? appliedDiscount.finalAmount : (adult + child) * tourPrice;
 
     return (
-        <div className='fixed inset-0 h-screen bg-black bg-opacity-50 flex justify-end z-40'>
+        <div className='fixed inset-0 h-screen bg-black bg-opacity-60 backdrop-blur-sm flex justify-center items-center z-40 p-4'>
             {paymentProcessing ? <Loading /> : null}
-            {/**white box in front of transparent black bg */}
-            <div className='bg-white w-11/12 md:w-3/4 h-4/5 rounded-md m-auto py-6 overflow-y-auto'>
-                <div className='header relative w-11/12 mx-auto mt-2'>
-                    <div className='flex gap-4'>
-                        <button className='font-roboto font-bold text-4xl text-blue-700' onClick={onClose}>&lt;</button>
-                        <span className='font-roboto font-bold text-4xl'>CHECKOUT</span>
+
+            {/* Modern modal container */}
+            <div className='bg-white w-full max-w-6xl h-full max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col'>
+
+                {/* Header */}
+                <div className='bg-gradient-to-r from-slate-50 to-white border-b border-gray-100 p-6'>
+                    <div className='flex items-center gap-4'>
+                        <button
+                            className='flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-600 hover:text-gray-800'
+                            onClick={onClose}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <h1 className='font-inter font-bold text-3xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent'>
+                            Checkout
+                        </h1>
                     </div>
                 </div>
-                <div className='body w-11/12 mx-auto my-8 flex flex-col md:flex-row gap-10'>
-                    {/** Contact information form */}
-                    <div className='form basis-2/3'>
-                        <div className='flex flex-col gap-6 border border-gray-300 bg-stone-100 rounded-lg py-6 px-6 md:px-12'>
-                            <div>
-                                <h2 className='font-roboto text-2xl font-bold mb-4'>Lead traveller's contact information</h2>
-                                <div className='w-full border-t-2 bg-gray-300 mb-6' /> {/**Gray divider line */}
-                                <form className='grid grid-cols-1 md:grid-cols-2 gap-4' >
-                                    <div>
-                                        <label className="font-ubuntu text-md" for="fname">First name</label><br />
-                                        <input className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' type="text" id='fname' name='fname' value={formData.fname} onChange={handleInputChange} />
+
+                {/* Body - scrollable content */}
+                <div className='flex-1 overflow-y-auto'>
+                    <div className='p-6 lg:p-8'>
+                        <div className='flex flex-col xl:flex-row gap-8'>
+
+                            {/* Contact & Payment Information */}
+                            <div className='flex-1 space-y-8'>
+
+                                {/* Contact Information Card */}
+                                <div className='bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300'>
+                                    <div className='p-6 lg:p-8'>
+                                        <div className='flex items-center gap-3 mb-6'>
+                                            <div className='w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center'>
+                                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                            </div>
+                                            <h2 className='font-inter text-xl font-semibold text-gray-900'>Contact Information</h2>
+                                        </div>
+
+                                        <form className='space-y-6'>
+                                            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                                                <div className='space-y-2'>
+                                                    <label className="font-inter text-sm font-medium text-gray-700" htmlFor="fname">
+                                                        First Name
+                                                    </label>
+                                                    <input
+                                                        className='w-full h-12 rounded-lg border border-gray-300 px-4 font-inter text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200'
+                                                        type="text"
+                                                        id='fname'
+                                                        name='fname'
+                                                        value={formData.fname}
+                                                        onChange={handleInputChange}
+                                                        placeholder="Enter your first name"
+                                                    />
+                                                </div>
+                                                <div className='space-y-2'>
+                                                    <label className="font-inter text-sm font-medium text-gray-700" htmlFor="lname">
+                                                        Last Name
+                                                    </label>
+                                                    <input
+                                                        className='w-full h-12 rounded-lg border border-gray-300 px-4 font-inter text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200'
+                                                        type="text"
+                                                        id='lname'
+                                                        name='lname'
+                                                        value={formData.lname}
+                                                        onChange={handleInputChange}
+                                                        placeholder="Enter your last name"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                                                <div className='space-y-2'>
+                                                    <label className="font-inter text-sm font-medium text-gray-700" htmlFor="email">
+                                                        Email Address
+                                                    </label>
+                                                    <input
+                                                        className={`w-full h-12 rounded-lg border px-4 font-inter text-gray-900 placeholder-gray-400 transition-all duration-200 ${emailTouched && emailError
+                                                            ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
+                                                            : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                                                            }`}
+                                                        type="email"
+                                                        id='email'
+                                                        name='email'
+                                                        value={formData.email}
+                                                        onChange={handleInputChange}
+                                                        onBlur={() => {
+                                                            setEmailTouched(true);
+                                                            setEmailError(validateEmail(formData.email));
+                                                        }}
+                                                        placeholder="Enter your email address"
+                                                    />
+                                                    {emailTouched && emailError && (
+                                                        <p className="text-red-500 text-sm font-inter flex items-center gap-1">
+                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                            </svg>
+                                                            {emailError}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                <div className='space-y-2'>
+                                                    <label className="font-inter text-sm font-medium text-gray-700" htmlFor="phone">
+                                                        Phone Number
+                                                    </label>
+                                                    <PhoneInput
+                                                        country={'us'}
+                                                        onChange={(phone) => {
+                                                            const syntheticEvent = {
+                                                                target: {
+                                                                    name: 'phone',
+                                                                    value: phone,
+                                                                    type: 'text',
+                                                                },
+                                                            };
+                                                            handleInputChange(syntheticEvent);
+                                                        }}
+                                                        inputStyle={{
+                                                            width: '100%',
+                                                            height: '3rem',
+                                                            borderRadius: '0.5rem',
+                                                            border: '1px solid #D1D5DB',
+                                                            paddingLeft: '3.5rem',
+                                                            paddingRight: '1rem',
+                                                            fontFamily: 'Inter',
+                                                            fontSize: '1rem',
+                                                            color: '#111827',
+                                                            transition: 'all 0.2s ease'
+                                                        }}
+                                                        buttonStyle={{
+                                                            border: '1px solid #D1D5DB',
+                                                            borderRight: 'none',
+                                                            borderRadius: '0.5rem 0 0 0.5rem',
+                                                            backgroundColor: '#F9FAFB'
+                                                        }}
+                                                        enableSearch
+                                                    />
+                                                </div>
+                                            </div>
+                                        </form>
                                     </div>
-                                    <div>
-                                        <label className="font-ubuntu text-md" for="lname">Last name</label><br />
-                                        <input className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu' type="text" id='lname' name='lname' value={formData.lname} onChange={handleInputChange} />
-                                    </div>
-                                    <div>
-                                        <label className="font-ubuntu text-md" htmlFor="email">Email address</label><br />
-                                        <input
-                                            className={`w-full h-10 rounded-md border ${emailTouched && emailError ? 'border-red-500' : 'border-gray-300'} px-2 font-ubuntu`}
-                                            type="email"
-                                            id='email'
-                                            name='email'
-                                            value={formData.email}
-                                            onChange={handleInputChange}
-                                            onBlur={() => {
-                                                setEmailTouched(true);
-                                                setEmailError(validateEmail(formData.email));
-                                            }}
+                                </div>
+
+                                {/* Payment Information Card */}
+                                <div className='bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300'>
+                                    <div className='p-6 lg:p-8'>
+                                        <div className='flex items-center gap-3 mb-6'>
+                                            <div className='w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center'>
+                                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                                </svg>
+                                            </div>
+                                            <h2 className='font-inter text-xl font-semibold text-gray-900'>Payment Information</h2>
+                                        </div>
+
+                                        <CardForm
+                                            ref={childRef}
+                                            totalPrice={finalPrice}
+                                            originalPrice={(adult + child) * tourPrice}
+                                            appliedDiscount={appliedDiscount}
+                                            formRef={formRef}
+                                            sheetId={sheetId}
+                                            setPaymentProcessing={setPaymentProcessing}
                                         />
-                                        {emailTouched && emailError && (
-                                            <p className="text-red-500 text-sm mt-1 font-ubuntu">{emailError}</p>
-                                        )}
                                     </div>
-                                    <div>
-                                        <label className="font-ubuntu text-md" for="phone">Phone number</label><br />
-                                        <PhoneInput
-                                            country={'us'}
-                                            onChange={(phone) => {
-                                                const syntheticEvent = {
-                                                    target: {
-                                                        name: 'phone',
-                                                        value: phone,
-                                                        type: 'text',
-                                                    },
-                                                };
-                                                handleInputChange(syntheticEvent);
-                                            }}
-                                            inputStyle={{
-                                                width: '100%',
-                                                height: '2.5rem',
-                                                borderRadius: '0.375rem',
-                                                border: '1px solid #D1D5DB',
-                                                paddingLeft: '3rem',
-                                                paddingRight: '0.5rem',
-                                                fontFamily: 'Ubuntu',
-                                                fontSize: '1rem'
-                                            }}
-                                            enableSearch
-                                        />
-                                    </div>
-                                    {/**<button type="submit" className='bg-blue-700 text-white font-ubuntu rounded-md p-2'>Create Booking</button>*/}
-                                </form>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className='font-roboto text-2xl font-bold mb-4'>Payment information</h2>
-                                <div className='w-full border-t-2 bg-gray-300 mb-6' />
-                                <div className='mt-6'>
-                                    <CardForm
-                                        ref={childRef}
-                                        totalPrice={finalPrice}
-                                        originalPrice={(adult + child) * tourPrice}
-                                        appliedDiscount={appliedDiscount}
-                                        formRef={formRef}
-                                        sheetId={sheetId}
-                                        setPaymentProcessing={setPaymentProcessing}
-                                    />
+
+                            {/* Order Summary */}
+                            <div className='w-full xl:w-96'>
+                                <div className='bg-gradient-to-br from-slate-50 to-blue-50/30 border border-gray-200 rounded-xl shadow-sm sticky top-0'>
+                                    <div className='p-6 lg:p-8'>
+                                        <div className='flex items-center gap-3 mb-6'>
+                                            <div className='w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center'>
+                                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                </svg>
+                                            </div>
+                                            <h2 className='font-inter text-xl font-semibold text-gray-900'>Order Summary</h2>
+                                        </div>
+
+                                        {/* Tour Details */}
+                                        <div className="bg-white rounded-lg p-4 mb-6 border border-gray-100">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1 mr-4">
+                                                    <h3 className="font-inter font-semibold text-gray-900 text-sm leading-tight mb-3">
+                                                        {tourName}
+                                                    </h3>
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-5 h-5 bg-blue-100 rounded flex items-center justify-center">
+                                                                <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                </svg>
+                                                            </div>
+                                                            <span className="font-inter font-semibold text-gray-900 text-base">{tourDate}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-5 h-5 bg-green-100 rounded flex items-center justify-center">
+                                                                <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                            </div>
+                                                            <span className="font-inter font-semibold text-gray-900 text-base">{tourTime}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Price Breakdown */}
+                                        <div className="space-y-3 mb-6">
+                                            <div className='flex justify-between items-center'>
+                                                <span className='font-inter text-gray-700'>Adults ({adult})</span>
+                                                <span className='font-inter font-medium'>¥{(adult * tourPrice).toLocaleString('en-US')}</span>
+                                            </div>
+                                            {child !== 0 && (
+                                                <div className='flex justify-between items-center'>
+                                                    <span className='font-inter text-gray-700'>Children ({child})</span>
+                                                    <span className='font-inter font-medium'>¥{(child * tourPrice).toLocaleString('en-US')}</span>
+                                                </div>
+                                            )}
+                                            {infant !== 0 && (
+                                                <div className='flex justify-between items-center'>
+                                                    <span className='font-inter text-gray-700'>Infants ({infant})</span>
+                                                    <span className='font-inter font-medium text-green-600'>FREE</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Discount Section */}
+                                        <div className="mb-6">
+                                            <label className="font-inter text-sm font-medium text-gray-700 mb-2 block">
+                                                Discount Code
+                                            </label>
+                                            <div className='flex gap-2'>
+                                                <input
+                                                    className='flex-1 h-10 rounded-lg border border-gray-300 px-3 font-inter text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200'
+                                                    type="text"
+                                                    value={discountCode}
+                                                    onChange={(e) => setDiscountCode(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && discountCode.trim() && !discountLoading && !appliedDiscount) {
+                                                            handleApplyDiscount();
+                                                        }
+                                                    }}
+                                                    disabled={appliedDiscount !== null}
+                                                    placeholder="Enter code"
+                                                />
+                                                <button
+                                                    className={`px-4 py-2 rounded-lg font-inter font-medium text-base transition-all duration-200 ${discountLoading
+                                                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                                                        : appliedDiscount
+                                                            ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
+                                                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md'
+                                                        }`}
+                                                    onClick={appliedDiscount ? () => {
+                                                        setAppliedDiscount(null);
+                                                        setDiscountCode('');
+                                                        setDiscountError('');
+                                                    } : handleApplyDiscount}
+                                                    disabled={discountLoading}
+                                                >
+                                                    {discountLoading ? 'Checking...' : appliedDiscount ? 'Remove' : 'Apply'}
+                                                </button>
+                                            </div>
+                                            {discountError && (
+                                                <p className="text-red-500 text-sm mt-2 font-inter flex items-center gap-1">
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                    </svg>
+                                                    {discountError}
+                                                </p>
+                                            )}
+                                            {appliedDiscount && (
+                                                <p className="text-green-600 text-sm mt-2 font-inter flex items-center gap-1">
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                    </svg>
+                                                    Discount applied: -{appliedDiscount.type === 'percentage' ?
+                                                        `${appliedDiscount.value}%` :
+                                                        `¥${appliedDiscount.value.toLocaleString('en-US')}`}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Total */}
+                                        <div className='border-t border-gray-200 pt-4 mb-6'>
+                                            <div className='flex justify-between items-center'>
+                                                <span className='font-inter text-lg font-semibold text-gray-900'>Total</span>
+                                                <div className="text-right">
+                                                    {appliedDiscount && (
+                                                        <div className="text-sm text-gray-500 line-through font-inter mb-1">
+                                                            ¥{appliedDiscount.originalAmount.toLocaleString('en-US')}
+                                                        </div>
+                                                    )}
+                                                    <span className='font-inter text-xl font-bold text-gray-900'>
+                                                        ¥{finalPrice.toLocaleString('en-US')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Terms and Conditions */}
+                                        <div className='flex items-start gap-3 mb-6'>
+                                            <input
+                                                className='mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2'
+                                                type='checkbox'
+                                                name='terms'
+                                                checked={formData.terms}
+                                                onChange={handleInputChange}
+                                            />
+                                            <span className='font-inter text-sm text-gray-700 leading-relaxed'>
+                                                I have read and agree to the{' '}
+                                                <Link to="/commercial-disclosure" className='text-blue-600 hover:text-blue-700 font-medium underline decoration-blue-600/30 hover:decoration-blue-700'>
+                                                    Terms and Conditions
+                                                </Link>
+                                            </span>
+                                        </div>
+
+                                        {/* Pay Button */}
+                                        <button
+                                            onClick={handlePayNowButton}
+                                            disabled={!paymentAllowed}
+                                            className={`w-full h-12 rounded-lg font-inter font-semibold text-white transition-all duration-200 ${paymentAllowed
+                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transform'
+                                                : 'bg-gray-400 cursor-not-allowed shadow-sm'
+                                                }`}
+                                        >
+                                            {paymentAllowed ? (
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                    Complete Payment
+                                                </span>
+                                            ) : (
+                                                'Complete Required Fields'
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {/**Purchase summary **/}
-                    <div className='details basis-1/3 border border-gray-300 rounded-lg py-6 px-6 md:px-12 font-roboto'>
-                        <h2 className='font-bold text-2xl text-blue-600'>Order Summary</h2>
-                        <div className='w-full border-t-2 bg-gray-300 my-4' />
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="font-bold text-lg text-gray-700" style={{ maxWidth: '60%' }}>
-                                {tourName}
-                            </div>
-                            <div className="text-right">
-                                <div className="text-2xl font-extrabold text-gray-700">{tourTime}</div>
-                                <div className="text-md text-gray-500 mt-1">{tourDate}</div>
-                            </div>
-                        </div>
-                        <div>
-                            <div className='flex justify-between'>
-                                <span>Adults: {adult}</span>
-                                <span>¥{adult * tourPrice}</span>
-                            </div>
-                            {child !== 0 ? <div className='flex justify-between'>
-                                <span>Children: {child}</span>
-                                <span>¥{child * tourPrice}</span>
-                            </div> : null}
-                            {infant !== 0 ? <div className='flex justify-between'>
-                                <span>Infants: {infant}</span>
-                                <span>FREE</span>
-                            </div> : null}
-                        </div>
-                        <div className='w-full border-t-2 bg-gray-300 my-4' />
-                        <div>
-                            <label className="font-ubuntu text-md" htmlFor="discount">Discount code</label>
-                            <div className='flex gap-2'>
-                                <input
-                                    className='w-full h-10 rounded-md border border-gray-300 px-2 font-ubuntu'
-                                    type="text"
-                                    id='discount'
-                                    name='discount'
-                                    value={discountCode}
-                                    onChange={(e) => setDiscountCode(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && discountCode.trim() && !discountLoading && !appliedDiscount) {
-                                            handleApplyDiscount();
-                                        }
-                                    }}
-                                    disabled={appliedDiscount !== null}
-                                />
-                                <button
-                                    className={`p-2 rounded-md font-roboto font-bold text-white ${discountLoading ? 'bg-gray-400' :
-                                        appliedDiscount ? 'bg-green-600' : 'bg-blue-600'
-                                        }`}
-                                    onClick={appliedDiscount ? () => {
-                                        setAppliedDiscount(null);
-                                        setDiscountCode('');
-                                        setDiscountError('');
-                                    } : handleApplyDiscount}
-                                    disabled={discountLoading}
-                                >
-                                    {discountLoading ? 'Checking...' :
-                                        appliedDiscount ? 'Remove' : 'Apply'}
-                                </button>
-                            </div>
-                            {discountError && (
-                                <p className="text-red-500 text-sm mt-1 font-ubuntu">{discountError}</p>
-                            )}
-                            {appliedDiscount && (
-                                <p className="text-green-500 text-sm mt-1 font-ubuntu">
-                                    Discount applied: -{appliedDiscount.type === 'percentage' ?
-                                        `${appliedDiscount.value}%` :
-                                        `¥${appliedDiscount.value.toLocaleString('en-US')}`}
-                                </p>
-                            )}
-                        </div>
-                        <div className='w-full border-t-2 bg-gray-300 my-4' />
-                        <div className='flex justify-between'>
-                            <span className='font-bold text-2xl'>Order Total</span>
-                            <div className="text-right">
-                                {appliedDiscount && (
-                                    <div className="text-sm text-gray-500 line-through font-roboto">
-                                        ¥{appliedDiscount.originalAmount.toLocaleString('en-US')}
-                                    </div>
-                                )}
-                                <span className='font-medium text-2xl'>¥{finalPrice.toLocaleString('en-US')}</span>
-                            </div>
-                        </div>
-                        <div className='w-full border-t-2 bg-gray-300 my-4' />
-                        <div className='flex items-start gap-2 mb-2'>
-                            <input className='h-full mt-2 cursor-pointer' type='checkbox' name='terms' checked={formData.terms} onChange={handleInputChange} />
-                            <span> I have read and agree to the <Link to="/commercial-disclosure" className='text-blue-600'>Terms and Conditions</Link>.</span>
-                        </div>
-                        {
-                            paymentAllowed ?
-                                <button onClick={handlePayNowButton} className='w-full h-12 rounded-lg bg-blue-600 shadow-lg shadow-blue-400 font-bold text-white'>PAY NOW</button>
-                                :
-                                <button className='w-full h-12 rounded-lg bg-gray-500 shadow-lg font-bold text-white cursor-default'>PAY NOW</button>
-                        }
-                    </div>
                 </div>
-                <div className='footer absolute bottom-4 w-full'>
-                    <span>Cancellation Policy</span>
+
+                {/* Footer */}
+                <div className='bg-gray-50 border-t border-gray-100 p-4'>
+                    <div className='flex items-center justify-center gap-2 text-sm text-gray-600'>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <Link to="/cancellation-policy" className='font-inter text-blue-600 hover:text-blue-700 underline decoration-blue-600/30 hover:decoration-blue-700'>
+                            Cancellation Policy
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>
