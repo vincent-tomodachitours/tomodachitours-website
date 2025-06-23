@@ -9,7 +9,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { validateRequest, paymentSchema, addSecurityHeaders, sanitizeOutput } from '../validation-middleware/index.ts'
-// import { withRateLimit } from '../rate-limit-middleware/wrapper.ts' // Temporarily disabled due to broken wrapper
+// import { withRateLimit } from '../rate-limit-middleware/wrapper.ts' // Temporarily disabled for debugging
 import sgMail from "npm:@sendgrid/mail"
 
 const corsHeaders = {
@@ -164,6 +164,41 @@ interface PayJPCharge {
   }
 }
 
+/**
+ * Trigger Bokun sync via separate Edge Function (async, non-blocking)
+ */
+async function triggerBokunSync(bookingId: number) {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!supabaseUrl || !serviceKey) {
+      console.log('Supabase configuration not available for Bokun sync')
+      return
+    }
+
+    // Call the sync-bokun-booking Edge Function
+    const response = await fetch(`${supabaseUrl}/functions/v1/sync-bokun-booking`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceKey}`
+      },
+      body: JSON.stringify({ bookingId })
+    })
+
+    if (!response.ok) {
+      console.error('Failed to trigger Bokun sync:', await response.text())
+    } else {
+      console.log(`Bokun sync triggered for booking ${bookingId}`)
+    }
+
+  } catch (error) {
+    console.error('Error triggering Bokun sync:', error)
+    // Don't throw - this is a background operation
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   try {
     // Handle CORS preflight requests
@@ -269,6 +304,12 @@ const handler = async (req: Request): Promise<Response> => {
     } else {
       // Send confirmation emails
       await sendBookingEmails(supabase, booking)
+
+      // Trigger Bokun sync (async, don't block payment completion)
+      triggerBokunSync(booking.id).catch(error => {
+        console.error('Failed to trigger Bokun sync:', error)
+        // Log error but don't fail the payment process
+      })
     }
 
     // If discount code was used, increment its usage

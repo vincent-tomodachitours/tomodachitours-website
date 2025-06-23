@@ -62,6 +62,13 @@ export const chargeSchema = z.object({
     specialRequests: z.string().optional()
 })
 
+// Notification validation schema
+export const notificationSchema = z.object({
+    to: z.string().email(),
+    templateId: z.string(),
+    templateData: z.record(z.any())
+})
+
 // Security headers
 export const addSecurityHeaders = (headers: Headers): Headers => {
     // Content type protection

@@ -31,8 +31,84 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
     const [calendarSelectedDate, setCalendarSelectedDate] = useState(new Date());
     const [availableTimesForDate, setAvailableTimesForDate] = useState([]);
+    const [preloadedAvailability, setPreloadedAvailability] = useState({});
+    const [availabilityLoading, setAvailabilityLoading] = useState(true); // Start as true to show loading immediately
 
     const participantsByDate = {};
+
+    /**
+     * Preload availability for a range of dates (for calendar display)
+     */
+    const preloadAvailabilityForDates = useCallback(async (startDate, endDate) => {
+        setAvailabilityLoading(true);
+        const newAvailabilityData = {};
+
+        try {
+            const currentDate = new Date(startDate);
+            const promises = [];
+
+            while (currentDate <= endDate) {
+                const dateKey = currentDate.toLocaleDateString("en-CA");
+
+                // Skip if we already have recent data for this date
+                if (preloadedAvailability[dateKey] &&
+                    (Date.now() - preloadedAvailability[dateKey].timestamp) < 5 * 60 * 1000) {
+                    newAvailabilityData[dateKey] = preloadedAvailability[dateKey];
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    continue;
+                }
+
+                // Create promise for this date
+                const promise = (async (date) => {
+                    try {
+                        const dateStr = date.toLocaleDateString("en-CA");
+                        const timeSlots = await bokunAvailabilityService.getAvailableTimeSlots(sheetId, dateStr);
+
+                        const hasAvailability = timeSlots && timeSlots.length > 0;
+
+                        return {
+                            dateKey: dateStr,
+                            hasAvailability,
+                            timeSlots: timeSlots || [],
+                            timestamp: Date.now()
+                        };
+                    } catch (error) {
+                        console.warn(`⚠️ ${date.toLocaleDateString("en-CA")}: Bokun API error, using fallback`);
+                        // Fall back to configured times - assume they're available
+                        return {
+                            dateKey: date.toLocaleDateString("en-CA"),
+                            hasAvailability: true, // Default to available when falling back
+                            timeSlots: availableTimes,
+                            timestamp: Date.now(),
+                            fallback: true
+                        };
+                    }
+                })(new Date(currentDate));
+
+                promises.push(promise);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            // Wait for all promises to complete
+            const results = await Promise.all(promises);
+
+            // Merge results
+            results.forEach(result => {
+                newAvailabilityData[result.dateKey] = result;
+            });
+
+            // Update state with both existing and new data
+            setPreloadedAvailability(prev => ({
+                ...prev,
+                ...newAvailabilityData
+            }));
+
+        } catch (error) {
+            console.error('Error preloading availability:', error);
+        } finally {
+            setAvailabilityLoading(false);
+        }
+    }, [sheetId, availableTimes, preloadedAvailability]);
 
     /**
      * Check Bokun availability for a specific date and time slot
@@ -286,6 +362,45 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         };
     }, [checkout]);
 
+    // Preload availability for all visible dates in the calendar view
+    useEffect(() => {
+        const preloadVisibleDatesAvailability = async () => {
+            setAvailabilityLoading(true);
+
+            const currentMonth = calendarSelectedDate.getMonth();
+            const currentYear = calendarSelectedDate.getFullYear();
+
+            // Get the first day of the month
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+
+            // Get the last day of the month
+            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+            // Find the first Sunday of the calendar view (may be from previous month)
+            const startDate = new Date(firstDayOfMonth);
+            startDate.setDate(startDate.getDate() - firstDayOfMonth.getDay());
+
+            // Find the last Saturday of the calendar view (may be from next month)
+            const endDate = new Date(lastDayOfMonth);
+            endDate.setDate(endDate.getDate() + (6 - lastDayOfMonth.getDay()));
+
+            // Only preload dates that are today or in the future
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const actualStartDate = new Date(Math.max(startDate.getTime(), today.getTime()));
+
+            console.log(`🔄 Preloading availability for visible calendar dates: ${actualStartDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+            await preloadAvailabilityForDates(actualStartDate, endDate);
+
+            // Loading is handled by preloadAvailabilityForDates, but ensure it's false if something goes wrong
+            setAvailabilityLoading(false);
+        };
+
+        // Start immediately on mount, then debounce for subsequent changes
+        const timeoutId = setTimeout(preloadVisibleDatesAvailability, 100);
+        return () => clearTimeout(timeoutId);
+    }, [calendarSelectedDate]); // Triggered when user navigates to different month
+
     const today = new Date();
 
     const oneYearsLater = new Date();
@@ -402,7 +517,19 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
     // Helper to get a Date object for a tour slot in JST
     function getTourDateTimeJST(date, time) {
-        const [hour, minute] = time.split(":");
+        // Validate time parameter
+        if (!time || typeof time !== 'string') {
+            console.error('getTourDateTimeJST: Invalid time parameter:', time);
+            return new Date(); // Return current date as fallback
+        }
+
+        const timeParts = time.split(":");
+        if (timeParts.length !== 2) {
+            console.error('getTourDateTimeJST: Invalid time format:', time);
+            return new Date(); // Return current date as fallback
+        }
+
+        const [hour, minute] = timeParts;
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const d = String(date.getDate()).padStart(2, '0');
@@ -411,6 +538,11 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     }
 
     const disableDates = ({ date }) => {
+        // Disable all dates while availability is loading
+        if (availabilityLoading) {
+            return true;
+        }
+
         const todayJST = getNowInJST();
         const dateJST = new Date(date);
 
@@ -424,25 +556,11 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         const isBookingForTomorrow =
             dateStart.getTime() === todayStart.getTime() + (24 * 60 * 60 * 1000);
 
-        console.log('Time Debug (disableDates):', {
-            todayJST: todayJST.toISOString(),
-            dateJST: dateJST.toISOString(),
-            todayStart: todayStart.toISOString(),
-            isBookingForTomorrow,
-            nextDayCutoffTime
-        });
-
         // If booking for tomorrow and there's a next-day cut-off time
         if (isBookingForTomorrow && nextDayCutoffTime) {
             const [cutoffHour, cutoffMinute] = nextDayCutoffTime.split(':').map(Number);
             const todayCutoff = new Date(todayStart); // Use todayStart to ensure correct date
             todayCutoff.setHours(cutoffHour, cutoffMinute, 0, 0);
-
-            console.log('Cutoff Time Debug (disableDates):', {
-                todayCutoff: todayCutoff.toISOString(),
-                todayJST: todayJST.toISOString(),
-                isPastCutoff: todayJST.getTime() >= todayCutoff.getTime()
-            });
 
             if (todayJST.getTime() >= todayCutoff.getTime()) {
                 console.log('Disabling date - past cutoff time');
@@ -450,9 +568,55 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             }
         }
 
-        // We can't make async calls in disableDates, so we only check local availability here
-        // Bokun availability will be checked when getting available times
         const formattedDate = date.toLocaleDateString("en-CA");
+
+        // Check preloaded Bokun availability first
+        const preloadedData = preloadedAvailability[formattedDate];
+        if (preloadedData) {
+            // If this is fallback data (Bokun API failed), use the original logic
+            if (preloadedData.fallback) {
+                // Fall through to original logic below
+            } else {
+                // We have real Bokun data - check if any time slots are valid
+                const availableSlots = preloadedData.timeSlots || [];
+
+                if (!preloadedData.hasAvailability) {
+                    return true; // Disable the date
+                }
+
+                // Check if any of the available time slots from Bokun are still valid
+                let hasValidSlot = false;
+
+                for (const slot of availableSlots) {
+                    // Handle both string format and object format
+                    let timeString;
+                    if (typeof slot === 'string') {
+                        timeString = slot;
+                    } else if (slot && slot.time) {
+                        timeString = slot.time;
+                    } else {
+                        console.warn('Invalid time slot format:', slot);
+                        continue;
+                    }
+
+                    const tourDateTimeJST = getTourDateTimeJST(date, timeString);
+                    const hoursUntilTour = (tourDateTimeJST - todayJST) / (1000 * 60 * 60);
+                    const dayData = participantsByDate[formattedDate] || {};
+                    const hasParticipants = dayData[timeString] > 0;
+                    const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
+                    const localSpotsAvailable = (dayData[timeString] || 0) + participants <= maxSlots;
+
+                    if (hoursUntilTour >= cutoffHours && localSpotsAvailable) {
+                        hasValidSlot = true;
+                        break;
+                    }
+                }
+
+                return !hasValidSlot; // Return true to disable if no valid slots
+            }
+        }
+
+        // Fallback to original logic if no preloaded data (for backwards compatibility)
         const dayData = participantsByDate[formattedDate] || {};
         let allSlotsPastCutoff = true;
         for (let i = 0; i < availableTimes.length; i++) {
@@ -497,11 +661,23 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 </div>
                 <h1 className='font-ubuntu font-bold text-2xl text-gray-800 mb-6'>Choose a date</h1>
                 <div className="relative">
-                    {loadingAvailability && (
+                    {/* Overlay loading indicator */}
+                    {availabilityLoading && (
+                        <div className="absolute inset-0 z-20 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                            <div className="bg-white rounded-lg shadow-lg p-6 flex flex-col items-center space-y-3">
+                                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                <div className="text-sm font-medium text-gray-700">Loading availability...</div>
+                                <div className="text-xs text-gray-500 text-center">Checking tour dates</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Small loading indicator for time slot updates */}
+                    {loadingAvailability && !availabilityLoading && (
                         <div className="absolute top-2 right-2 z-10 bg-white bg-opacity-90 rounded-lg px-3 py-1 shadow-sm">
                             <div className="text-xs text-gray-600 flex items-center">
                                 <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                                Updating availability...
+                                Updating times...
                             </div>
                         </div>
                     )}

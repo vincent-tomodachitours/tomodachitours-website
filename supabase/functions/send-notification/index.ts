@@ -4,7 +4,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
-import { validateRequest, addSecurityHeaders, notificationSchema } from './validation.ts'
+import { validateRequest, addSecurityHeaders, notificationSchema } from '../validation-middleware/index.ts'
 // import { withRateLimit } from '../rate-limit-middleware/wrapper.ts' // Temporarily disabled
 import sgMail from "npm:@sendgrid/mail"
 

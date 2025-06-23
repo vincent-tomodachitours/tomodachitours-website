@@ -30,12 +30,20 @@ Before implementing the technical integration, you need to set up your Bokun acc
    - **Access Key** (this is your `BOKUN_PUBLIC_KEY`)
    - **Secret Key** (this is your `BOKUN_SECRET_KEY`)
 
-### 3. Find Your Activity ID
+### 3. Find Your Activity IDs
 1. Go to **Products** → **Activities** in Bokun
-2. Find your Night Tour activity
-3. Click to edit it
+2. Find each of your tour activities:
+   - Night Tour (Fushimi Inari)
+   - Morning Tour (Early Bird)
+   - Uji Tour (Tea Tour)
+   - Gion Tour (Early Morning Walking)
+3. For each activity, click to edit it
 4. The Activity ID is shown in the URL or activity details
-5. Copy this ID (this is your `NIGHT_TOUR_PRODUCT_ID`)
+5. Copy these IDs for your environment variables:
+   - `NIGHT_TOUR_PRODUCT_ID`
+   - `MORNING_TOUR_PRODUCT_ID`
+   - `UJI_TOUR_PRODUCT_ID`
+   - `GION_TOUR_PRODUCT_ID`
 
 ## Current Implementation Status
 
@@ -55,15 +63,20 @@ Add these environment variables to your `.env` file:
 # Bokun API Configuration
 BOKUN_PUBLIC_KEY=your_bokun_access_key
 BOKUN_SECRET_KEY=your_bokun_secret_key
-BOKUN_API_URL=https://api.bokuntest.com  # Test environment
-# BOKUN_API_URL=https://api.bokun.io     # Production environment
+# BOKUN_API_URL=https://api.bokuntest.com  # Test environment
+BOKUN_API_URL=https://api.bokun.io     # Production environment
 BOKUN_WEBHOOK_SECRET=your_generated_webhook_secret
-NIGHT_TOUR_PRODUCT_ID=your_bokun_activity_id
+
+# Product IDs for all tours
+NIGHT_TOUR_PRODUCT_ID=your_night_tour_bokun_activity_id
+MORNING_TOUR_PRODUCT_ID=your_morning_tour_bokun_activity_id
+UJI_TOUR_PRODUCT_ID=your_uji_tour_bokun_activity_id
+GION_TOUR_PRODUCT_ID=your_gion_tour_bokun_activity_id
 ```
 
 ⚠️ **IMPORTANT**: 
 - Bokun uses HMAC-SHA1 signature authentication, NOT OAuth
-- Always use the TEST environment (api.bokuntest.com) for development
+- Now configured for PRODUCTION environment (api.bokun.io) by default
 - You need to create a booking channel in Bokun before getting API keys
 
 #### 2. Database Migration
@@ -73,19 +86,26 @@ supabase db push
 ```
 
 #### 3. Configure Product Mappings
-Update the `bokun_products` table with your actual Bokun activity ID:
+Use the provided SQL script to update all product mappings:
 
+```bash
+# First, set your environment variables with actual Bokun product IDs
+export NIGHT_TOUR_PRODUCT_ID=your_actual_night_tour_id
+export MORNING_TOUR_PRODUCT_ID=your_actual_morning_tour_id
+export UJI_TOUR_PRODUCT_ID=your_actual_uji_tour_id
+export GION_TOUR_PRODUCT_ID=your_actual_gion_tour_id
+
+# Then run the SQL script
+envsubst < update_bokun_products.sql | psql -d your_database
+```
+
+Or manually update the database:
 ```sql
--- Replace 'YOUR_ACTUAL_NIGHT_TOUR_ACTIVITY_ID' with your Bokun activity ID
-UPDATE bokun_products 
-SET bokun_product_id = 'YOUR_ACTUAL_NIGHT_TOUR_ACTIVITY_ID', is_active = true 
-WHERE local_tour_type = 'NIGHT_TOUR';
-
--- Or insert if not exists
-INSERT INTO bokun_products (local_tour_type, bokun_product_id, is_active) 
-VALUES ('NIGHT_TOUR', 'YOUR_ACTUAL_NIGHT_TOUR_ACTIVITY_ID', true)
-ON CONFLICT (local_tour_type, bokun_product_id) 
-DO UPDATE SET is_active = true, updated_at = NOW();
+-- Update all tour product IDs with your actual Bokun activity IDs
+UPDATE bokun_products SET bokun_product_id = 'YOUR_NIGHT_TOUR_ID', is_active = true WHERE local_tour_type = 'NIGHT_TOUR';
+UPDATE bokun_products SET bokun_product_id = 'YOUR_MORNING_TOUR_ID', is_active = true WHERE local_tour_type = 'MORNING_TOUR';
+UPDATE bokun_products SET bokun_product_id = 'YOUR_UJI_TOUR_ID', is_active = true WHERE local_tour_type = 'UJI_TOUR';
+UPDATE bokun_products SET bokun_product_id = 'YOUR_GION_TOUR_ID', is_active = true WHERE local_tour_type = 'GION_TOUR';
 ```
 
 #### 4. Deploy Webhook Handler

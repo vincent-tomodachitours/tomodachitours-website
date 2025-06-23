@@ -47,22 +47,30 @@ async function testBokunIntegration() {
         console.log('❌ Activity search error:', error.message);
     }
 
-    // Test 3: Get specific activity details
+    // Test 3: Get specific activity details for all tours
     console.log('\n3. Testing Activity Details...');
-    const nightTourId = process.env.NIGHT_TOUR_PRODUCT_ID;
-    if (nightTourId) {
-        try {
-            const activity = await bokunAPI.getActivityDetails(nightTourId);
-            console.log('✅ Activity details retrieved successfully!');
-            console.log('🌙 Night Tour Activity:', activity.title || activity.id);
-            console.log('📍 Location:', activity.meetingPoint?.name || 'N/A');
-            console.log('⏱️ Duration:', activity.duration || 'N/A');
-        } catch (error) {
-            console.log('❌ Activity details error:', error.message);
-            console.log('💡 Make sure NIGHT_TOUR_PRODUCT_ID is set correctly in your .env file');
+    const productIds = {
+        'Night Tour': process.env.NIGHT_TOUR_PRODUCT_ID,
+        'Morning Tour': process.env.MORNING_TOUR_PRODUCT_ID,
+        'Uji Tour': process.env.UJI_TOUR_PRODUCT_ID,
+        'Gion Tour': process.env.GION_TOUR_PRODUCT_ID
+    };
+
+    for (const [tourName, productId] of Object.entries(productIds)) {
+        if (productId) {
+            try {
+                const activity = await bokunAPI.getActivityDetails(productId);
+                console.log(`✅ ${tourName} details retrieved successfully!`);
+                console.log(`   Title: ${activity.title || activity.id}`);
+                console.log(`   Location: ${activity.meetingPoint?.name || 'N/A'}`);
+                console.log(`   Duration: ${activity.duration || 'N/A'}`);
+            } catch (error) {
+                console.log(`❌ ${tourName} details error:`, error.message);
+                console.log(`💡 Make sure ${tourName.toUpperCase().replace(' ', '_')}_PRODUCT_ID is set correctly in your .env file`);
+            }
+        } else {
+            console.log(`⚠️  ${tourName.toUpperCase().replace(' ', '_')}_PRODUCT_ID not set in environment variables`);
         }
-    } else {
-        console.log('⚠️  NIGHT_TOUR_PRODUCT_ID not set in environment variables');
     }
 
     // Test 4: Test availability for a future date

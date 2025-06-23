@@ -87,7 +87,8 @@ serve(async (req) => {
 
             const signature = await createSignature('GET', bokunPath, timestamp)
 
-            const bokunResponse = await fetch(`https://api.bokuntest.com${bokunPath}`, {
+            const bokunBaseURL = Deno.env.get('BOKUN_API_URL') || 'https://api.bokun.io'
+            const bokunResponse = await fetch(`${bokunBaseURL}${bokunPath}`, {
                 method: 'GET',
                 headers: {
                     'X-Bokun-Date': timestamp,

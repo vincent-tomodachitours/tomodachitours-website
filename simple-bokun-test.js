@@ -10,7 +10,7 @@ class SimpleBokunAPI {
     constructor() {
         this.accessKey = process.env.BOKUN_PUBLIC_KEY;
         this.secretKey = process.env.BOKUN_SECRET_KEY;
-        this.baseURL = process.env.BOKUN_API_URL || 'https://api.bokuntest.com';
+        this.baseURL = process.env.BOKUN_API_URL || 'https://api.bokun.io';
 
         if (!this.accessKey || !this.secretKey) {
             console.error('❌ Bokun API credentials not found in environment variables');
@@ -18,6 +18,10 @@ class SimpleBokunAPI {
             console.log('   - BOKUN_PUBLIC_KEY');
             console.log('   - BOKUN_SECRET_KEY');
             console.log('   - BOKUN_API_URL (optional)');
+            console.log('   - NIGHT_TOUR_PRODUCT_ID');
+            console.log('   - MORNING_TOUR_PRODUCT_ID');
+            console.log('   - UJI_TOUR_PRODUCT_ID');
+            console.log('   - GION_TOUR_PRODUCT_ID');
             process.exit(1);
         }
     }
@@ -130,29 +134,39 @@ async function runTest() {
         return;
     }
 
-    // Test 2: Test specific activity (if ID is provided)
-    const nightTourId = process.env.NIGHT_TOUR_PRODUCT_ID;
-    if (nightTourId && nightTourId !== 'PLACEHOLDER_ACTIVITY_ID') {
-        console.log('2️⃣ Testing Night Tour Activity...');
-        const activityTest = await bokun.getActivityDetails(nightTourId);
+    // Test 2: Test all tour activities
+    const productIds = {
+        'Night Tour': process.env.NIGHT_TOUR_PRODUCT_ID,
+        'Morning Tour': process.env.MORNING_TOUR_PRODUCT_ID,
+        'Uji Tour': process.env.UJI_TOUR_PRODUCT_ID,
+        'Gion Tour': process.env.GION_TOUR_PRODUCT_ID
+    };
 
-        if (activityTest.success) {
-            console.log('✅ Night Tour activity found!');
-            console.log(`   Title: ${activityTest.result.title || 'N/A'}`);
-            console.log(`   ID: ${activityTest.result.id || nightTourId}`);
-            console.log(`   Duration: ${activityTest.result.duration || 'N/A'}\n`);
+    let testNumber = 2;
+    for (const [tourName, productId] of Object.entries(productIds)) {
+        if (productId && productId !== 'PLACEHOLDER_ACTIVITY_ID') {
+            console.log(`${testNumber}️⃣ Testing ${tourName} Activity...`);
+            const activityTest = await bokun.getActivityDetails(productId);
+
+            if (activityTest.success) {
+                console.log(`✅ ${tourName} activity found!`);
+                console.log(`   Title: ${activityTest.result.title || 'N/A'}`);
+                console.log(`   ID: ${activityTest.result.id || productId}`);
+                console.log(`   Duration: ${activityTest.result.duration || 'N/A'}\n`);
+            } else {
+                console.log(`❌ ${tourName} activity test failed:`);
+                console.log(`   Error: ${activityTest.error}`);
+                console.log(`   💡 Check that ${tourName.toUpperCase().replace(' ', '_')}_PRODUCT_ID is correct in your .env file\n`);
+            }
         } else {
-            console.log('❌ Night Tour activity test failed:');
-            console.log(`   Error: ${activityTest.error}`);
-            console.log('   💡 Check that NIGHT_TOUR_PRODUCT_ID is correct in your .env file\n');
+            console.log(`${testNumber}️⃣ Skipping ${tourName} test (${tourName.toUpperCase().replace(' ', '_')}_PRODUCT_ID not set or is placeholder)\n`);
         }
-    } else {
-        console.log('2️⃣ Skipping Night Tour test (NIGHT_TOUR_PRODUCT_ID not set or is placeholder)\n');
+        testNumber++;
     }
 
     console.log('🎉 Test completed!');
     console.log('\n📝 Next steps:');
-    console.log('   1. If tests passed: Update bokun_products table with your activity ID');
+    console.log('   1. If tests passed: Run update_bokun_products.sql to update your database');
     console.log('   2. Test availability checking in your application');
     console.log('   3. Deploy webhook handler for real-time updates');
 }

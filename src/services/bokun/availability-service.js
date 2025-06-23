@@ -110,7 +110,7 @@ export class BokunAvailabilityService {
             console.log(`🔧 Using fallback Bokun data for product ${bokunProductId} on ${date}`);
 
             // Simulate API response with sample time slots for NIGHT_TOUR
-            const response = bokunProductId === '15221' ? [
+            const response = bokunProductId === '932404' ? [
                 {
                     id: `fallback_${date}`,
                     startTime: '18:00',
