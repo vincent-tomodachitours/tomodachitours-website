@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import NightTour from './Pages/NightTour';
 import Home from './Pages/Home';
 import CancellationPolicy from './Pages/CancellationPolicy';
+import PrivacyPolicy from './Pages/PrivacyPolicy';
 import About from './Pages/About';
 import Tours from './Pages/Tours';
 import MorningTour from './Pages/MorningTour';
@@ -30,6 +31,7 @@ function App() {
         <Route path="recommendations" element={<Recommendations />} />
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/cancel-booking" element={<BookingCancellation />} />
         <Route path="/commercial-disclosure" element={<CommercialDisclosure />} />
         <Route path="/thankyou" element={<Thankyou />} />
