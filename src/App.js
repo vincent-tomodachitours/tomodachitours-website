@@ -3,6 +3,7 @@ import NightTour from './Pages/NightTour';
 import Home from './Pages/Home';
 import CancellationPolicy from './Pages/CancellationPolicy';
 import PrivacyPolicy from './Pages/PrivacyPolicy';
+import TermsOfService from './Pages/TermsOfService';
 import About from './Pages/About';
 import Tours from './Pages/Tours';
 import MorningTour from './Pages/MorningTour';
@@ -32,6 +33,7 @@ function App() {
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/cancel-booking" element={<BookingCancellation />} />
         <Route path="/commercial-disclosure" element={<CommercialDisclosure />} />
         <Route path="/thankyou" element={<Thankyou />} />
