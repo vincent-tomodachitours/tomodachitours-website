@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 
 import 'react-phone-input-2/lib/style.css'
 import PhoneInput from 'react-phone-input-2';
-import Loading from './Loading';
 
 const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, tourPrice, tourName }) => {
     //useState to handle payment loading screen

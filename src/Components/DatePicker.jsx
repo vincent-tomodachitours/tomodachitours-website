@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, useMemo } from "react"
 import Calendar from "react-calendar"
 import '../CSS/Calendar.css';
 import PeopleSelector from "./PeopleSelector";
@@ -62,7 +62,40 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const [preloadedAvailability, setPreloadedAvailability] = useState({});
     const [availabilityLoading, setAvailabilityLoading] = useState(true); // Start as true to show loading immediately
 
-    const participantsByDate = {};
+    const participantsByDate = useMemo(() => {
+        const dateMap = {};
+
+        // Only process bookings if it's an array (not the initial "Loading" string)
+        if (Array.isArray(bookings)) {
+            console.log('Processing bookings array:', bookings);
+            bookings.forEach((booking) => {
+                if (booking.booking_date && booking.booking_time) {
+                    const formattedDate = booking.booking_date;
+                    const timeSlot = booking.booking_time;
+                    console.log('Processing booking:', { formattedDate, timeSlot, booking });
+
+                    // Initialize date entry if it doesn't exist
+                    if (!dateMap[formattedDate]) {
+                        dateMap[formattedDate] = {};
+                    }
+                    // Ensure all time slots exist for that date (set to 0 by default)
+                    availableTimes.forEach((t) => {
+                        if (!dateMap[formattedDate][t]) {
+                            dateMap[formattedDate][t] = 0;
+                        }
+                    });
+
+                    // Calculate total participants using the new schema
+                    const totalParticipants = booking.adults + booking.children;
+                    console.log('Adding participants:', { formattedDate, timeSlot, totalParticipants });
+                    dateMap[formattedDate][timeSlot] += totalParticipants;
+                }
+            });
+            console.log('Final participantsByDate:', dateMap);
+        }
+
+        return dateMap;
+    }, [bookings, availableTimes]);
 
     /**
      * Preload availability for a range of dates (for calendar display)
@@ -138,42 +171,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         }
     }, [sheetId, availableTimes, preloadedAvailability]);
 
-    /**
-     * Check Bokun availability for a specific date and time slot
-     */
-    const checkBokunAvailability = useCallback(async (date, timeSlot = null) => {
-        const dateKey = date.toLocaleDateString("en-CA");
-        const cacheKey = `${dateKey}_${timeSlot || 'general'}`;
 
-        // Return cached result if available and fresh (5 minutes)
-        if (bokunAvailabilityCache[cacheKey] &&
-            (Date.now() - bokunAvailabilityCache[cacheKey].timestamp) < 5 * 60 * 1000) {
-            return bokunAvailabilityCache[cacheKey].data;
-        }
-
-        try {
-            const availability = await bokunAvailabilityService.getAvailability(
-                sheetId,
-                dateKey,
-                timeSlot
-            );
-
-            // Cache the result
-            setBokunAvailabilityCache(prev => ({
-                ...prev,
-                [cacheKey]: {
-                    data: availability,
-                    timestamp: Date.now()
-                }
-            }));
-
-            return availability;
-        } catch (error) {
-            console.error('Error checking Bokun availability:', error);
-            // Return null to fall back to local availability only
-            return null;
-        }
-    }, [sheetId, bokunAvailabilityCache]);
 
     /**
  * Get available time slots for a date combining local and Bokun data
@@ -341,7 +339,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 }
             });
         }
-    }, [calendarState, calendarSelectedDate, participants, userSetTourTime]);
+    }, [calendarState, calendarSelectedDate, participants, userSetTourTime, returnAvailableTimes]);
 
     useEffect(() => {
         if (calendarState === 1) {
@@ -351,7 +349,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 }
             });
         }
-    }, [calendarState, calendarSelectedDate, participants, userSetTourTime, tourTime]);
+    }, [calendarState, calendarSelectedDate, participants, userSetTourTime, tourTime, returnAvailableTimes]);
 
     // Update available times for the time slot selector
     useEffect(() => {
@@ -376,7 +374,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             setAvailableTimesForDate([]);
             setLoadingAvailability(false);
         }
-    }, [calendarState, calendarSelectedDate, participants]);
+    }, [calendarState, calendarSelectedDate, participants, returnAvailableTimes]);
 
     useEffect(() => {
         const appContainer = document.getElementById('app-container');
@@ -481,7 +479,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         // Start immediately on mount, then debounce for subsequent changes
         const timeoutId = setTimeout(preloadVisibleDatesAvailability, 100);
         return () => clearTimeout(timeoutId);
-    }, [calendarSelectedDate]); // Triggered when user navigates to different month
+    }, [calendarSelectedDate, preloadAvailabilityForDates]); // Triggered when user navigates to different month
 
     const today = new Date();
 
@@ -491,36 +489,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const minViewLimit = new Date();
     minViewLimit.setMonth(today.getMonth());
 
-    // Only process bookings if it's an array (not the initial "Loading" string)
-    if (Array.isArray(bookings)) {
-        console.log('Processing bookings array:', bookings);
-        bookings.forEach((booking) => {
-            if (booking.booking_date && booking.booking_time) {
-                const formattedDate = booking.booking_date;
-                const timeSlot = booking.booking_time;
-                console.log('Processing booking:', { formattedDate, timeSlot, booking });
-
-                // Initialize date entry if it doesn't exist
-                if (!participantsByDate[formattedDate]) {
-                    participantsByDate[formattedDate] = {};
-                }
-                // Ensure all time slots exist for that date (set to 0 by default)
-                availableTimes.forEach((t) => {
-                    if (!participantsByDate[formattedDate][t]) {
-                        participantsByDate[formattedDate][t] = 0;
-                    }
-                });
-
-                // Calculate total participants using the new schema
-                const totalParticipants = booking.adults + booking.children;
-                console.log('Adding participants:', { formattedDate, timeSlot, totalParticipants });
-                participantsByDate[formattedDate][timeSlot] += totalParticipants;
-            }
-        });
-        console.log('Final participantsByDate:', participantsByDate);
-    }
-
-    // Update available times when date or participants change - moved to separate useEffect
+    // Booking processing is now handled in the useMemo hook above
 
     const timeSlotSelector = () => {
         const formattedDate = calendarSelectedDate.toLocaleDateString("en-CA");

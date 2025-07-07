@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import logo from '../../IMG/Logo/dark-grey-logo-full-final-no-bg.webp'
-import { ReactComponent as CloseCircle } from '../../SVG/close-circle.svg'
 import { ReactComponent as HamburgerMenu } from '../../SVG/hamburger-menu.svg'
 
 const Header1 = () => {

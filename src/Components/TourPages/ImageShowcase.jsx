@@ -13,7 +13,7 @@ const ImageShowcase = ({ isMobile, images }) => {
                     <img
                         onClick={() => setImageOpen(true)}
                         src={images[0].src}
-                        alt='Main tour image'
+                        alt='Tour location featuring scenic views and landmarks'
                         className='w-full h-full object-cover object-center rounded-xl cursor-pointer'
                     />
                     <button
@@ -38,7 +38,7 @@ const ImageShowcase = ({ isMobile, images }) => {
                         <img
                             onClick={() => setImageOpen(true)}
                             src={images[0].src}
-                            alt='Main tour image'
+                            alt='Tour location featuring scenic views and landmarks'
                             className='w-full h-full object-cover object-center rounded-l-xl cursor-pointer'
                         />
                         <button
@@ -60,14 +60,14 @@ const ImageShowcase = ({ isMobile, images }) => {
                         <div className='h-1/2 pb-1'>
                             <img
                                 src={images[1].src}
-                                alt="Additional tour image 1"
+                                alt="Tour highlights and cultural attractions"
                                 className="w-full h-full object-cover object-center rounded-tr-xl"
                             />
                         </div>
                         <div className='h-1/2 pt-1'>
                             <img
                                 src={images[2].src}
-                                alt="Additional tour image 2"
+                                alt="Scenic views and local landmarks from tour route"
                                 className="w-full h-full object-cover object-center rounded-br-xl"
                             />
                         </div>

@@ -110,7 +110,6 @@ const NightTour = () => {
     // Extract tour data
     const tourTitle = tourData['tour-title'];
     const tourPrice = tourData['tour-price'];
-    const tourDuration = tourData['tour-duration'];
     const tourReviews = tourData['reviews'];
     const availableTimes = tourData['time-slots'];
     const maxSlots = tourData['max-participants'];

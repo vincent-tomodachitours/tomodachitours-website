@@ -5,7 +5,6 @@ import CancellationPolicy from './Pages/CancellationPolicy';
 import PrivacyPolicy from './Pages/PrivacyPolicy';
 import TermsOfService from './Pages/TermsOfService';
 import About from './Pages/About';
-import Tours from './Pages/Tours';
 import MorningTour from './Pages/MorningTour';
 import UjiTour from './Pages/UjiTour';
 import ScrollToTop from './Components/ScrollToTop';
