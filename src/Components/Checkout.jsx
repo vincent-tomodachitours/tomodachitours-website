@@ -21,6 +21,9 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
     const [emailError, setEmailError] = useState('');
     const [emailTouched, setEmailTouched] = useState(false);
 
+    // State to track 3D Secure process for UI updates
+    const [is3DSInProgress, setIs3DSInProgress] = useState(false);
+
     //Pay now button from parent(Checkout.jsx) to child(CardForm.jsx)
     const childRef = useRef();
     const handlePayNowButton = () => {
@@ -133,6 +136,28 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
         setPaymentAllowed(allFieldsFilled);
     }, [formData, emailTouched]);
 
+    // Monitor session storage for 3D Secure process
+    useEffect(() => {
+        const check3DSStatus = () => {
+            const is3DS = sessionStorage.getItem('payjp_3ds_in_progress') === 'true' ||
+                localStorage.getItem('payjp_3ds_in_progress') === 'true';
+            setIs3DSInProgress(is3DS);
+        };
+
+        // Check initially
+        check3DSStatus();
+
+        // Check periodically while payment is processing
+        let interval;
+        if (paymentProcessing) {
+            interval = setInterval(check3DSStatus, 100);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [paymentProcessing]);
+
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData((prev) => ({
@@ -158,17 +183,47 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
 
     return (
         <div className='fixed inset-0 h-screen bg-black bg-opacity-60 backdrop-blur-sm flex justify-center items-center z-40 p-4'>
-            {paymentProcessing ? <Loading /> : null}
-
             {/* Modern modal container */}
-            <div className='bg-white w-full max-w-6xl h-full max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col'>
+            <div className='bg-white w-full max-w-6xl h-full max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative'>
+
+                {/* Processing overlay within the modal */}
+                {paymentProcessing && (
+                    <div className='absolute inset-0 bg-white bg-opacity-95 backdrop-blur-sm flex items-center justify-center z-50 rounded-2xl'>
+                        <div className='bg-white rounded-lg shadow-lg p-8 flex flex-col items-center space-y-4 border border-gray-200'>
+                            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="text-lg font-semibold text-gray-800">Processing Payment</div>
+                            <div className="text-sm text-gray-600 text-center max-w-xs">
+                                {is3DSInProgress ? (
+                                    <>
+                                        Verifying your card with 3D Secure. If a popup window opens, please complete the verification.
+                                        <br /><br />
+                                        <strong>Do not close this window.</strong>
+                                    </>
+                                ) : (
+                                    'Please wait while we securely process your payment. Do not close this window.'
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Header */}
                 <div className='bg-gradient-to-r from-slate-50 to-white border-b border-gray-100 p-6'>
                     <div className='flex items-center gap-4'>
                         <button
                             className='flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-600 hover:text-gray-800'
-                            onClick={onClose}
+                            onClick={() => {
+                                // Check if 3D Secure is in progress and prevent closing
+                                const payjp3DS = sessionStorage.getItem('payjp_3ds_in_progress') === 'true' ||
+                                    localStorage.getItem('payjp_3ds_in_progress') === 'true';
+                                const shouldStayOpen = sessionStorage.getItem('checkout_should_stay_open') === 'true' ||
+                                    localStorage.getItem('checkout_should_stay_open') === 'true';
+                                if (payjp3DS || shouldStayOpen) {
+                                    console.log('🛑 Preventing checkout close button during PayJP 3D Secure verification');
+                                    return;
+                                }
+                                onClose();
+                            }}
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -207,13 +262,14 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                                         First Name
                                                     </label>
                                                     <input
-                                                        className='w-full h-12 rounded-lg border border-gray-300 px-4 font-inter text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200'
+                                                        className='w-full h-12 rounded-lg border border-gray-300 px-4 font-inter text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-500'
                                                         type="text"
                                                         id='fname'
                                                         name='fname'
                                                         value={formData.fname}
                                                         onChange={handleInputChange}
                                                         placeholder="Enter your first name"
+                                                        disabled={paymentProcessing}
                                                     />
                                                 </div>
                                                 <div className='space-y-2'>
@@ -221,13 +277,14 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                                         Last Name
                                                     </label>
                                                     <input
-                                                        className='w-full h-12 rounded-lg border border-gray-300 px-4 font-inter text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200'
+                                                        className='w-full h-12 rounded-lg border border-gray-300 px-4 font-inter text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-500'
                                                         type="text"
                                                         id='lname'
                                                         name='lname'
                                                         value={formData.lname}
                                                         onChange={handleInputChange}
                                                         placeholder="Enter your last name"
+                                                        disabled={paymentProcessing}
                                                     />
                                                 </div>
                                             </div>
@@ -238,7 +295,7 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                                         Email Address
                                                     </label>
                                                     <input
-                                                        className={`w-full h-12 rounded-lg border px-4 font-inter text-gray-900 placeholder-gray-400 transition-all duration-200 ${emailTouched && emailError
+                                                        className={`w-full h-12 rounded-lg border px-4 font-inter text-gray-900 placeholder-gray-400 transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-500 ${emailTouched && emailError
                                                             ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
                                                             : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                                                             }`}
@@ -252,6 +309,7 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                                             setEmailError(validateEmail(formData.email));
                                                         }}
                                                         placeholder="Enter your email address"
+                                                        disabled={paymentProcessing}
                                                     />
                                                     {emailTouched && emailError && (
                                                         <p className="text-red-500 text-sm font-inter flex items-center gap-1">
@@ -289,7 +347,8 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                                             fontFamily: 'Inter',
                                                             fontSize: '1rem',
                                                             color: '#111827',
-                                                            transition: 'all 0.2s ease'
+                                                            transition: 'all 0.2s ease',
+                                                            backgroundColor: paymentProcessing ? '#F9FAFB' : '#FFFFFF'
                                                         }}
                                                         buttonStyle={{
                                                             border: '1px solid #D1D5DB',
@@ -298,6 +357,7 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                                             backgroundColor: '#F9FAFB'
                                                         }}
                                                         enableSearch
+                                                        disabled={paymentProcessing}
                                                     />
                                                 </div>
                                             </div>
@@ -399,7 +459,7 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                             </label>
                                             <div className='flex gap-2'>
                                                 <input
-                                                    className='flex-1 h-10 rounded-lg border border-gray-300 px-3 font-inter text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200'
+                                                    className='flex-1 h-10 rounded-lg border border-gray-300 px-3 font-inter text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-500'
                                                     type="text"
                                                     value={discountCode}
                                                     onChange={(e) => setDiscountCode(e.target.value)}
@@ -408,11 +468,11 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                                             handleApplyDiscount();
                                                         }
                                                     }}
-                                                    disabled={appliedDiscount !== null}
+                                                    disabled={appliedDiscount !== null || paymentProcessing}
                                                     placeholder="Enter code"
                                                 />
                                                 <button
-                                                    className={`px-4 py-2 rounded-lg font-inter font-medium text-base transition-all duration-200 ${discountLoading
+                                                    className={`px-4 py-2 rounded-lg font-inter font-medium text-base transition-all duration-200 ${discountLoading || paymentProcessing
                                                         ? 'bg-gray-400 text-white cursor-not-allowed'
                                                         : appliedDiscount
                                                             ? 'bg-red-500 hover:bg-red-600 text-white shadow-sm'
@@ -423,7 +483,7 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                                         setDiscountCode('');
                                                         setDiscountError('');
                                                     } : handleApplyDiscount}
-                                                    disabled={discountLoading}
+                                                    disabled={discountLoading || paymentProcessing}
                                                 >
                                                     {discountLoading ? 'Checking...' : appliedDiscount ? 'Remove' : 'Apply'}
                                                 </button>
@@ -468,11 +528,12 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                         {/* Terms and Conditions */}
                                         <div className='flex items-start gap-3 mb-6'>
                                             <input
-                                                className='mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2'
+                                                className='mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 disabled:opacity-50'
                                                 type='checkbox'
                                                 name='terms'
                                                 checked={formData.terms}
                                                 onChange={handleInputChange}
+                                                disabled={paymentProcessing}
                                             />
                                             <span className='font-inter text-sm text-gray-700 leading-relaxed'>
                                                 I have read and agree to the{' '}
@@ -485,13 +546,18 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                         {/* Pay Button */}
                                         <button
                                             onClick={handlePayNowButton}
-                                            disabled={!paymentAllowed}
-                                            className={`w-full h-12 rounded-lg font-inter font-semibold text-white transition-all duration-200 ${paymentAllowed
+                                            disabled={!paymentAllowed || paymentProcessing}
+                                            className={`w-full h-12 rounded-lg font-inter font-semibold text-white transition-all duration-200 ${paymentAllowed && !paymentProcessing
                                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transform'
                                                 : 'bg-gray-400 cursor-not-allowed shadow-sm'
                                                 }`}
                                         >
-                                            {paymentAllowed ? (
+                                            {paymentProcessing ? (
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    Processing...
+                                                </span>
+                                            ) : paymentAllowed ? (
                                                 <span className="flex items-center justify-center gap-2">
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

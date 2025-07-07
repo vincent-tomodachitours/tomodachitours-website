@@ -1,0 +1,636 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# **Stripe Backup Payment Implementation Plan**
+
+## **Overview**
+This plan will add Stripe as a backup payment processor that can be easily toggled when PAYJP is unavailable, while maintaining the existing PAYJP integration and all current functionality.
+
+---
+
+## **Phase 1: Database & Configuration Setup**
+
+### **1.1 Database Schema Updates**
+```sql
+-- Add payment provider tracking to bookings table
+ALTER TABLE bookings 
+ADD COLUMN payment_provider VARCHAR(20) DEFAULT 'payjp' CHECK (payment_provider IN ('payjp', 'stripe')),
+ADD COLUMN stripe_payment_intent_id VARCHAR(255),
+ADD COLUMN backup_payment_used BOOLEAN DEFAULT false;
+
+-- Create payment provider configuration table
+CREATE TABLE payment_providers (
+    id SERIAL PRIMARY KEY,
+    provider_name VARCHAR(20) NOT NULL UNIQUE,
+    is_enabled BOOLEAN DEFAULT true,
+    is_primary BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT single_primary_provider CHECK (
+        (is_primary = false) OR 
+        (is_primary = true AND provider_name IN (SELECT provider_name FROM payment_providers WHERE is_primary = true LIMIT 1))
+    )
+);
+
+-- Insert default configuration
+INSERT INTO payment_providers (provider_name, is_enabled, is_primary) VALUES
+('payjp', true, true),
+('stripe', false, false);
+
+-- Create payment attempts log for debugging and monitoring
+CREATE TABLE payment_attempts (
+    id SERIAL PRIMARY KEY,
+    booking_id INTEGER REFERENCES bookings(id),
+    provider_attempted VARCHAR(20) NOT NULL,
+    amount INTEGER NOT NULL,
+    status VARCHAR(20) NOT NULL, -- 'success', 'failed', 'error'
+    error_message TEXT,
+    attempt_order INTEGER, -- 1 for primary, 2 for backup
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### **1.2 Environment Variables**
+Add these to your environment configuration:
+```bash
+# Stripe Configuration
+STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Payment Provider Control
+ENABLE_STRIPE_BACKUP=true
+PAYMENT_PROVIDER_PRIMARY=payjp  # 'payjp' or 'stripe'
+AUTO_FALLBACK_ENABLED=true
+```
+
+---
+
+## **Phase 2: Backend Implementation**
+
+### **2.1 Payment Provider Service**
+```typescript
+// supabase/functions/_shared/payment-provider-service.ts
+export class PaymentProviderService {
+    private supabase: any;
+
+    constructor(supabase: any) {
+        this.supabase = supabase;
+    }
+
+    async getActiveProviders(): Promise<{ primary: string; backup: string | null }> {
+        // Check environment override first
+        const primaryOverride = Deno.env.get('PAYMENT_PROVIDER_PRIMARY');
+        if (primaryOverride) {
+            return {
+                primary: primaryOverride,
+                backup: primaryOverride === 'payjp' ? 'stripe' : 'payjp'
+            };
+        }
+
+        // Get from database
+        const { data } = await this.supabase
+            .from('payment_providers')
+            .select('*')
+            .eq('is_enabled', true)
+            .order('is_primary', { ascending: false });
+
+        return {
+            primary: data?.find(p => p.is_primary)?.provider_name || 'payjp',
+            backup: data?.find(p => !p.is_primary)?.provider_name || null
+        };
+    }
+
+    async logPaymentAttempt(bookingId: number, provider: string, amount: number, 
+                           status: string, errorMessage?: string, attemptOrder: number = 1) {
+        await this.supabase
+            .from('payment_attempts')
+            .insert({
+                booking_id: bookingId,
+                provider_attempted: provider,
+                amount,
+                status,
+                error_message: errorMessage,
+                attempt_order: attemptOrder
+            });
+    }
+}
+```
+
+### **2.2 Stripe Service Implementation**
+```typescript
+// supabase/functions/_shared/stripe-service.ts
+import Stripe from 'https://esm.sh/stripe@14.11.0';
+
+export class StripeService {
+    private stripe: Stripe;
+
+    constructor() {
+        const secretKey = Deno.env.get('STRIPE_SECRET_KEY');
+        if (!secretKey) {
+            throw new Error('Stripe secret key not configured');
+        }
+        this.stripe = new Stripe(secretKey, {
+            apiVersion: '2023-10-16',
+        });
+    }
+
+    async createPaymentIntent(amount: number, bookingId: number, discountCode?: string) {
+        const paymentIntent = await this.stripe.paymentIntents.create({
+            amount: amount,
+            currency: 'jpy',
+            metadata: {
+                booking_id: bookingId.toString(),
+                discount_code: discountCode || '',
+            },
+            confirmation_method: 'manual',
+            confirm: true,
+            return_url: `${Deno.env.get('FRONTEND_URL')}/thankyou`,
+        });
+
+        return paymentIntent;
+    }
+
+    async confirmPaymentIntent(paymentIntentId: string, paymentMethodId: string) {
+        return await this.stripe.paymentIntents.confirm(paymentIntentId, {
+            payment_method: paymentMethodId,
+        });
+    }
+
+    async createRefund(paymentIntentId: string, amount?: number) {
+        return await this.stripe.refunds.create({
+            payment_intent: paymentIntentId,
+            amount: amount,
+        });
+    }
+}
+```
+
+### **2.3 Updated create-charge Function**
+```typescript
+// supabase/functions/create-charge/index.ts
+const handler = async (req: Request): Promise<Response> => {
+    try {
+        // Existing validation code...
+
+        const paymentService = new PaymentProviderService(supabase);
+        const providers = await paymentService.getActiveProviders();
+        
+        let paymentResult: any = null;
+        let usedProvider: string = providers.primary;
+        let isBackupUsed = false;
+
+        // Try primary provider first
+        try {
+            paymentResult = await processPaymentWithProvider(providers.primary, data);
+            await paymentService.logPaymentAttempt(data.bookingId, providers.primary, data.amount, 'success', undefined, 1);
+        } catch (primaryError) {
+            console.error(`Primary provider (${providers.primary}) failed:`, primaryError);
+            await paymentService.logPaymentAttempt(data.bookingId, providers.primary, data.amount, 'failed', primaryError.message, 1);
+
+            // Try backup provider if enabled
+            if (providers.backup && Deno.env.get('AUTO_FALLBACK_ENABLED') === 'true') {
+                try {
+                    console.log(`Attempting backup provider: ${providers.backup}`);
+                    paymentResult = await processPaymentWithProvider(providers.backup, data);
+                    usedProvider = providers.backup;
+                    isBackupUsed = true;
+                    await paymentService.logPaymentAttempt(data.bookingId, providers.backup, data.amount, 'success', undefined, 2);
+                } catch (backupError) {
+                    console.error(`Backup provider (${providers.backup}) failed:`, backupError);
+                    await paymentService.logPaymentAttempt(data.bookingId, providers.backup, data.amount, 'failed', backupError.message, 2);
+                    throw new Error('Both payment providers failed');
+                }
+            } else {
+                throw primaryError;
+            }
+        }
+
+        // Update booking with payment information
+        const updateData: any = {
+            status: 'CONFIRMED',
+            payment_provider: usedProvider,
+            backup_payment_used: isBackupUsed
+        };
+
+        if (usedProvider === 'payjp') {
+            updateData.charge_id = paymentResult.id;
+        } else if (usedProvider === 'stripe') {
+            updateData.stripe_payment_intent_id = paymentResult.id;
+        }
+
+        const { error: bookingError } = await supabase
+            .from('bookings')
+            .update(updateData)
+            .eq('id', data.bookingId);
+
+        // Rest of existing code (emails, Bokun sync, etc.)...
+
+    } catch (error) {
+        // Existing error handling...
+    }
+};
+
+async function processPaymentWithProvider(provider: string, data: any) {
+    if (provider === 'payjp') {
+        return await processPayJPPayment(data);
+    } else if (provider === 'stripe') {
+        return await processStripePayment(data);
+    }
+    throw new Error(`Unknown payment provider: ${provider}`);
+}
+
+async function processPayJPPayment(data: any) {
+    // Existing PAYJP logic moved here
+    const secretKey = Deno.env.get('PAYJP_SECRET_KEY');
+    // ... existing PAYJP implementation
+}
+
+async function processStripePayment(data: any) {
+    const stripeService = new StripeService();
+    const paymentIntent = await stripeService.createPaymentIntent(
+        data.amount,
+        data.bookingId,
+        data.discountCode
+    );
+
+    if (paymentIntent.status !== 'succeeded') {
+        throw new Error(`Stripe payment failed: ${paymentIntent.status}`);
+    }
+
+    return paymentIntent;
+}
+```
+
+### **2.4 Updated refund Function**
+```typescript
+// supabase/functions/process-refund/index.ts
+const handler = async (req: Request): Promise<Response> => {
+    try {
+        // Existing validation and booking retrieval...
+
+        // Determine which provider was used
+        const provider = booking.payment_provider || 'payjp';
+        
+        let refundResult: any;
+        if (provider === 'payjp' && booking.charge_id) {
+            refundResult = await processPayJPRefund(booking.charge_id);
+        } else if (provider === 'stripe' && booking.stripe_payment_intent_id) {
+            refundResult = await processStripeRefund(booking.stripe_payment_intent_id);
+        } else {
+            throw new Error('No valid payment found for refund');
+        }
+
+        // Rest of existing logic...
+    } catch (error) {
+        // Existing error handling...
+    }
+};
+
+async function processStripeRefund(paymentIntentId: string) {
+    const stripeService = new StripeService();
+    return await stripeService.createRefund(paymentIntentId);
+}
+```
+
+---
+
+## **Phase 3: Frontend Implementation**
+
+### **3.1 Enhanced CardForm Component**
+```jsx
+// src/Components/CardForm.jsx
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+
+// Load Stripe
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+
+const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formRef, tourName, sheetId, setPaymentProcessing }, ref) => {
+    const [paymentProvider, setPaymentProvider] = useState('payjp'); // Will be determined by backend
+    const [isPayJPReady, setIsPayJPReady] = useState(false);
+    const [isStripeReady, setIsStripeReady] = useState(false);
+
+    // Existing PAYJP initialization code...
+
+    // Add Stripe readiness check
+    useEffect(() => {
+        if (stripePromise) {
+            stripePromise.then(() => setIsStripeReady(true));
+        }
+    }, []);
+
+    const handleGetToken = async () => {
+        try {
+            let tokenData;
+            
+            if (paymentProvider === 'payjp') {
+                // Existing PAYJP token creation
+                const tokenResponse = await payjp.createToken(numberElement.current);
+                if (!tokenResponse || tokenResponse.error) {
+                    throw new Error(tokenResponse.error?.message || "Token creation failed");
+                }
+                tokenData = { token: tokenResponse.id, provider: 'payjp' };
+            } else if (paymentProvider === 'stripe') {
+                // For Stripe, we'll handle payment on the backend
+                tokenData = { provider: 'stripe', card_data: 'to_be_handled_on_backend' };
+            }
+
+            // Call unified payment endpoint
+            const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-charge`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    ...tokenData,
+                    amount: totalPrice,
+                    discountCode: appliedDiscount?.code || null,
+                    originalAmount: originalPrice || totalPrice,
+                    bookingId: window.currentBookingId
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Check if backup payment was used
+                if (data.backup_used) {
+                    // Show notification that backup payment was used
+                    console.log('Payment processed using backup provider');
+                }
+                window.location.href = "/thankyou";
+            } else {
+                setPaymentProcessing(false);
+                setPaymentFailed(true);
+            }
+        } catch (error) {
+            console.error("Payment processing error:", error);
+            setPaymentProcessing(false);
+            setPaymentFailed(true);
+        }
+    };
+
+    // Rest of existing component logic...
+});
+```
+
+### **3.2 Payment Provider Status Component**
+```jsx
+// src/Components/PaymentProviderStatus.jsx
+import React, { useState, useEffect } from 'react';
+
+const PaymentProviderStatus = () => {
+    const [providerStatus, setProviderStatus] = useState(null);
+
+    useEffect(() => {
+        // Check provider status for admin users
+        if (window.location.pathname.includes('/admin')) {
+            fetchProviderStatus();
+        }
+    }, []);
+
+    const fetchProviderStatus = async () => {
+        try {
+            const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/payment-provider-status`, {
+                headers: {
+                    "Authorization": `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
+                }
+            });
+            const data = await response.json();
+            setProviderStatus(data);
+        } catch (error) {
+            console.error('Failed to fetch provider status:', error);
+        }
+    };
+
+    if (!providerStatus) return null;
+
+    return (
+        <div className="payment-provider-status">
+            <div className="flex items-center gap-2 text-sm">
+                <span className={`w-2 h-2 rounded-full ${providerStatus.primary_healthy ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <span>Primary: {providerStatus.primary}</span>
+                {providerStatus.backup_enabled && (
+                    <>
+                        <span className={`w-2 h-2 rounded-full ${providerStatus.backup_healthy ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                        <span>Backup: {providerStatus.backup}</span>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default PaymentProviderStatus;
+```
+
+---
+
+## **Phase 4: Admin Controls & Monitoring**
+
+### **4.1 Admin Dashboard Integration**
+```jsx
+// src/Components/Admin/PaymentProviderControl.jsx
+const PaymentProviderControl = () => {
+    const [providers, setProviders] = useState([]);
+    const [switching, setSwitching] = useState(false);
+
+    const switchPrimaryProvider = async (newPrimary) => {
+        setSwitching(true);
+        try {
+            await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/switch-payment-provider`, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ primary_provider: newPrimary })
+            });
+            // Refresh status
+            fetchProviders();
+        } catch (error) {
+            console.error('Failed to switch provider:', error);
+        } finally {
+            setSwitching(false);
+        }
+    };
+
+    return (
+        <div className="payment-provider-control">
+            <h3>Payment Provider Control</h3>
+            <div className="provider-list">
+                {providers.map(provider => (
+                    <div key={provider.provider_name} className="provider-item">
+                        <span>{provider.provider_name}</span>
+                        <span className={provider.is_primary ? 'primary' : 'backup'}>
+                            {provider.is_primary ? 'Primary' : 'Backup'}
+                        </span>
+                        <button 
+                            onClick={() => switchPrimaryProvider(provider.provider_name)}
+                            disabled={provider.is_primary || switching}
+                        >
+                            Make Primary
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+```
+
+### **4.2 Payment Monitoring Functions**
+```typescript
+// supabase/functions/payment-provider-status/index.ts
+const handler = async (req: Request): Promise<Response> => {
+    try {
+        const supabase = createClient(/* ... */);
+        
+        // Get provider configuration
+        const { data: providers } = await supabase
+            .from('payment_providers')
+            .select('*');
+
+        // Check recent payment attempts
+        const { data: recentAttempts } = await supabase
+            .from('payment_attempts')
+            .select('*')
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .order('created_at', { ascending: false });
+
+        // Calculate health status
+        const primary = providers.find(p => p.is_primary);
+        const backup = providers.find(p => !p.is_primary && p.is_enabled);
+
+        const primarySuccess = recentAttempts
+            .filter(a => a.provider_attempted === primary?.provider_name)
+            .reduce((acc, curr) => acc + (curr.status === 'success' ? 1 : 0), 0);
+
+        const primaryTotal = recentAttempts
+            .filter(a => a.provider_attempted === primary?.provider_name).length;
+
+        return new Response(JSON.stringify({
+            primary: primary?.provider_name,
+            backup: backup?.provider_name,
+            backup_enabled: backup?.is_enabled || false,
+            primary_healthy: primaryTotal === 0 ? true : primarySuccess / primaryTotal > 0.9,
+            backup_healthy: true, // Implement similar logic for backup
+            recent_attempts: recentAttempts.slice(0, 10)
+        }), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+};
+```
+
+---
+
+## **Phase 5: Testing & Deployment Strategy**
+
+### **5.1 Testing Plan**
+1. **Unit Tests**
+   - Payment provider service tests
+   - Stripe service integration tests
+   - Fallback logic tests
+
+2. **Integration Tests**
+   - End-to-end payment flow with both providers
+   - Provider switching tests
+   - Refund process tests
+
+3. **Staging Environment Testing**
+   - Test with Stripe test keys
+   - Simulate PAYJP failures
+   - Test backup activation
+
+### **5.2 Deployment Steps**
+1. Deploy database migrations
+2. Deploy updated backend functions
+3. Update environment variables
+4. Deploy frontend changes with feature flag disabled
+5. Enable Stripe backup gradually
+6. Monitor payment attempts and success rates
+
+### **5.3 Rollback Plan**
+- Database rollback scripts
+- Environment variable reset
+- Feature flag to disable Stripe instantly
+- Monitoring alerts for payment failures
+
+---
+
+## **Phase 6: Configuration & Controls**
+
+### **6.1 Easy Toggle Mechanism**
+```bash
+# Environment variables for quick control
+ENABLE_STRIPE_BACKUP=true
+AUTO_FALLBACK_ENABLED=true
+PAYMENT_PROVIDER_PRIMARY=payjp
+
+# Emergency switch to Stripe
+PAYMENT_PROVIDER_PRIMARY=stripe
+```
+
+### **6.2 Admin Interface Controls**
+- Real-time provider switching
+- Payment attempt monitoring
+- Success rate dashboards
+- Emergency backup activation
+
+---
+
+## **Benefits of This Implementation**
+
+1. **Seamless Fallback**: Automatic switching when primary provider fails
+2. **Easy Management**: Simple environment variable and admin controls
+3. **Zero Downtime**: No interruption to payment processing
+4. **Full Monitoring**: Complete visibility into payment attempts and provider health
+5. **Backwards Compatible**: Existing PAYJP integration remains unchanged
+6. **Flexible**: Can easily switch primary providers or disable backup
+
+## **Timeline Estimate**
+- **Phase 1-2**: 1 week (Database & Backend)
+- **Phase 3**: 3-4 days (Frontend)
+- **Phase 4**: 2-3 days (Admin Controls)
+- **Phase 5**: 1 week (Testing)
+- **Total**: ~3 weeks
+
+This implementation provides a robust backup payment system that can be activated instantly when needed, while maintaining all your existing functionality and providing comprehensive monitoring and control capabilities.
+
+## **Implementation Notes**
+
+### **Current PAYJP Integration Points**
+- Frontend: `src/Components/CardForm.jsx` - PAYJP token creation and payment flow
+- Backend: `supabase/functions/create-charge/index.ts` - PAYJP charge creation
+- Refunds: `supabase/functions/process-refund/index.ts` - PAYJP refund processing
+- Database: `bookings.charge_id` field stores PAYJP charge ID
+
+### **New Stripe Integration Points**
+- Frontend: Enhanced CardForm with Stripe Elements
+- Backend: New StripeService class for payment processing
+- Database: New fields for Stripe payment tracking
+- Admin: Provider management and monitoring interfaces
+
+### **Configuration Requirements**
+1. Add Stripe API keys to environment
+2. Run database migrations for new tables/columns
+3. Deploy updated edge functions
+4. Configure payment provider settings
+5. Test fallback mechanisms thoroughly
+
+### **Monitoring & Alerting**
+- Payment attempt logging for both providers
+- Health check endpoints for provider status
+- Admin dashboard for real-time monitoring
+- Automated alerts for payment failures
+- Success rate tracking and reporting

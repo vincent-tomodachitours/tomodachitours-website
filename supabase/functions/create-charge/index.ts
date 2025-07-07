@@ -11,6 +11,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { validateRequest, paymentSchema, addSecurityHeaders, sanitizeOutput } from '../validation-middleware/index.ts'
 // import { withRateLimit } from '../rate-limit-middleware/wrapper.ts' // Temporarily disabled for debugging
 import sgMail from "npm:@sendgrid/mail"
+import { PaymentProviderService } from '../_shared/payment-provider-service.ts'
+import { StripeService } from '../_shared/stripe-service.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -199,6 +201,80 @@ async function triggerBokunSync(bookingId: number) {
   }
 }
 
+/**
+ * Process payment with the specified provider
+ */
+async function processPaymentWithProvider(provider: string, data: any): Promise<any> {
+  if (provider === 'payjp') {
+    return await processPayJPPayment(data)
+  } else if (provider === 'stripe') {
+    return await processStripePayment(data)
+  }
+  throw new Error(`Unknown payment provider: ${provider}`)
+}
+
+/**
+ * Process payment with PayJP (existing logic)
+ */
+async function processPayJPPayment(data: any): Promise<PayJPCharge> {
+  const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
+  if (!secretKey) {
+    throw new Error('PayJP secret key not configured')
+  }
+
+  const payjpResponse = await fetch('https://api.pay.jp/v1/charges', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      amount: data.amount.toString(),
+      currency: 'jpy',
+      card: data.token,
+      capture: 'true',
+      'metadata[booking_id]': data.bookingId.toString(),
+      'metadata[discount_code]': data.discountCode || '',
+      'metadata[original_amount]': (data.originalAmount || data.amount).toString()
+    }).toString()
+  })
+
+  const charge: PayJPCharge = await payjpResponse.json()
+
+  if (!payjpResponse.ok || !charge.paid) {
+    console.error('PayJP error:', charge.error || charge)
+    throw new Error(charge.error?.message || 'Payment failed')
+  }
+
+  return charge
+}
+
+/**
+ * Process payment with Stripe
+ */
+async function processStripePayment(data: any): Promise<any> {
+  if (!data.payment_method_id) {
+    throw new Error('Stripe payment requires payment_method_id');
+  }
+
+  const stripeService = new StripeService();
+
+  // Process immediate payment with the payment method ID from frontend
+  const paymentResult = await stripeService.processImmediatePayment(
+    data.amount,
+    data.bookingId,
+    data.payment_method_id,
+    data.discountCode,
+    data.originalAmount
+  );
+
+  if (paymentResult.status !== 'succeeded') {
+    throw new Error(`Stripe payment failed with status: ${paymentResult.status}`);
+  }
+
+  return paymentResult;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   try {
     // Handle CORS preflight requests
@@ -231,48 +307,64 @@ const handler = async (req: Request): Promise<Response> => {
       )
     }
 
-    // Create charge with PayJP REST API
-    const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
-    if (!secretKey) {
-      throw new Error('PayJP secret key not configured')
-    }
-
-    const payjpResponse = await fetch('https://api.pay.jp/v1/charges', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        amount: data.amount.toString(),
-        currency: 'jpy',
-        card: data.token,
-        capture: 'true',
-        'metadata[booking_id]': data.bookingId.toString(),
-        'metadata[discount_code]': data.discountCode || '',
-        'metadata[original_amount]': (data.originalAmount || data.amount).toString()
-      }).toString()
-    })
-
-    const charge: PayJPCharge = await payjpResponse.json()
-
-    if (!payjpResponse.ok || !charge.paid) {
-      console.error('PayJP error:', charge.error || charge)
-      throw new Error(charge.error?.message || 'Payment failed')
-    }
-
-    // Update booking with charge information
+    // Initialize services
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') || '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     )
 
+    const paymentService = new PaymentProviderService(supabase)
+    const providers = await paymentService.getActiveProviders()
+
+    let paymentResult: any = null
+    let usedProvider: string = providers.primary
+    let isBackupUsed = false
+
+    // Try primary provider first
+    try {
+      console.log(`Attempting payment with primary provider: ${providers.primary}`)
+      paymentResult = await processPaymentWithProvider(providers.primary, data)
+      await paymentService.logPaymentAttempt(data.bookingId, providers.primary, data.amount, 'success', undefined, 1)
+      console.log(`Payment successful with ${providers.primary}`)
+    } catch (primaryError) {
+      console.error(`Primary provider (${providers.primary}) failed:`, primaryError)
+      await paymentService.logPaymentAttempt(data.bookingId, providers.primary, data.amount, 'failed', primaryError.message, 1)
+
+      // Try backup provider if enabled
+      if (providers.backup && paymentService.isAutoFallbackEnabled()) {
+        try {
+          console.log(`Attempting backup provider: ${providers.backup}`)
+          paymentResult = await processPaymentWithProvider(providers.backup, data)
+          usedProvider = providers.backup
+          isBackupUsed = true
+          await paymentService.logPaymentAttempt(data.bookingId, providers.backup, data.amount, 'success', undefined, 2)
+          console.log(`Payment successful with backup provider: ${providers.backup}`)
+        } catch (backupError) {
+          console.error(`Backup provider (${providers.backup}) failed:`, backupError)
+          await paymentService.logPaymentAttempt(data.bookingId, providers.backup, data.amount, 'failed', backupError.message, 2)
+          throw new Error('Both payment providers failed')
+        }
+      } else {
+        throw primaryError
+      }
+    }
+
+    // Update booking with payment information
+    const updateData: any = {
+      status: 'CONFIRMED',
+      payment_provider: usedProvider,
+      backup_payment_used: isBackupUsed
+    }
+
+    if (usedProvider === 'payjp') {
+      updateData.charge_id = paymentResult.id
+    } else if (usedProvider === 'stripe') {
+      updateData.stripe_payment_intent_id = paymentResult.id
+    }
+
     const { error: bookingError } = await supabase
       .from('bookings')
-      .update({
-        charge_id: charge.id,
-        status: 'CONFIRMED'
-      })
+      .update(updateData)
       .eq('id', data.bookingId)
 
     if (bookingError) {
@@ -335,10 +427,12 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         charge: {
-          id: charge.id,
-          amount: charge.amount,
-          status: charge.status
-        }
+          id: paymentResult.id,
+          amount: paymentResult.amount,
+          status: paymentResult.status
+        },
+        backup_used: isBackupUsed,
+        provider_used: usedProvider
       }),
       {
         headers: addSecurityHeaders(new Headers({

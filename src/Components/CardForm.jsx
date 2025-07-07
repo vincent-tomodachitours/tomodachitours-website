@@ -1,105 +1,22 @@
-import React, { forwardRef, useImperativeHandle, useState, useEffect, useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
 import PaymentFailed from '../Pages/PaymentFailed';
 import { supabase } from '../lib/supabase';
-
-// Initialize PayJP outside of component to ensure single initialization
-let payjp = null;
-if (window.Payjp && !payjp) {
-    payjp = window.Payjp(process.env.REACT_APP_PAYJP_PUBLIC_KEY, {
-        locale: "en",
-        threeDSecure: true
-    });
-}
+import { usePaymentProvider } from '../hooks/usePaymentProvider';
+import StripePaymentForm from './StripePaymentForm';
+import PayjpPaymentForm from './PayjpPaymentForm';
 
 const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formRef, tourName, sheetId, setPaymentProcessing }, ref) => {
-    const [isPayJPReady, setIsPayJPReady] = useState(false);
-    const numberElement = useRef(null);
-    const expiryElement = useRef(null);
-    const cvcElement = useRef(null);
+    const { primaryProvider, loading: providerLoading, error: providerError } = usePaymentProvider();
     const [paymentFailed, setPaymentFailed] = useState(false);
-    const initializationAttempted = useRef(false);
+    const [paymentStatus, setPaymentStatus] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
 
-    useEffect(() => {
-        if (initializationAttempted.current) return;
-        initializationAttempted.current = true;
-
-        if (!payjp && window.Payjp) {
-            payjp = window.Payjp(process.env.REACT_APP_PAYJP_PUBLIC_KEY, {
-                locale: "en",
-                threeDSecure: true
-            });
-        }
-
-        const initializePayJP = () => {
-            if (payjp) {
-                setIsPayJPReady(true);
-            } else if (window.Payjp) {
-                payjp = window.Payjp(process.env.REACT_APP_PAYJP_PUBLIC_KEY, {
-                    locale: "en",
-                    threeDSecure: true
-                });
-                setIsPayJPReady(true);
-            }
-        };
-
-        initializePayJP();
-
-        if (!payjp) {
-            const checkPayJP = setInterval(() => {
-                initializePayJP();
-                if (payjp) {
-                    clearInterval(checkPayJP);
-                }
-            }, 100);
-
-            return () => clearInterval(checkPayJP);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (!isPayJPReady || !payjp) return;
-
-        // Cleanup previous elements
-        if (numberElement.current) {
-            numberElement.current.unmount();
-        }
-        if (expiryElement.current) {
-            expiryElement.current.unmount();
-        }
-        if (cvcElement.current) {
-            cvcElement.current.unmount();
-        }
-
-        const elements = payjp.elements();
-        numberElement.current = elements.create("cardNumber");
-        expiryElement.current = elements.create("cardExpiry");
-        cvcElement.current = elements.create("cardCvc");
-
-        // Mount elements
-        const numberForm = document.getElementById("number-form");
-        const expiryForm = document.getElementById("expiry-form");
-        const cvcForm = document.getElementById("cvc-form");
-
-        if (numberForm) numberElement.current.mount("#number-form");
-        if (expiryForm) expiryElement.current.mount("#expiry-form");
-        if (cvcForm) cvcElement.current.mount("#cvc-form");
-
-        window.cardElements = {
-            numberElement: numberElement.current,
-            expiryElement: expiryElement.current,
-            cvcElement: cvcElement.current,
-        };
-
-        // Cleanup function
-        return () => {
-            if (numberElement.current) numberElement.current.unmount();
-            if (expiryElement.current) expiryElement.current.unmount();
-            if (cvcElement.current) cvcElement.current.unmount();
-        };
-    }, [isPayJPReady]);
-
-    const handleCreateBooking = async () => {
+    const handleCreateBookingAndPayment = async (paymentData) => {
         try {
+            setPaymentStatus('Creating booking...');
+            setPaymentProcessing(true);
+            setIsProcessing(true);
+
             const bookingData = {
                 tour_type: sheetId.toUpperCase().replace(' ', '_'),
                 booking_date: formRef.current.date,
@@ -124,38 +41,15 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
             if (error) {
                 console.error('Error creating booking:', error);
                 setPaymentProcessing(false);
+                setIsProcessing(false);
+                setPaymentStatus('');
                 alert(`Failed to create booking. ${error.message || error}`);
                 return;
             }
 
-            // Store booking ID for later use
-            window.currentBookingId = data.id;
-            handleGetToken();
-        } catch (error) {
-            setPaymentProcessing(false);
-            console.error("Error submitting booking:", error);
-            alert("Something went wrong.");
-        }
-    }
+            setPaymentStatus('Processing payment...');
 
-    const handleGetToken = async () => {
-        if (!numberElement.current || !expiryElement.current || !cvcElement.current) {
-            alert("element is not mounted");
-            return;
-        }
-
-        try {
-            // Create token without additional parameters - PayJP handles 3D Secure automatically
-            const tokenResponse = await payjp.createToken(numberElement.current);
-
-            if (!tokenResponse || tokenResponse.error) {
-                console.error("Token creation failed:", tokenResponse.error);
-                setPaymentProcessing(false);
-                alert("Payment failed: " + (tokenResponse.error?.message || "Token creation failed"));
-                return;
-            }
-
-            // Call Supabase Edge Function
+            // Now process the payment
             const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-charge`, {
                 method: "POST",
                 headers: {
@@ -163,26 +57,79 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
                     "Authorization": `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
                 },
                 body: JSON.stringify({
-                    token: tokenResponse.id,
+                    ...paymentData,
                     amount: totalPrice,
                     discountCode: appliedDiscount?.code || null,
                     originalAmount: originalPrice || totalPrice,
-                    bookingId: window.currentBookingId
+                    bookingId: data.id
                 }),
             });
 
-            const data = await response.json();
+            const paymentResult = await response.json();
 
-            if (data.success) {
-                window.location.href = "/thankyou"
+            if (paymentResult.success) {
+                handlePaymentSuccess(paymentResult);
             } else {
-                setPaymentProcessing(false);
-                setPaymentFailed(true);
+                throw new Error(paymentResult.error || 'Payment failed');
             }
+
         } catch (error) {
-            console.error("Payment processing error:", error);
             setPaymentProcessing(false);
-            setPaymentFailed(true);
+            setIsProcessing(false);
+            setPaymentStatus('');
+            console.error("Error creating booking:", error);
+            alert("Something went wrong creating the booking.");
+        }
+    };
+
+    const handleCreateBooking = async () => {
+        // This will be called by the external button - trigger payment form submission
+        if (window.submitPaymentForm) {
+            window.submitPaymentForm();
+        }
+    };
+
+    const handlePaymentSuccess = (data) => {
+        // Keep loading states active, but update the status message
+        // Don't turn off loading until we're about to redirect
+
+        // Check if backup payment was used and show appropriate message
+        if (data.backup_used) {
+            console.log(`Payment processed successfully using backup provider: ${data.provider_used}`);
+            setPaymentStatus(`Payment successful! Redirecting to confirmation page...`);
+            // Small delay to show the status message, then redirect
+            setTimeout(() => {
+                setIsProcessing(false);
+                setPaymentProcessing(false);
+                window.location.href = "/thankyou";
+            }, 2000);
+        } else {
+            setPaymentStatus(`Payment successful! Redirecting to confirmation page...`);
+            setTimeout(() => {
+                setIsProcessing(false);
+                setPaymentProcessing(false);
+                window.location.href = "/thankyou";
+            }, 1000);
+        }
+    };
+
+    const handlePaymentError = (errorMessage) => {
+        setIsProcessing(false);
+        setPaymentProcessing(false);
+        setPaymentStatus('');
+        setPaymentFailed(true);
+        console.error('Payment error:', errorMessage);
+    };
+
+    const handlePaymentProcessing = (message) => {
+        setIsProcessing(true);
+        setPaymentProcessing(true);
+        setPaymentStatus(message);
+
+        // Set protection flags early if this is PayJP
+        if (primaryProvider === 'payjp') {
+            sessionStorage.setItem('checkout_should_stay_open', 'true');
+            console.log('🛡️ Early PayJP protection flags set in CardForm');
         }
     };
 
@@ -190,40 +137,70 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
         handleCreateBooking
     }));
 
-    /**const handleRedirectToken = async () => {
-            if (!numberElement || !expiryElement || !cvcElement) {
-                alert("element is not mounted");
-                return;
-            }
-            
-            const token = await payjp.createToken(window.cardElements.numberElement);
-            
-            if (!token || token.error) {
-                alert("Token creation failed.");
-                return;
-            }
-            
-            // Redirect to backend function with query params
-            window.location.href = `https://us-central1-tomodachitours-f4612.cloudfunctions.net/redirectCharge?token=${token.id}&amount=${totalPrice}`;
-        };*/
+    // Show loading state while determining payment provider
+    if (providerLoading) {
+        return (
+            <div className='w-full h-36 flex items-center justify-center'>
+                <div className='text-gray-500 flex items-center gap-2'>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                    Loading payment system...
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state if we can't determine payment provider
+    if (providerError) {
+        return (
+            <div className='w-full h-36 flex items-center justify-center'>
+                <div className='text-red-500'>
+                    Failed to load payment system. Please refresh the page.
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className='w-full h-36 flex flex-col gap-4'>
-            <div>
-                <span>Card Number</span>
-                <div id='number-form' className='p-2 bg-white border border-gray-300 rounded-md' />
-            </div>
-            <div className='flex flex-row gap-4'>
-                <div className='basis-1/2'>
-                    <span>Expiry Date</span>
-                    <div id='expiry-form' className='p-2 bg-white border border-gray-300 rounded-md' />
+        <div className='w-full flex flex-col gap-4'>
+            {paymentStatus && (
+                <div className='bg-blue-50 border border-blue-200 rounded-md p-3'>
+                    <div className='text-sm text-blue-700 flex items-center gap-2'>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
+                        {paymentStatus}
+                    </div>
                 </div>
-                <div className='basis-1/2'>
-                    <span>Security Code</span>
-                    <div id='cvc-form' className='p-2 bg-white border border-gray-300 rounded-md' />
-                </div>
+            )}
+
+            {/* Always show payment form */}
+            <div className='text-sm text-gray-600 mb-2'>
+                Payment powered by {primaryProvider === 'stripe' ? 'Stripe' : 'PayJP'}
             </div>
-            {paymentFailed ? <PaymentFailed onClick={() => setPaymentFailed(false)} /> : null}
+
+            {primaryProvider === 'stripe' ? (
+                <StripePaymentForm
+                    totalPrice={totalPrice}
+                    originalPrice={originalPrice}
+                    appliedDiscount={appliedDiscount}
+                    onCreateBookingAndPayment={handleCreateBookingAndPayment}
+                    onError={handlePaymentError}
+                    onProcessing={handlePaymentProcessing}
+                    isProcessing={isProcessing}
+                />
+            ) : (
+                <PayjpPaymentForm
+                    totalPrice={totalPrice}
+                    originalPrice={originalPrice}
+                    appliedDiscount={appliedDiscount}
+                    onCreateBookingAndPayment={handleCreateBookingAndPayment}
+                    onError={handlePaymentError}
+                    onProcessing={handlePaymentProcessing}
+                    isProcessing={isProcessing}
+                />
+            )}
+
+            {paymentFailed && (
+                <PaymentFailed onClick={() => setPaymentFailed(false)} />
+            )}
         </div>
     );
 });

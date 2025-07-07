@@ -117,31 +117,35 @@ const NightTour = () => {
     return (
         <div id='app-container' className='w-full h-screen min-h-screen flex flex-col overflow-y-auto'>
             <Header />
-            <div className='w-4/5 md:w-3/4 mx-auto flex flex-col text-gray-700 mt-12'>
-                <div className='mb-8'>
+            <div className='w-[95%] sm:w-4/5 md:w-3/4 mx-auto flex flex-col text-gray-700 mt-6 sm:mt-12'>
+                <div className='mb-6 sm:mb-8'>
                     <div className='flex flex-col md:flex-row justify-between items-start gap-4 md:gap-10'>
                         <div className='flex-1'>
-                            <h1 className='text-4xl md:text-[2.5rem] font-extrabold break-words mb-4 text-gray-900 tracking-tight font-sans'>{tourTitle}</h1>
+                            <h1 className='text-2xl sm:text-3xl md:text-[2.5rem] font-extrabold break-words mb-4 text-gray-900 tracking-tight font-sans leading-tight'>{tourTitle}</h1>
                             <div className='flex flex-col gap-2'>
-                                <div className='flex items-center gap-2'>
-                                    <span className='text-xl font-semibold'>5.0</span>
-                                    <div className='flex items-center'>
-                                        {[...Array(5)].map((_, i) => (
-                                            <FilledCircle key={i} className='w-4 h-4 text-green-500' />
-                                        ))}
+                                <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
+                                    <div className='flex items-center gap-2'>
+                                        <span className='text-xl font-semibold'>5.0</span>
+                                        <div className='flex items-center'>
+                                            {[...Array(5)].map((_, i) => (
+                                                <FilledCircle key={i} className='w-4 h-4 text-green-500' />
+                                            ))}
+                                        </div>
+                                        <span className='text-gray-600'>({tourReviews} reviews)</span>
+                                        <a
+                                            href="https://www.tripadvisor.com/UserReviewEdit-g298564-d28033450"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className='text-gray-600 underline hover:text-blue-600 ml-2'
+                                        >
+                                            Write a review
+                                        </a>
                                     </div>
-                                    <span className='text-gray-600'>({tourReviews} reviews)</span>
-                                    <a
-                                        href="https://www.tripadvisor.com/UserReviewEdit-g298564-d28033450"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className='text-gray-600 underline ml-2 hover:text-blue-600'
-                                    >
-                                        Write a review
-                                    </a>
-                                    <div className='flex items-center gap-1 bg-red-50 px-2 py-1 rounded-md ml-2'>
+                                </div>
+                                <div className='flex items-center justify-between gap-2'>
+                                    <div className='flex items-center gap-1 bg-red-50 px-2 py-1 rounded-md'>
                                         <span className='text-red-500'>♥</span>
-                                        <span>Recommended by 100% of travelers</span>
+                                        <span className='text-sm'>Recommended by 100% of travelers</span>
                                         <div className="relative">
                                             <InfoCircle
                                                 className='w-4 h-4 text-gray-400 cursor-default ml-1'
@@ -155,27 +159,43 @@ const NightTour = () => {
                                             )}
                                         </div>
                                     </div>
+                                    <button
+                                        onClick={handleShare}
+                                        className='flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-md text-gray-700 hover:bg-blue-100 transition-colors relative ml-auto'
+                                    >
+                                        <Share className='w-4 h-4' />
+                                        <span className='font-ubuntu text-sm'>Share</span>
+                                        {showSharePopup && (
+                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-800 text-white text-sm py-2 px-3 rounded shadow-lg whitespace-nowrap">
+                                                Link copied to clipboard
+                                            </div>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-                        <div className='flex items-center gap-2'>
-                            <button
-                                onClick={handleShare}
-                                className='flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-md text-gray-700 hover:bg-blue-100 transition-colors relative'
-                            >
-                                <Share className='w-5 h-5' />
-                                <span className='font-ubuntu'>Share</span>
-                                {showSharePopup && (
-                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-800 text-white text-sm py-2 px-3 rounded shadow-lg whitespace-nowrap">
-                                        Link copied to clipboard
-                                    </div>
-                                )}
-                            </button>
                         </div>
                     </div>
                 </div>
                 <ImageShowcase isMobile={isMobile} images={images} />
-                <div className='body w-full flex flex-col lg:flex-row gap-6 mt-12'>
+
+                {/* Mobile DatePicker - appears after image, before nav tabs */}
+                {isMobile && (
+                    <div className="mt-6">
+                        <DatePicker
+                            className="h-fit"
+                            tourName={tourTitle}
+                            maxSlots={maxSlots}
+                            availableTimes={availableTimes}
+                            sheetId="NIGHT_TOUR"
+                            price={tourPrice}
+                            cancellationCutoffHours={tourData['cancellation-cutoff-hours']}
+                            cancellationCutoffHoursWithParticipant={tourData['cancellation-cutoff-hours-with-participant']}
+                            specificCutoffTimes={tourData['specific-cutoff-times']}
+                        />
+                    </div>
+                )}
+
+                <div className='body w-full flex flex-col lg:flex-row gap-6 mt-8 sm:mt-12'>
                     <div className='lg:basis-3/5'>
                         <div className='flex flex-col-reverse md:flex-row'>
                             <div className='w-full'>
@@ -350,7 +370,8 @@ const NightTour = () => {
                             </div>
                         </div>
                     </div>
-                    {!isMobile ?
+                    {/* Desktop DatePicker - sidebar position */}
+                    {!isMobile && (
                         <div className="lg:basis-2/5 flex-none">
                             <DatePicker
                                 className="h-fit"
@@ -364,8 +385,7 @@ const NightTour = () => {
                                 specificCutoffTimes={tourData['specific-cutoff-times']}
                             />
                         </div>
-                        : null
-                    }
+                    )}
                 </div>
             </div>
             <Footer />

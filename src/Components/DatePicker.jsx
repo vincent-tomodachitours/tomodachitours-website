@@ -10,7 +10,35 @@ import { bokunAvailabilityService } from '../services/bokun/availability-service
 function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime }) {
     const [checkout, setCheckout] = useState(false);
     const handleOpenCheckout = () => setCheckout(true);
-    const handleCloseCheckout = () => setCheckout(false);
+    const handleCloseCheckout = () => {
+        const payjp3DS = sessionStorage.getItem('payjp_3ds_in_progress') === 'true' ||
+            localStorage.getItem('payjp_3ds_in_progress') === 'true';
+        const shouldStayOpen = sessionStorage.getItem('checkout_should_stay_open') === 'true' ||
+            localStorage.getItem('checkout_should_stay_open') === 'true';
+
+        console.log('🚪 DatePicker handleCloseCheckout called', {
+            payjp3DS,
+            shouldStayOpen,
+            checkoutState: checkout,
+            sessionStorage: {
+                payjp3DS: sessionStorage.getItem('payjp_3ds_in_progress'),
+                shouldStayOpen: sessionStorage.getItem('checkout_should_stay_open')
+            },
+            localStorage: {
+                payjp3DS: localStorage.getItem('payjp_3ds_in_progress'),
+                shouldStayOpen: localStorage.getItem('checkout_should_stay_open')
+            }
+        });
+
+        // Check if 3D Secure is in progress and prevent closing
+        if (payjp3DS || shouldStayOpen) {
+            console.log('🛑 Preventing checkout close during PayJP 3D Secure verification');
+            return;
+        }
+
+        console.log('✅ Allowing checkout to close');
+        setCheckout(false);
+    };
     const [bookings, setBookings] = useState([]);
     const [bokunAvailabilityCache, setBokunAvailabilityCache] = useState({});
     const [loadingAvailability, setLoadingAvailability] = useState(false);
@@ -215,10 +243,30 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
         console.log(`🎯 DatePicker: returnAvailableTimes called for ${formattedDate} with ${participants} participants`);
 
-        // Get available time slots (from Bokun if available, fallback to configured times)
-        const timeSlots = await getAvailableTimeSlotsForDate(date);
-        console.log(`📋 DatePicker: Time slots received from getAvailableTimeSlotsForDate:`, timeSlots);
-        const options = [...timeSlots];
+        // Use preloaded availability data if available, otherwise fall back to API call
+        const preloadedData = preloadedAvailability[formattedDate];
+        let timeSlots;
+
+        if (preloadedData && preloadedData.timeSlots) {
+            console.log(`📋 DatePicker: Using preloaded time slots for ${formattedDate}:`, preloadedData.timeSlots);
+            // Extract time strings from preloaded data (handle both string and object formats)
+            timeSlots = preloadedData.timeSlots.map(slot => {
+                if (typeof slot === 'string') {
+                    return slot;
+                } else if (slot && slot.time) {
+                    return slot.time;
+                } else {
+                    console.warn('Invalid time slot format in preloaded data:', slot);
+                    return null;
+                }
+            }).filter(Boolean);
+        } else {
+            console.log(`📋 DatePicker: No preloaded data, falling back to API call for ${formattedDate}`);
+            // Fallback to API call if no preloaded data
+            timeSlots = await getAvailableTimeSlotsForDate(date);
+        }
+
+        console.log(`📋 DatePicker: Final time slots to process:`, timeSlots);
         const nowJST = getNowInJST();
 
         // Check if this is a booking for tomorrow
@@ -258,45 +306,28 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             }
         }
 
-        // Filter options based on local bookings and Bokun availability
+        // Filter options based on local bookings and time constraints
+        // Since we're using preloaded Bokun data, we don't need to make additional API calls
         const filteredOptions = [];
-        for (const currentSlot of options) {
+        for (const currentSlot of timeSlots) {
             const currentParticipants = dayData[currentSlot] || 0;
             const tourDateTimeJST = getTourDateTimeJST(date, currentSlot);
             const hoursUntilTour = (tourDateTimeJST - nowJST) / (1000 * 60 * 60);
             const hasParticipants = currentParticipants > 0;
             const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
 
-            // Check local availability first
+            // Check local availability and time constraints
             const localSpotsAvailable = maxSlots - currentParticipants >= participants;
             const notPastCutoff = hoursUntilTour >= cutoffHours;
 
-            if (!localSpotsAvailable || !notPastCutoff) {
-                continue; // Skip this slot if local constraints fail
+            if (localSpotsAvailable && notPastCutoff) {
+                filteredOptions.push(currentSlot);
             }
-
-            // Check Bokun availability
-            try {
-                const bokunAvailability = await checkBokunAvailability(date, currentSlot);
-                if (bokunAvailability && !bokunAvailability.available) {
-                    console.log(`Bokun shows no availability for ${currentSlot} on ${formattedDate}`);
-                    continue; // Skip if Bokun says not available
-                }
-
-                if (bokunAvailability && bokunAvailability.availableSpots < participants) {
-                    console.log(`Bokun insufficient spots for ${currentSlot} on ${formattedDate}: ${bokunAvailability.availableSpots} < ${participants}`);
-                    continue; // Skip if not enough Bokun spots
-                }
-            } catch (error) {
-                console.warn(`Error checking Bokun availability for ${currentSlot}, falling back to local only:`, error);
-                // Continue with local availability only
-            }
-
-            filteredOptions.push(currentSlot);
         }
 
+        console.log(`✅ DatePicker: Filtered available times for ${formattedDate}:`, filteredOptions);
         return filteredOptions;
-    }, [maxSlots, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime, getAvailableTimeSlotsForDate, checkBokunAvailability]);
+    }, [maxSlots, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime, preloadedAvailability, getAvailableTimeSlotsForDate]);
 
     useEffect(() => {
         fetchBookings();
@@ -361,6 +392,57 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             appContainer.classList.remove('overflow-y-hidden');
         };
     }, [checkout]);
+
+    // Effect to handle 3D Secure and prevent checkout from closing
+    useEffect(() => {
+        const checkForPayJP3DS = () => {
+            // If checkout should stay open but isn't, reopen it
+            const shouldStayOpen = sessionStorage.getItem('checkout_should_stay_open') === 'true' ||
+                localStorage.getItem('checkout_should_stay_open') === 'true';
+            if (shouldStayOpen && !checkout) {
+                console.log('🔄 Reopening checkout after 3D Secure window focus');
+                setCheckout(true);
+            }
+        };
+
+        // Listen for window focus events that might indicate 3D Secure completion
+        window.addEventListener('focus', checkForPayJP3DS);
+        window.addEventListener('visibilitychange', checkForPayJP3DS);
+
+        return () => {
+            window.removeEventListener('focus', checkForPayJP3DS);
+            window.removeEventListener('visibilitychange', checkForPayJP3DS);
+        };
+    }, [checkout]);
+
+    // Monitor checkout state changes for debugging
+    useEffect(() => {
+        console.log('🔍 DatePicker checkout state changed:', {
+            checkout,
+            payjp3DS: sessionStorage.getItem('payjp_3ds_in_progress') === 'true' || localStorage.getItem('payjp_3ds_in_progress') === 'true',
+            shouldStayOpen: sessionStorage.getItem('checkout_should_stay_open') === 'true' || localStorage.getItem('checkout_should_stay_open') === 'true'
+        });
+
+        // Auto-reopen if checkout is closed but should stay open
+        if (!checkout) {
+            const shouldStayOpen = sessionStorage.getItem('checkout_should_stay_open') === 'true' ||
+                localStorage.getItem('checkout_should_stay_open') === 'true';
+            if (shouldStayOpen) {
+                console.log('🚨 Auto-reopening checkout because it should stay open!');
+                setTimeout(() => setCheckout(true), 100); // Small delay to prevent loops
+            }
+        }
+    }, [checkout]);
+
+    // Cleanup storage on component unmount
+    useEffect(() => {
+        return () => {
+            localStorage.removeItem('payjp_3ds_in_progress');
+            localStorage.removeItem('checkout_should_stay_open');
+            sessionStorage.removeItem('payjp_3ds_in_progress');
+            sessionStorage.removeItem('checkout_should_stay_open');
+        };
+    }, []);
 
     // Preload availability for all visible dates in the calendar view
     useEffect(() => {
@@ -777,9 +859,9 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     }
 
     return (
-        <div className='w-full md:w-2/3 lg:w-full bg-white border border-gray-200 rounded-2xl p-6 mx-auto text-gray-700 flex-none shadow-sm'>
-            <div className='mb-8'>
-                <h2 className='text-3xl font-bold text-gray-800'>¥ {price.toLocaleString('en-US')} <span className='text-lg font-medium text-gray-600'>/ Guest</span></h2>
+        <div className='w-full md:w-2/3 lg:w-full bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 mx-auto text-gray-700 flex-none shadow-sm'>
+            <div className='mb-6 sm:mb-8'>
+                <h2 className='text-2xl sm:text-3xl font-bold text-gray-800'>¥ {price.toLocaleString('en-US')} <span className='text-base sm:text-lg font-medium text-gray-600'>/ Guest</span></h2>
             </div>
             {renderCalendarComponent()}
             {checkout === true ? (

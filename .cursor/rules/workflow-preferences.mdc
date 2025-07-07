@@ -10,3 +10,4 @@ alwaysApply: false
 - Write thorough tests for all major functionality
 - Avoid making major changes to the patterns and architecture of how a feature works, after it has shown to work well, unless explicitly instructed
 - Always think about what other methods and areas of code might be affected by code changes
+- In case of making changes to the Supabase database, give me the SQL to execute and never try to execute it through the terminal

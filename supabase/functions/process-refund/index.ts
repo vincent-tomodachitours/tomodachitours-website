@@ -5,6 +5,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { validateRequest, refundSchema, addSecurityHeaders } from '../validation-middleware/index.ts'
+import { StripeService } from '../_shared/stripe-service.ts'
 // import { withRateLimit } from '../rate-limit-middleware/wrapper.ts' // Temporarily disabled
 
 console.log("Refund processing function loaded")
@@ -77,7 +78,12 @@ const handler = async (req: Request): Promise<Response> => {
       )
     }
 
-    if (!booking.charge_id) {
+    // Determine payment provider and check if payment exists
+    const paymentProvider = booking.payment_provider || 'payjp'
+    const hasPayJPCharge = booking.charge_id
+    const hasStripePayment = booking.stripe_payment_intent_id
+
+    if (!hasPayJPCharge && !hasStripePayment) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -90,36 +96,67 @@ const handler = async (req: Request): Promise<Response> => {
       )
     }
 
-    // Process refund with PayJP
-    const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
-    if (!secretKey) {
-      throw new Error('PayJP secret key not configured')
-    }
+    let refund: RefundInfo | null = null
+    let refundResponse: any = null
 
-    const refundResponse = await fetch(`https://api.pay.jp/v1/charges/${booking.charge_id}/refund`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
+    // Process refund based on payment provider
+    if (paymentProvider === 'stripe' && hasStripePayment) {
+      // Process Stripe refund
+      try {
+        const stripeService = new StripeService()
+        const stripeRefund = await stripeService.createRefund(booking.stripe_payment_intent_id)
+
+        refund = {
+          id: stripeRefund.id,
+          amount: stripeRefund.amount,
+          status: stripeRefund.status,
+          created: stripeRefund.created
+        }
+
+        refundResponse = { ok: true }
+        console.log('Stripe refund processed successfully:', refund)
+      } catch (error) {
+        console.error('Stripe refund error:', error)
+        if (error.message.includes('already refunded') || error.message.includes('cannot refund')) {
+          console.log('Stripe payment already refunded, updating booking status...')
+          refundResponse = { ok: false, error: { code: 'already_refunded' } }
+        } else {
+          throw new Error('Failed to process Stripe refund')
+        }
       }
-    })
-
-    const refundResult = await refundResponse.json()
-
-    // Handle the case where the charge has already been refunded
-    if (!refundResponse.ok) {
-      console.error('PayJP refund error:', refundResult)
-
-      // If the charge was already refunded, we should still update the booking status
-      if (refundResult.error?.code === 'already_refunded') {
-        console.log('Charge already refunded, updating booking status...')
-        // Continue to update booking status below
-      } else {
-        throw new Error('Failed to process refund')
+    } else {
+      // Process PayJP refund (existing logic)
+      const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
+      if (!secretKey) {
+        throw new Error('PayJP secret key not configured')
       }
-    }
 
-    const refund = refundResult as RefundInfo
+      const payjpResponse = await fetch(`https://api.pay.jp/v1/charges/${booking.charge_id}/refund`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      })
+
+      const payjpRefundResult = await payjpResponse.json()
+
+      // Handle the case where the charge has already been refunded
+      if (!payjpResponse.ok) {
+        console.error('PayJP refund error:', payjpRefundResult)
+
+        // If the charge was already refunded, we should still update the booking status
+        if (payjpRefundResult.error?.code === 'already_refunded') {
+          console.log('PayJP charge already refunded, updating booking status...')
+          // Continue to update booking status below
+        } else {
+          throw new Error('Failed to process PayJP refund')
+        }
+      }
+
+      refund = payjpRefundResult as RefundInfo
+      refundResponse = payjpResponse
+    }
 
     // Update booking status (this runs whether the refund was successful OR already_refunded)
     const { error: updateError } = await supabase
@@ -185,7 +222,7 @@ const handler = async (req: Request): Promise<Response> => {
           hour: '2-digit',
           minute: '2-digit'
         }),
-        refundAmount: refundResponse.ok ? `¥${refund.amount.toLocaleString()}` : 'Already processed'
+        refundAmount: refundResponse.ok && refund ? `¥${refund.amount.toLocaleString()}` : 'Already processed'
       }
 
       // Send cancellation confirmation to customer
