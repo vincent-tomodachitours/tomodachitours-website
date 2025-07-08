@@ -5,15 +5,25 @@
 /functions/service-account.json
 
 # dependencies
-/node_modules
+node_modules/
+**/node_modules/
 /.pnp
 .pnp.js
 
 # testing
 /coverage
+**/coverage/
 
 # production
 /build
+**/build/
+**/dist/
+
+# Cache directories
+.cache/
+**/.cache/
+.vercel/
+**/.vercel/
 
 # misc
 .DS_Store
@@ -23,6 +33,21 @@
 .env.test.local
 .env.production.local
 
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+
+# Package manager lock files (keep only one)
+# yarn.lock (if using npm)
+# package-lock.json (if using yarn)
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+Thumbs.db
