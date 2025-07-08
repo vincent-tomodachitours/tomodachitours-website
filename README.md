@@ -209,3 +209,6 @@ go run . help
    - Try cancelling it
    - Verify that the cancellation email is received
 # Last updated: Tue Jul  8 04:56:07 PM JST 2025
+
+## ✅ Testing Deployment
+Customer app deployment test - 2025-07-08 17:21:35
