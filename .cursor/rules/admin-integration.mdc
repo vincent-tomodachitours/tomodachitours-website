@@ -1,0 +1,755 @@
+# Tomodachi Tours Admin Site Implementation Plan
+
+## Project Overview
+
+### Current State Analysis
+- **Customer Site**: Fully functional React app with Supabase backend, payment processing, Bokun integration
+- **Admin Site**: Basic Vite setup with minimal implementation - needs complete rebuild
+- **Database**: Existing Supabase database with tours, bookings, discount codes, and Bokun integration
+- **Deployment**: Customer site on Vercel, admin site needs separate Vercel deployment
+
+### Goals
+1. Rebuild admin site from scratch using React (not Vite)
+2. Implement employee authentication and role management for tour guides
+3. Create availability management interface for tours
+4. Build booking management and tracking system
+5. Develop employee scheduling system for shift management
+6. Deploy as separate Vercel application using same Supabase database
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────┐    ┌─────────────────┐
+│   Customer Site │    │   Admin Site    │
+│   (React)       │    │   (React)       │
+│   Vercel Deploy │    │   Vercel Deploy │
+└─────────┬───────┘    └─────────┬───────┘
+          │                      │
+          └──────────┬───────────┘
+                     │
+            ┌────────▼────────┐
+            │  Supabase DB    │
+            │  - Auth         │
+            │  - Tours        │
+            │  - Bookings     │
+            │  - Employees    │
+            │  - Shifts       │
+            └─────────────────┘
+```
+
+---
+
+## Phase 1: Database Schema Extensions
+
+### New Tables Required
+
+#### 1. Employee Management
+```sql
+-- Employee/Tour Guide accounts
+CREATE TABLE employees (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    employee_code VARCHAR(20) UNIQUE NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    phone VARCHAR(50),
+    role employee_role NOT NULL DEFAULT 'tour_guide',
+    status employee_status NOT NULL DEFAULT 'active',
+    hire_date DATE NOT NULL,
+    emergency_contact JSONB,
+    certifications TEXT[],
+    languages VARCHAR(10)[] DEFAULT '{"en","ja"}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Employee roles enum
+CREATE TYPE employee_role AS ENUM (
+    'admin',
+    'manager', 
+    'tour_guide',
+    'support'
+);
+
+-- Employee status enum
+CREATE TYPE employee_status AS ENUM (
+    'active',
+    'inactive',
+    'suspended',
+    'terminated'
+);
+```
+
+#### 2. Shift and Availability Management
+```sql
+-- Tour guide availability/shifts
+CREATE TABLE employee_shifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID REFERENCES employees(id) ON DELETE CASCADE,
+    tour_type tour_type NOT NULL,
+    shift_date DATE NOT NULL,
+    time_slot TIME NOT NULL,
+    status shift_status DEFAULT 'available',
+    max_participants INTEGER,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(employee_id, tour_type, shift_date, time_slot)
+);
+
+-- Shift status enum
+CREATE TYPE shift_status AS ENUM (
+    'available',
+    'assigned',
+    'unavailable',
+    'completed',
+    'cancelled'
+);
+
+-- Link bookings to assigned tour guides
+ALTER TABLE bookings ADD COLUMN assigned_guide_id UUID REFERENCES employees(id);
+ALTER TABLE bookings ADD COLUMN guide_notes TEXT;
+```
+
+#### 3. Admin Activity Logging
+```sql
+-- Admin activity tracking
+CREATE TABLE admin_activity_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID REFERENCES employees(id),
+    action_type VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL, -- 'booking', 'tour', 'employee', etc.
+    entity_id VARCHAR(100),
+    details JSONB,
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Row Level Security Policies
+```sql
+-- Employees can read their own data
+CREATE POLICY "employees_own_data" ON employees
+    FOR ALL USING (user_id = auth.uid());
+
+-- Admins and managers can see all employees
+CREATE POLICY "admin_manager_all_employees" ON employees
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM employees e
+            WHERE e.user_id = auth.uid() 
+            AND e.role IN ('admin', 'manager')
+            AND e.status = 'active'
+        )
+    );
+
+-- Employees can manage their own shifts
+CREATE POLICY "employee_own_shifts" ON employee_shifts
+    FOR ALL USING (
+        employee_id IN (
+            SELECT id FROM employees 
+            WHERE user_id = auth.uid()
+        )
+    );
+```
+
+---
+
+## Phase 2: Admin Site Architecture
+
+### Technology Stack
+- **Frontend**: React 18 + TypeScript
+- **Routing**: React Router v6
+- **State Management**: React Context + useReducer
+- **UI Library**: Tailwind CSS + Headless UI
+- **Forms**: React Hook Form + Zod validation
+- **Data Fetching**: React Query (TanStack Query)
+- **Authentication**: Supabase Auth
+- **Deployment**: Vercel
+
+### Project Structure
+```
+admin/
+├── public/
+├── src/
+│   ├── components/
+│   │   ├── ui/                 # Reusable UI components
+│   │   ├── layout/             # Layout components
+│   │   ├── forms/              # Form components
+│   │   └── charts/             # Analytics components
+│   ├── pages/
+│   │   ├── auth/               # Login, signup
+│   │   ├── dashboard/          # Main dashboard
+│   │   ├── bookings/           # Booking management
+│   │   ├── tours/              # Tour management
+│   │   ├── employees/          # Employee management
+│   │   ├── schedule/           # Shift scheduling
+│   │   └── analytics/          # Reports and analytics
+│   ├── hooks/                  # Custom React hooks
+│   ├── contexts/               # React contexts
+│   ├── services/               # API services
+│   ├── utils/                  # Utility functions
+│   └── types/                  # TypeScript types
+├── package.json
+└── vercel.json
+```
+
+---
+
+## Phase 3: Core Features Implementation
+
+### 3.1 Authentication & Authorization
+
+#### Employee Authentication Flow
+```typescript
+// Context for admin authentication
+interface AdminAuthContext {
+    employee: Employee | null;
+    loading: boolean;
+    signIn: (email: string, password: string) => Promise<void>;
+    signOut: () => Promise<void>;
+    hasPermission: (permission: Permission) => boolean;
+}
+
+// Permission system
+type Permission = 
+    | 'view_bookings'
+    | 'edit_bookings' 
+    | 'manage_tours'
+    | 'manage_employees'
+    | 'view_analytics'
+    | 'system_admin';
+
+const rolePermissions: Record<EmployeeRole, Permission[]> = {
+    admin: ['view_bookings', 'edit_bookings', 'manage_tours', 'manage_employees', 'view_analytics', 'system_admin'],
+    manager: ['view_bookings', 'edit_bookings', 'manage_tours', 'view_analytics'],
+    tour_guide: ['view_bookings'],
+    support: ['view_bookings', 'edit_bookings']
+};
+```
+
+#### Protected Route System
+```typescript
+interface ProtectedRouteProps {
+    children: React.ReactNode;
+    requiredPermission?: Permission;
+    requiredRole?: EmployeeRole;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+    children,
+    requiredPermission,
+    requiredRole
+}) => {
+    const { employee, loading, hasPermission } = useAdminAuth();
+    
+    if (loading) return <LoadingSpinner />;
+    
+    if (!employee) return <Navigate to="/auth/login" />;
+    
+    if (requiredRole && employee.role !== requiredRole) {
+        return <AccessDenied />;
+    }
+    
+    if (requiredPermission && !hasPermission(requiredPermission)) {
+        return <AccessDenied />;
+    }
+    
+    return <>{children}</>;
+};
+```
+
+### 3.2 Dashboard Overview
+
+#### Main Dashboard Components
+1. **Key Metrics Cards**
+   - Today's bookings count
+   - Revenue today/this month
+   - Active tour guides
+   - Upcoming tours (next 24 hours)
+
+2. **Quick Actions**
+   - View today's bookings
+   - Check guide assignments
+   - Emergency contact list
+   - Create new booking (walk-in)
+
+3. **Recent Activity Feed**
+   - New bookings
+   - Cancellations
+   - Guide availability updates
+   - System alerts
+
+4. **Calendar Overview**
+   - Daily tour schedule
+   - Guide assignments
+   - Availability gaps
+
+### 3.3 Booking Management System
+
+#### Features
+- **View All Bookings**: Filterable by date, tour type, status, guide
+- **Booking Details**: Complete customer and tour information
+- **Status Management**: Update booking status, add notes
+- **Guide Assignment**: Assign available guides to bookings
+- **Communication**: Send emails to customers
+- **Refund Processing**: Process refunds when needed
+
+#### Booking List Interface
+```typescript
+interface BookingListFilters {
+    dateRange: { start: Date; end: Date };
+    tourType: string[];
+    status: BookingStatus[];
+    assignedGuide: string[];
+    searchQuery: string;
+}
+
+const BookingList: React.FC = () => {
+    const [filters, setFilters] = useState<BookingListFilters>({...});
+    const { data: bookings, isLoading } = useQuery({
+        queryKey: ['bookings', filters],
+        queryFn: () => fetchBookings(filters)
+    });
+    
+    return (
+        <div className="space-y-6">
+            <BookingFilters filters={filters} onChange={setFilters} />
+            <BookingTable bookings={bookings} loading={isLoading} />
+        </div>
+    );
+};
+```
+
+### 3.4 Tour Availability Management
+
+#### Features
+- **View Current Availability**: See available slots for all tours
+- **Manual Availability Override**: Block/unblock specific time slots
+- **Bulk Availability Updates**: Set availability for multiple dates
+- **Integration with Bokun**: Sync with existing Bokun system
+- **Capacity Management**: Adjust max participants per tour
+
+#### Availability Calendar
+```typescript
+interface AvailabilityCalendarProps {
+    tourType?: TourType;
+    month: Date;
+}
+
+const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
+    tourType,
+    month
+}) => {
+    const { data: availability } = useQuery({
+        queryKey: ['availability', tourType, month],
+        queryFn: () => fetchAvailability(tourType, month)
+    });
+    
+    return (
+        <div className="grid grid-cols-7 gap-1">
+            {availability.map(day => (
+                <AvailabilityDay 
+                    key={day.date}
+                    date={day.date}
+                    slots={day.slots}
+                    onSlotClick={handleSlotUpdate}
+                />
+            ))}
+        </div>
+    );
+};
+```
+
+### 3.5 Employee Management & Scheduling
+
+#### Employee Features
+- **Employee Directory**: List all employees with roles and status
+- **Employee Profiles**: Detailed information, certifications, languages
+- **Role Management**: Assign/change employee roles
+- **Account Status**: Activate/deactivate employee accounts
+
+#### Shift Scheduling System
+- **Availability Submission**: Guides can set their availability
+- **Shift Assignment**: Managers assign guides to specific tours
+- **Schedule Conflicts**: Detect and resolve scheduling conflicts
+- **Automatic Assignment**: Smart assignment based on guide preferences and availability
+
+#### Guide Availability Interface
+```typescript
+const GuideAvailabilityForm: React.FC = () => {
+    const { employee } = useAdminAuth();
+    const [availability, setAvailability] = useState<WeeklyAvailability>({});
+    
+    const handleSubmitAvailability = async (weekData: WeeklyAvailability) => {
+        await submitGuideAvailability(employee.id, weekData);
+        toast.success('Availability updated successfully');
+    };
+    
+    return (
+        <form onSubmit={handleSubmit(handleSubmitAvailability)}>
+            <WeeklyScheduleGrid 
+                availability={availability}
+                onChange={setAvailability}
+                tourTypes={['NIGHT_TOUR', 'MORNING_TOUR', 'UJI_TOUR', 'GION_TOUR']}
+            />
+            <button type="submit">Update Availability</button>
+        </form>
+    );
+};
+```
+
+---
+
+## Phase 4: Advanced Features
+
+### 4.1 Analytics & Reporting
+
+#### Reports Available
+- **Revenue Reports**: Daily/monthly/quarterly revenue breakdown
+- **Booking Analytics**: Conversion rates, popular tours, cancellation rates
+- **Guide Performance**: Tours led, customer ratings, availability
+- **Operational Metrics**: Average group size, peak times, seasonal trends
+
+#### Analytics Dashboard
+```typescript
+const AnalyticsDashboard: React.FC = () => {
+    const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+    
+    const { data: metrics } = useQuery({
+        queryKey: ['analytics', timeRange],
+        queryFn: () => fetchAnalytics(timeRange)
+    });
+    
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <RevenueChart data={metrics.revenue} />
+            <BookingTrends data={metrics.bookings} />
+            <TourPopularity data={metrics.tours} />
+            <GuidePerformance data={metrics.guides} />
+        </div>
+    );
+};
+```
+
+### 4.2 Communication System
+
+#### Features
+- **Customer Communication**: Send booking confirmations, updates, reminders
+- **Internal Messaging**: Communication between admin staff and guides
+- **Email Templates**: Customizable email templates for different scenarios
+- **SMS Integration**: Optional SMS notifications for urgent updates
+
+### 4.3 Emergency Management
+
+#### Features
+- **Emergency Contacts**: Quick access to all guide and customer contacts
+- **Incident Reporting**: Log and track any incidents during tours
+- **Weather Alerts**: Integration with weather services for tour safety
+- **Backup Guide System**: Quickly assign replacement guides
+
+---
+
+## Phase 5: Integration & API Design
+
+### 5.1 Supabase Integration
+
+#### Custom Hooks for Data Management
+```typescript
+// Custom hooks for common operations
+export const useBookings = (filters?: BookingFilters) => {
+    return useQuery({
+        queryKey: ['bookings', filters],
+        queryFn: () => supabase
+            .from('bookings')
+            .select(`
+                *,
+                assigned_guide:employees(id, first_name, last_name),
+                tour:tours(name, type)
+            `)
+            .match(filters || {})
+            .order('booking_date', { ascending: false })
+    });
+};
+
+export const useEmployeeShifts = (employeeId: string, dateRange: DateRange) => {
+    return useQuery({
+        queryKey: ['shifts', employeeId, dateRange],
+        queryFn: () => supabase
+            .from('employee_shifts')
+            .select('*')
+            .eq('employee_id', employeeId)
+            .gte('shift_date', dateRange.start)
+            .lte('shift_date', dateRange.end)
+    });
+};
+```
+
+### 5.2 Real-time Updates
+
+#### Subscription Management
+```typescript
+// Real-time booking updates
+export const useBookingSubscription = () => {
+    const queryClient = useQueryClient();
+    
+    useEffect(() => {
+        const subscription = supabase
+            .channel('bookings')
+            .on('postgres_changes', 
+                { event: '*', schema: 'public', table: 'bookings' },
+                (payload) => {
+                    queryClient.invalidateQueries({ queryKey: ['bookings'] });
+                    
+                    // Show notification for new bookings
+                    if (payload.eventType === 'INSERT') {
+                        toast.info(`New booking received: ${payload.new.customer_name}`);
+                    }
+                }
+            )
+            .subscribe();
+            
+        return () => subscription.unsubscribe();
+    }, [queryClient]);
+};
+```
+
+---
+
+## Phase 6: Deployment & DevOps
+
+### 6.1 Vercel Deployment Configuration
+
+#### Admin Site Vercel Config
+```json
+{
+    "version": 2,
+    "name": "tomodachi-tours-admin",
+    "builds": [
+        {
+            "src": "package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "build"
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/static/(.*)",
+            "dest": "/static/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/index.html"
+        }
+    ],
+    "env": {
+        "REACT_APP_SUPABASE_URL": "@supabase-url",
+        "REACT_APP_SUPABASE_ANON_KEY": "@supabase-anon-key",
+        "REACT_APP_ENVIRONMENT": "production"
+    }
+}
+```
+
+### 6.2 Environment Management
+
+#### Development vs Production
+```typescript
+// Environment configuration
+export const config = {
+    supabase: {
+        url: process.env.REACT_APP_SUPABASE_URL!,
+        anonKey: process.env.REACT_APP_SUPABASE_ANON_KEY!,
+    },
+    app: {
+        name: 'Tomodachi Tours Admin',
+        version: process.env.REACT_APP_VERSION || '1.0.0',
+        environment: process.env.REACT_APP_ENVIRONMENT || 'development',
+    },
+    features: {
+        enableAnalytics: process.env.REACT_APP_ENABLE_ANALYTICS === 'true',
+        enableNotifications: process.env.REACT_APP_ENABLE_NOTIFICATIONS === 'true',
+    }
+};
+```
+
+---
+
+## Phase 7: Security & Performance
+
+### 7.1 Security Measures
+
+#### Authentication Security
+- Multi-factor authentication for admin accounts
+- Session timeout management
+- IP-based access restrictions for admin panel
+- Audit logging for all admin actions
+
+#### Data Protection
+```typescript
+// Sensitive data handling
+export const sanitizeEmployeeData = (employee: Employee): PublicEmployee => {
+    const { emergency_contact, ...publicData } = employee;
+    return publicData;
+};
+
+// Role-based data filtering
+export const filterBookingData = (booking: Booking, userRole: EmployeeRole) => {
+    if (userRole === 'tour_guide') {
+        // Tour guides only see necessary booking info
+        const { charge_id, payment_details, ...safeData } = booking;
+        return safeData;
+    }
+    return booking; // Admins/managers see everything
+};
+```
+
+### 7.2 Performance Optimization
+
+#### Data Caching Strategy
+```typescript
+// React Query configuration
+export const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 5 * 60 * 1000, // 5 minutes
+            gcTime: 10 * 60 * 1000, // 10 minutes
+            retry: (failureCount, error) => {
+                if (error.status === 404) return false;
+                return failureCount < 3;
+            },
+        },
+    },
+});
+```
+
+#### Bundle Optimization
+- Code splitting by routes
+- Lazy loading for heavy components
+- Image optimization for employee photos
+- Tree shaking for unused dependencies
+
+---
+
+## Implementation Timeline
+
+### Phase 1: Foundation (Week 1-2)
+- [ ] Set up new React admin project structure
+- [ ] Implement basic authentication system
+- [ ] Create database schema extensions
+- [ ] Set up Vercel deployment pipeline
+
+### Phase 2: Core Features (Week 3-5)
+- [ ] Build employee management system
+- [ ] Implement booking management interface
+- [ ] Create tour availability management
+- [ ] Develop basic dashboard
+
+### Phase 3: Scheduling System (Week 6-7)
+- [ ] Build guide availability submission system
+- [ ] Implement shift assignment interface
+- [ ] Create schedule conflict detection
+- [ ] Add automatic assignment logic
+
+### Phase 4: Advanced Features (Week 8-9)
+- [ ] Implement analytics dashboard
+- [ ] Add communication system
+- [ ] Build reporting interface
+- [ ] Create emergency management tools
+
+### Phase 5: Integration & Testing (Week 10-11)
+- [ ] Full Supabase integration testing
+- [ ] Real-time updates implementation
+- [ ] Performance optimization
+- [ ] Security audit and hardening
+
+### Phase 6: Deployment & Launch (Week 12)
+- [ ] Production deployment setup
+- [ ] User acceptance testing
+- [ ] Documentation completion
+- [ ] Training materials creation
+
+---
+
+## Technical Considerations
+
+### State Management Strategy
+- Use React Context for global state (auth, theme)
+- React Query for server state management
+- Local state for component-specific data
+- Avoid Redux unless complex state logic emerges
+
+### Error Handling
+```typescript
+// Global error boundary
+export const AdminErrorBoundary: React.FC<{children: React.ReactNode}> = ({
+    children
+}) => {
+    return (
+        <ErrorBoundary
+            FallbackComponent={ErrorFallback}
+            onError={(error, errorInfo) => {
+                // Log to external service
+                console.error('Admin app error:', error, errorInfo);
+            }}
+        >
+            {children}
+        </ErrorBoundary>
+    );
+};
+```
+
+### Testing Strategy
+- Unit tests for utility functions and hooks
+- Integration tests for critical user flows
+- End-to-end tests for complete booking process
+- Visual regression tests for UI components
+
+---
+
+## Maintenance & Future Enhancements
+
+### Monitoring & Analytics
+- Error tracking with Sentry
+- Performance monitoring
+- User behavior analytics
+- Business metrics tracking
+
+### Future Feature Ideas
+- Mobile app for tour guides
+- Customer feedback integration
+- Automated guide recommendations
+- Advanced analytics with ML insights
+- Integration with additional booking platforms
+- Multi-language support for guides
+
+---
+
+## Success Metrics
+
+### Technical Metrics
+- Page load time < 2 seconds
+- 99.9% uptime
+- Zero critical security vulnerabilities
+- < 100ms API response times
+
+### Business Metrics
+- 50% reduction in booking management time
+- 90% guide satisfaction with scheduling system
+- 100% booking accuracy
+- 25% improvement in operational efficiency
+
+### User Experience Metrics
+- < 5 clicks to complete common tasks
+- 95% user satisfaction score
+- < 30 seconds to find information
+- Zero data entry errors
+
+---
+
+This implementation plan provides a comprehensive roadmap for rebuilding your admin site from scratch while leveraging your existing Supabase infrastructure and maintaining the same high-quality standards as your customer site. 

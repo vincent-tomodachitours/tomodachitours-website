@@ -1,18 +1,19 @@
 {
     "version": 2,
+    "name": "tomodachi-tours-admin",
     "builds": [
         {
             "src": "package.json",
             "use": "@vercel/static-build",
             "config": {
-                "distDir": "dist"
+                "distDir": "build"
             }
         }
     ],
     "routes": [
         {
-            "src": "/assets/(.*)",
-            "dest": "/assets/$1"
+            "src": "/static/(.*)",
+            "dest": "/static/$1"
         },
         {
             "src": "/favicon.ico",
@@ -22,5 +23,10 @@
             "src": "/(.*)",
             "dest": "/index.html"
         }
-    ]
+    ],
+    "env": {
+        "REACT_APP_SUPABASE_URL": "@supabase-url",
+        "REACT_APP_SUPABASE_ANON_KEY": "@supabase-anon-key",
+        "REACT_APP_ENVIRONMENT": "production"
+    }
 }
