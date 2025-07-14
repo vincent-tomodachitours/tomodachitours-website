@@ -55,6 +55,14 @@ const TourList: React.FC = () => {
         refetchInterval: 30000,
     });
 
+    // Debug: Log tour data when it changes
+    React.useEffect(() => {
+        if (tours && tours.length > 0) {
+            console.log('Tours loaded from database:', tours);
+            console.log('First tour duration_minutes:', tours[0].duration_minutes, 'Type:', typeof tours[0].duration_minutes);
+        }
+    }, [tours]);
+
     const {
         data: tourStats,
         isLoading: statsLoading
@@ -92,6 +100,8 @@ const TourList: React.FC = () => {
 
     // Event handlers
     const handleEdit = (tour: Tour) => {
+        console.log('✏️ Edit button clicked for tour:', tour);
+        console.log('🕐 Tour duration_minutes:', tour.duration_minutes);
         setSelectedTour(tour);
         setShowEditModal(true);
     };
@@ -456,7 +466,7 @@ const TourList: React.FC = () => {
                                         <td className="px-6 py-4">
                                             <div className="space-y-1">
                                                 <div className="text-sm text-gray-900">
-                                                    {tour?.duration_hours || 0} hours
+                                                    {tour?.duration_minutes ? (tour.duration_minutes / 60) : 'N/A'} hours
                                                 </div>
                                             </div>
                                         </td>
@@ -464,7 +474,6 @@ const TourList: React.FC = () => {
                                             <div className="text-sm text-gray-900">
                                                 {tour?.min_participants || 0} - {tour?.max_participants || 0} people
                                             </div>
-
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center space-x-2">

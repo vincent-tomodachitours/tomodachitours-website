@@ -100,7 +100,7 @@ const AvailabilityCalendar: React.FC = () => {
             format(calendarEnd, 'yyyy-MM-dd')
         ),
         enabled: !!employee,
-        refetchInterval: 30000,
+        refetchInterval: 30000
     });
 
     // Group availability by date

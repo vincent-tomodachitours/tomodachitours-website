@@ -178,7 +178,7 @@ export interface Tour {
     type: TourType;
     name: string;
     description: string;
-    duration_hours: number;
+    duration_minutes: number;
     time_slots: TimeSlot[];
     meeting_point: string;
     meeting_point_lat?: number;

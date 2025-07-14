@@ -12,7 +12,6 @@ import EmployeeList from './pages/employees/EmployeeList';
 import { ShiftCalendar } from './pages/schedule';
 import AnalyticsDashboard from './pages/analytics/AnalyticsDashboard';
 import { TourList } from './pages/tours';
-import AuthDebug from './components/debug/AuthDebug';
 
 // Redirect component to handle root route
 const RootRedirect: React.FC = () => {
@@ -171,8 +170,7 @@ function App() {
                             />
                         </Routes>
 
-                        {/* Debug component - only shows in development */}
-                        <AuthDebug />
+
                     </div>
                 </Router>
             </AdminAuthProvider>

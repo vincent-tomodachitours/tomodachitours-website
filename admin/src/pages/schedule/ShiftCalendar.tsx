@@ -301,34 +301,104 @@ const ShiftCalendar: React.FC = () => {
                                         </div>
 
                                         <div className="space-y-1">
-                                            {dayShifts.slice(0, 3).map((shift) => (
-                                                <div
-                                                    key={shift.id}
-                                                    className={`text-xs px-1 py-0.5 rounded border cursor-pointer hover:opacity-80 ${getTourTypeColor(shift.tour_type)
-                                                        }`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleShiftClick(shift);
-                                                    }}
-                                                >
-                                                    <div className="truncate">
-                                                        {shift.employee.first_name} {shift.employee.last_name[0]}.
-                                                    </div>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="truncate">
-                                                            {shift.time_slot}
-                                                        </span>
-                                                        <Badge variant={getStatusBadgeVariant(shift.status)} size="sm">
-                                                            {shift.status[0].toUpperCase()}
-                                                        </Badge>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            {dayShifts.length > 3 && (
-                                                <div className="text-xs text-gray-500 text-center">
-                                                    +{dayShifts.length - 3} more
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                // Group shifts by employee
+                                                const shiftsByEmployee: Record<string, EmployeeShift[]> = {};
+                                                dayShifts.forEach(shift => {
+                                                    const employeeKey = `${shift.employee.first_name} ${shift.employee.last_name}`;
+                                                    if (!shiftsByEmployee[employeeKey]) {
+                                                        shiftsByEmployee[employeeKey] = [];
+                                                    }
+                                                    shiftsByEmployee[employeeKey].push(shift);
+                                                });
+
+                                                const displayItems: any[] = [];
+                                                Object.entries(shiftsByEmployee).forEach(([employeeName, shifts]) => {
+                                                    if (shifts.length >= 3) {
+                                                        // Show simplified "Available All Day" for employees with 3+ shifts
+                                                        const hasAssigned = shifts.some(s => s.status === 'assigned');
+                                                        displayItems.push({
+                                                            type: 'summary',
+                                                            employeeName,
+                                                            shifts,
+                                                            hasAssigned,
+                                                            count: shifts.length
+                                                        });
+                                                    } else {
+                                                        // Show individual shifts for employees with fewer shifts
+                                                        shifts.forEach(shift => {
+                                                            displayItems.push({
+                                                                type: 'individual',
+                                                                shift
+                                                            });
+                                                        });
+                                                    }
+                                                });
+
+                                                // Limit display to prevent overflow
+                                                const visibleItems = displayItems.slice(0, 4);
+                                                const remainingCount = displayItems.length - visibleItems.length;
+
+                                                return (
+                                                    <>
+                                                        {visibleItems.map((item, index) => {
+                                                            if (item.type === 'summary') {
+                                                                return (
+                                                                    <div
+                                                                        key={`summary-${index}`}
+                                                                        className={`text-xs px-1 py-0.5 rounded border cursor-pointer hover:opacity-80 ${item.hasAssigned ? 'bg-green-100 text-green-800 border-green-200' : 'bg-blue-100 text-blue-800 border-blue-200'}`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            // Click on first shift to open details
+                                                                            handleShiftClick(item.shifts[0]);
+                                                                        }}
+                                                                    >
+                                                                        <div className="truncate">
+                                                                            {item.employeeName}
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="truncate">
+                                                                                Available All Day
+                                                                            </span>
+                                                                            <Badge variant={item.hasAssigned ? 'success' : 'default'} size="sm">
+                                                                                {item.count}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            } else {
+                                                                return (
+                                                                    <div
+                                                                        key={item.shift.id}
+                                                                        className={`text-xs px-1 py-0.5 rounded border cursor-pointer hover:opacity-80 ${getTourTypeColor(item.shift.tour_type)}`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleShiftClick(item.shift);
+                                                                        }}
+                                                                    >
+                                                                        <div className="truncate">
+                                                                            {item.shift.employee.first_name} {item.shift.employee.last_name[0]}.
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="truncate">
+                                                                                {item.shift.time_slot}
+                                                                            </span>
+                                                                            <Badge variant={getStatusBadgeVariant(item.shift.status)} size="sm">
+                                                                                {item.shift.status[0].toUpperCase()}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        })}
+                                                        {remainingCount > 0 && (
+                                                            <div className="text-xs text-gray-500 text-center">
+                                                                +{remainingCount} more
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 );

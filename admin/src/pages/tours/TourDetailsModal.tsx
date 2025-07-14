@@ -93,7 +93,7 @@ const TourDetailsModal: React.FC<TourDetailsModalProps> = ({
                             <ClockIcon className="h-5 w-5 text-blue-600 mr-2" />
                             <div>
                                 <p className="text-sm text-blue-600 font-medium">Duration</p>
-                                <p className="text-lg font-bold text-blue-900">{tour.duration_hours}h</p>
+                                <p className="text-lg font-bold text-blue-900">{tour.duration_minutes / 60}h</p>
                             </div>
                         </div>
                     </div>

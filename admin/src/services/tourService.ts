@@ -6,7 +6,7 @@ export interface Tour {
     type: TourType; // Changed from tour_type to type
     name: string;
     description: string;
-    duration_hours: number;
+    duration_minutes: number;
     time_slots: TimeSlot[];
     meeting_point: string;
     meeting_point_lat?: number;
@@ -83,7 +83,7 @@ export interface TourFormData {
     type: TourType; // Changed from tour_type to type
     name: string;
     description: string;
-    duration_hours: number;
+    duration_minutes: number;
     time_slots: TimeSlot[];
     meeting_point: string;
     meeting_point_lat?: number;
@@ -159,6 +159,8 @@ export class TourService {
                 throw error;
             }
 
+
+
             return data || [];
         } catch (error) {
             console.error('TourService.getTours error:', error);
@@ -172,6 +174,8 @@ export class TourService {
      */
     static async getTourById(id: string): Promise<Tour | null> {
         try {
+            console.log('🔍 Fetching tour by ID:', id);
+
             const { data, error } = await supabase
                 .from('tours')
                 .select('*')
@@ -180,15 +184,19 @@ export class TourService {
 
             if (error) {
                 if (error.code === 'PGRST116') {
+                    console.log('❌ Tour not found:', id);
                     return null;
                 }
-                console.error('Error fetching tour:', error);
+                console.error('❌ Error fetching tour:', error);
                 throw error;
             }
 
+            console.log('✅ Tour fetched successfully:', data);
+            console.log('🕐 Tour duration_minutes from DB:', data?.duration_minutes);
+
             return data;
         } catch (error) {
-            console.error('TourService.getTourById error:', error);
+            console.error('❌ TourService.getTourById error:', error);
             throw error;
         }
     }
@@ -226,6 +234,9 @@ export class TourService {
      */
     static async updateTour(id: string, updates: Partial<TourFormData>): Promise<Tour> {
         try {
+            console.log('🔄 TourService.updateTour called with:', { id, updates });
+            console.log('🕐 Duration minutes being sent:', updates.duration_minutes);
+
             const { data, error } = await supabase
                 .from('tours')
                 .update({
@@ -237,13 +248,16 @@ export class TourService {
                 .single();
 
             if (error) {
-                console.error('Error updating tour:', error);
+                console.error('❌ Database update error:', error);
                 throw error;
             }
 
+            console.log('✅ Database update successful:', data);
+            console.log('🕐 Updated duration_minutes in DB:', data.duration_minutes);
+
             return data;
         } catch (error) {
-            console.error('TourService.updateTour error:', error);
+            console.error('❌ TourService.updateTour error:', error);
             throw error;
         }
     }

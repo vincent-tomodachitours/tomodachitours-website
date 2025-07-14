@@ -10,7 +10,7 @@ interface TourFormData {
     type: TourType;
     name: string;
     description: string;
-    duration_hours: number;
+    duration_minutes: number;
     time_slots: TimeSlot[];
     meeting_point: string;
     meeting_point_lat?: number;
@@ -37,21 +37,29 @@ interface TourFormProps {
 const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
     const isEditing = !!tour;
 
+    // Debug: Log the tour data to see what we're getting from the database
+    React.useEffect(() => {
+        if (tour) {
+            console.log('Tour data received:', tour);
+            console.log('Duration minutes value:', tour.duration_minutes, 'Type:', typeof tour.duration_minutes);
+        }
+    }, [tour]);
+
     const [formData, setFormData] = useState<TourFormData>({
         type: tour?.type || 'NIGHT_TOUR',
         name: tour?.name || '',
         description: tour?.description || '',
-        duration_hours: tour?.duration_hours || 3,
+        duration_minutes: tour?.duration_minutes || 0, // No default - user must specify duration
         time_slots: tour?.time_slots || [],
         meeting_point: tour?.meeting_point ? getMeetingPointLocation(tour.meeting_point) : '',
         meeting_point_lat: tour?.meeting_point_lat,
         meeting_point_lng: tour?.meeting_point_lng,
-        max_participants: tour?.max_participants || 10,
-        min_participants: tour?.min_participants || 1,
+        max_participants: tour?.max_participants ?? 10,
+        min_participants: tour?.min_participants ?? 1,
         included_items: tour?.included_items || [],
         excluded_items: tour?.excluded_items || [],
         requirements: tour?.requirements || [],
-        cancellation_policy: tour?.cancellation_policy || '',
+        cancellation_policy: tour?.cancellation_policy || (tour ? 'Free cancellation up to 24 hours before the tour starts. Cancellations within 24 hours are subject to a 50% charge.' : ''),
         images: tour?.images || [],
         status: tour?.status || 'draft',
         seo_title: tour?.seo_title || '',
@@ -78,55 +86,89 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
     });
 
     const updateMutation = useMutation({
-        mutationFn: (data: Partial<TourFormData>) =>
-            TourService.updateTour(tour!.id, data),
-        onSuccess: () => {
+        mutationFn: (data: Partial<TourFormData>) => {
+            // Update core tour fields including time slots
+            const updateData = {
+                name: data.name,
+                description: data.description,
+                duration_minutes: data.duration_minutes,
+                min_participants: data.min_participants,
+                max_participants: data.max_participants,
+                time_slots: data.time_slots
+            };
+            console.log('updateMutation called with:', { tourId: tour!.id, data: updateData });
+            console.log('🕐 Time slots being updated:', data.time_slots);
+            return TourService.updateTour(tour!.id, updateData);
+        },
+        onSuccess: (result) => {
+            console.log('Update successful:', result);
             onSuccess();
         },
         onError: (error) => {
             console.error('Error updating tour:', error);
-            setErrors({ general: 'Failed to update tour. Please try again.' });
+            setErrors({ general: `Failed to update tour: ${error.message || 'Unknown error'}` });
         }
     });
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
 
+        console.log('🔍 Validating form with data:', {
+            name: formData.name,
+            description: formData.description,
+            duration_minutes: formData.duration_minutes,
+            time_slots_count: formData.time_slots.length,
+            time_slots: formData.time_slots,
+            meeting_point: formData.meeting_point,
+            min_participants: formData.min_participants,
+            max_participants: formData.max_participants
+        });
+
         if (!formData.name.trim()) {
             newErrors.name = 'Tour name is required';
+            console.log('❌ Validation failed: Name is empty');
         }
 
         if (!formData.description.trim()) {
             newErrors.description = 'Description is required';
+            console.log('❌ Validation failed: Description is empty');
         }
 
-        if (formData.duration_hours <= 0) {
-            newErrors.duration_hours = 'Duration must be greater than 0';
+        if (formData.duration_minutes <= 0) {
+            newErrors.duration_minutes = 'Duration must be greater than 0';
+            console.log('❌ Validation failed: Duration is', formData.duration_minutes);
         }
 
-        if (formData.time_slots.length === 0) {
+        // Only require time slots for new tours, not for editing existing ones
+        if (!isEditing && formData.time_slots.length === 0) {
             newErrors.time_slots = 'At least one time slot is required';
+            console.log('❌ Validation failed: No time slots provided for new tour');
         }
 
         if (!formData.meeting_point.trim()) {
             newErrors.meeting_point = 'Meeting point is required';
+            console.log('❌ Validation failed: Meeting point is empty');
         }
 
         if (formData.max_participants <= 0) {
             newErrors.max_participants = 'Max participants must be greater than 0';
+            console.log('❌ Validation failed: Max participants is', formData.max_participants);
         }
 
         if (formData.min_participants <= 0) {
             newErrors.min_participants = 'Min participants must be greater than 0';
+            console.log('❌ Validation failed: Min participants is', formData.min_participants);
         }
 
         if (formData.min_participants > formData.max_participants) {
             newErrors.min_participants = 'Min participants cannot exceed max participants';
+            console.log('❌ Validation failed: Min participants exceeds max participants');
         }
 
-        if (!formData.cancellation_policy.trim()) {
-            newErrors.cancellation_policy = 'Cancellation policy is required';
-        }
+
+
+        console.log('🔍 Validation errors found:', newErrors);
+        console.log('🔍 Number of errors:', Object.keys(newErrors).length);
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -135,13 +177,23 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        console.log('📝 Form submitted', { isEditing, tour: tour?.id, formData });
+        console.log('🕐 Duration in form data (minutes):', formData.duration_minutes);
+        console.log('🕐 Duration in form data (hours):', formData.duration_minutes / 60);
+
         if (!validateForm()) {
+            console.log('❌ Form validation failed', errors);
             return;
         }
 
+        console.log('✅ Form validation passed, calling mutation...');
+
         if (isEditing) {
+            console.log('🔄 Updating tour with ID:', tour?.id);
+            console.log('📦 Data being sent to update:', formData);
             updateMutation.mutate(formData);
         } else {
+            console.log('➕ Creating new tour');
             createMutation.mutate(formData);
         }
     };
@@ -300,6 +352,19 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
                 </div>
             )}
 
+            {Object.keys(errors).length > 0 && (
+                <div className="rounded-md bg-yellow-50 p-4">
+                    <div className="text-sm text-yellow-700">
+                        <strong>Please fix the following errors:</strong>
+                        <ul className="mt-2 list-disc list-inside">
+                            {Object.entries(errors).map(([field, message]) => (
+                                <li key={field}>{message}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
+
             {/* Tab Navigation */}
             <div className="border-b border-gray-200">
                 <nav className="-mb-px flex space-x-8">
@@ -322,26 +387,28 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
             {/* Basic Info Tab */}
             {currentTab === 'basic' && (
                 <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                                Tour Type *
+                    {/* Tour Name and Status Row */}
+                    <div className="grid grid-cols-5 gap-4">
+                        <div className="col-span-4">
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                Tour Name *
                             </label>
-                            <select
-                                id="type"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                value={formData.type}
-                                onChange={(e) => handleTourTypeChange(e.target.value as TourType)}
+                            <input
+                                type="text"
+                                id="name"
+                                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${errors.name ? 'border-red-300' : 'border-gray-300'
+                                    }`}
+                                value={formData.name}
+                                onChange={(e) => handleInputChange('name', e.target.value)}
+                                placeholder="e.g., Kyoto Night Food Tour"
                                 required
-                            >
-                                <option value="NIGHT_TOUR">Night Tour</option>
-                                <option value="MORNING_TOUR">Morning Tour</option>
-                                <option value="UJI_TOUR">Uji Tour</option>
-                                <option value="GION_TOUR">Gion Tour</option>
-                            </select>
+                            />
+                            {errors.name && (
+                                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                            )}
                         </div>
 
-                        <div>
+                        <div className="col-span-1">
                             <label htmlFor="status" className="block text-sm font-medium text-gray-700">
                                 Status *
                             </label>
@@ -356,25 +423,6 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                            Tour Name *
-                        </label>
-                        <input
-                            type="text"
-                            id="name"
-                            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${errors.name ? 'border-red-300' : 'border-gray-300'
-                                }`}
-                            value={formData.name}
-                            onChange={(e) => handleInputChange('name', e.target.value)}
-                            placeholder="e.g., Kyoto Night Food Tour"
-                            required
-                        />
-                        {errors.name && (
-                            <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                        )}
                     </div>
 
                     <div>
@@ -406,14 +454,19 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
                                 id="duration_hours"
                                 min="0.5"
                                 step="0.5"
-                                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${errors.duration_hours ? 'border-red-300' : 'border-gray-300'
+                                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${errors.duration_minutes ? 'border-red-300' : 'border-gray-300'
                                     }`}
-                                value={formData.duration_hours}
-                                onChange={(e) => handleInputChange('duration_hours', parseFloat(e.target.value))}
+                                value={formData.duration_minutes / 60} // Convert minutes to hours for display
+                                onChange={(e) => {
+                                    const hours = parseFloat(e.target.value) || 0;
+                                    const minutes = hours * 60;
+                                    console.log('🕐 Duration changed:', { hours, minutes });
+                                    handleInputChange('duration_minutes', minutes);
+                                }} // Convert hours to minutes for storage
                                 required
                             />
-                            {errors.duration_hours && (
-                                <p className="mt-1 text-sm text-red-600">{errors.duration_hours}</p>
+                            {errors.duration_minutes && (
+                                <p className="mt-1 text-sm text-red-600">{errors.duration_minutes}</p>
                             )}
                         </div>
 
@@ -712,25 +765,7 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
                         </div>
                     </div>
 
-                    {/* Cancellation Policy */}
-                    <div>
-                        <label htmlFor="cancellation_policy" className="block text-sm font-medium text-gray-700">
-                            Cancellation Policy *
-                        </label>
-                        <textarea
-                            id="cancellation_policy"
-                            rows={4}
-                            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${errors.cancellation_policy ? 'border-red-300' : 'border-gray-300'
-                                }`}
-                            value={formData.cancellation_policy}
-                            onChange={(e) => handleInputChange('cancellation_policy', e.target.value)}
-                            placeholder="Describe your cancellation and refund policy..."
-                            required
-                        />
-                        {errors.cancellation_policy && (
-                            <p className="mt-1 text-sm text-red-600">{errors.cancellation_policy}</p>
-                        )}
-                    </div>
+
                 </div>
             )}
 
