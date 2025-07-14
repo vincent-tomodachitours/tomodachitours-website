@@ -229,13 +229,6 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
         handleInputChange(field, newArray);
     };
 
-    const handleTourTypeChange = (tourType: TourType) => {
-        setFormData(prev => ({
-            ...prev,
-            type: tourType
-        }));
-    };
-
     const addTimeSlot = () => {
         if (!newStartTime.trim() || !newEndTime.trim()) {
             setErrors(prev => ({ ...prev, newTimeSlot: 'Please enter both start and end times' }));
