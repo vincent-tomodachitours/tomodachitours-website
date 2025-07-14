@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ShiftService } from '../../services/shiftService';
 import { EmployeeService } from '../../services/employeeService';
-import { EmployeeShift, ShiftFormData, TourType, Employee } from '../../types';
+import { EmployeeShift, ShiftFormData, TourType } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { format } from 'date-fns';
 
@@ -175,15 +175,7 @@ const ShiftForm: React.FC<ShiftFormProps> = ({ shift, preselectedDate, onSuccess
         }
     };
 
-    const handleBulkDateChange = (date: string) => {
-        setBulkDates(prev => {
-            if (prev.includes(date)) {
-                return prev.filter(d => d !== date);
-            } else {
-                return [...prev, date].sort();
-            }
-        });
-    };
+
 
     const generateDateRange = (startDate: string, endDate: string) => {
         const dates: string[] = [];

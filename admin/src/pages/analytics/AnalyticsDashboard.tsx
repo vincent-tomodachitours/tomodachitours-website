@@ -10,10 +10,10 @@ import {
     ArrowDownTrayIcon,
     FunnelIcon
 } from '@heroicons/react/24/outline';
-import { AnalyticsService, AnalyticsData } from '../../services/analyticsService';
+import { AnalyticsService } from '../../services/analyticsService';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import {
     LineChart,
     Line,

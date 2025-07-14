@@ -7,7 +7,6 @@ import {
     PencilIcon,
     TrashIcon,
     DocumentDuplicateIcon,
-    StarIcon,
     MapPinIcon,
     ClockIcon,
     UsersIcon

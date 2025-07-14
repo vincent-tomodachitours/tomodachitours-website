@@ -5,8 +5,6 @@ import {
     MapPinIcon,
     ClockIcon,
     UsersIcon,
-    StarIcon,
-    GlobeAltIcon,
     CheckCircleIcon,
     XCircleIcon,
     ExclamationTriangleIcon

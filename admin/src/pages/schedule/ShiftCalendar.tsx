@@ -3,14 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
-    PlusIcon,
-    CalendarIcon,
-    UserGroupIcon,
-    ClockIcon
+    PlusIcon
 } from '@heroicons/react/24/outline';
 import { ShiftService } from '../../services/shiftService';
 import { EmployeeService } from '../../services/employeeService';
-import { EmployeeShift, Employee, TourType, ShiftStatus } from '../../types';
+import { EmployeeShift, TourType, ShiftStatus } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Badge, getStatusBadgeVariant } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
@@ -61,8 +58,7 @@ const ShiftCalendar: React.FC = () => {
     });
 
     const {
-        data: employees = [],
-        isLoading: employeesLoading
+        data: employees = []
     } = useQuery({
         queryKey: ['employees', { role: ['tour_guide'], status: ['active'] }],
         queryFn: () => EmployeeService.getEmployees({ role: ['tour_guide'], status: ['active'] }),
@@ -141,26 +137,7 @@ const ShiftCalendar: React.FC = () => {
         return colors[tourType] || 'bg-gray-100 text-gray-800 border-gray-200';
     };
 
-    const getTourTypeDisplay = (tourType: TourType) => {
-        const names = {
-            'NIGHT_TOUR': 'Night Tour',
-            'MORNING_TOUR': 'Morning Tour',
-            'UJI_TOUR': 'Uji Tour',
-            'GION_TOUR': 'Gion Tour'
-        };
-        return names[tourType] || tourType;
-    };
 
-    const getStatusDisplay = (status: ShiftStatus) => {
-        const names = {
-            'available': 'Available',
-            'assigned': 'Assigned',
-            'unavailable': 'Unavailable',
-            'completed': 'Completed',
-            'cancelled': 'Cancelled'
-        };
-        return names[status] || status;
-    };
 
     if (shiftsError) {
         return (

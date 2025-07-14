@@ -103,7 +103,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSuccess, onCanc
             newErrors.hire_date = 'Hire date is required';
         }
 
-        if (formData.phone && !/^[\+]?[\d\s\-\(\)]+$/.test(formData.phone)) {
+        if (formData.phone && !/^[+]?[\d\s\-()]+$/.test(formData.phone)) {
             newErrors.phone = 'Please enter a valid phone number';
         }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MagnifyingGlassIcon, FunnelIcon, PlusIcon, PencilIcon, TrashIcon, UserPlusIcon } from '@heroicons/react/24/outline';
 import { EmployeeService } from '../../services/employeeService';
@@ -47,14 +47,7 @@ const EmployeeList: React.FC = () => {
         refetchInterval: 30000, // Refetch every 30 seconds
     });
 
-    // Mutation for updating employee status
-    const updateStatusMutation = useMutation({
-        mutationFn: ({ id, status }: { id: string; status: EmployeeStatus }) =>
-            EmployeeService.updateEmployeeStatus(id, status),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-        },
-    });
+
 
     // Mutation for deleting employee
     const deleteEmployeeMutation = useMutation({
@@ -74,11 +67,7 @@ const EmployeeList: React.FC = () => {
         setShowEditModal(true);
     };
 
-    const handleStatusChange = (employee: Employee, newStatus: EmployeeStatus) => {
-        if (window.confirm(`Are you sure you want to change ${employee.first_name} ${employee.last_name}'s status to ${newStatus}?`)) {
-            updateStatusMutation.mutate({ id: employee.id, status: newStatus });
-        }
-    };
+
 
     const handleDeleteEmployee = (employee: Employee) => {
         if (window.confirm(`Are you sure you want to terminate ${employee.first_name} ${employee.last_name}? This action cannot be undone.`)) {
