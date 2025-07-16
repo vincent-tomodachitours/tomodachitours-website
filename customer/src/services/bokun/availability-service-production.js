@@ -42,23 +42,14 @@ export class BokunAvailabilityService {
      * Fetch availability using secure backend API
      */
     async fetchSecureAvailability(bokunProductId, date, timeSlot = null) {
-        console.log(`🔐 Fetching secure availability for product ${bokunProductId} on ${date}`);
-        console.log(`🔍 Date type: ${typeof date}, Date value: ${date}`);
-
         const response = await this.api.getAvailabilities(bokunProductId, date, date);
-
-        console.log('🔍 Raw Bokun API response:', response);
-        console.log('🔍 Response type:', typeof response);
-        console.log('🔍 Is array:', Array.isArray(response));
 
         if (!response) {
             throw new Error('No response from secure API');
         }
 
         if (!Array.isArray(response)) {
-            console.log('🔍 Response is not array, checking if it has availabilities property...');
             if (response.availabilities && Array.isArray(response.availabilities)) {
-                console.log('✅ Found availabilities array in response');
                 const availabilities = response.availabilities;
                 return this.processAvailabilityResponse(availabilities, timeSlot);
             } else {
@@ -73,8 +64,6 @@ export class BokunAvailabilityService {
      * Process availability response (extracted for reuse)
      */
     processAvailabilityResponse(availabilities, timeSlot = null) {
-        console.log('🔄 Processing availability response:', availabilities);
-
         // Find the specific time slot or get general availability
         let targetAvailability = null;
         if (timeSlot && availabilities.length > 0) {
@@ -84,7 +73,6 @@ export class BokunAvailabilityService {
         }
 
         if (!targetAvailability) {
-            console.log('⚠️ No target availability found');
             return {
                 available: false,
                 availableSpots: 0,
@@ -93,8 +81,6 @@ export class BokunAvailabilityService {
                 source: 'secure_api'
             };
         }
-
-        console.log('✅ Found target availability:', targetAvailability);
 
         const availableSpots = targetAvailability.availabilityCount || 0;
         const isUnlimited = targetAvailability.unlimitedAvailability || false;
@@ -109,7 +95,6 @@ export class BokunAvailabilityService {
             bokunAvailability: targetAvailability
         };
 
-        console.log('✅ Processed availability result:', result);
         return result;
     }
 
@@ -117,12 +102,7 @@ export class BokunAvailabilityService {
      * Fetch time slots using secure backend API
      */
     async fetchSecureTimeSlots(bokunProductId, date) {
-        console.log(`🔐 Fetching secure time slots for product ${bokunProductId} on ${date}`);
-        console.log(`🔍 Date type: ${typeof date}, Date value: ${date}`);
-
         const response = await this.api.getAvailabilities(bokunProductId, date, date);
-
-        console.log('🔍 Raw time slots response:', response);
 
         let availabilities = response;
 
@@ -131,7 +111,6 @@ export class BokunAvailabilityService {
             if (response && response.availabilities && Array.isArray(response.availabilities)) {
                 availabilities = response.availabilities;
             } else {
-                console.log('⚠️ Invalid time slots response format');
                 return [];
             }
         }
@@ -146,8 +125,6 @@ export class BokunAvailabilityService {
                 startTimeId: avail.startTimeId,
                 source: 'secure_api'
             }));
-
-        console.log('✅ Processed time slots:', timeSlots);
         return timeSlots;
     }
 
@@ -185,11 +162,11 @@ export class BokunAvailabilityService {
     }
 
     async updateAvailabilityCache(bokunProductId, date, timeSlot, availability) {
-        console.log('📝 Cache update skipped in production service');
+        // Cache update skipped in production service
     }
 
     async invalidateCache(tourType, date = null, timeSlot = null) {
-        console.log('🗑️ Cache invalidation skipped in production service');
+        // Cache invalidation skipped in production service
     }
 }
 

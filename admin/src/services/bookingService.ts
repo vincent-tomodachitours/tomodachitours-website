@@ -1,63 +1,65 @@
 import { supabase } from '../lib/supabase';
 import { Booking, BookingFilters, EmployeeShift } from '../types';
+import { BokunBookingService } from './bokunBookingService';
 
 export class BookingService {
     /**
-     * Fetch bookings with optional filters
+     * Fetch bookings with optional filters (includes local + external Bokun bookings)
      */
     static async getBookings(filters?: BookingFilters): Promise<Booking[]> {
         try {
-            let query = supabase
-                .from('bookings')
-                .select(`
-                    *,
-                    assigned_guide:employees!assigned_guide_id (
-                        id,
-                        first_name,
-                        last_name,
-                        employee_code,
-                        email,
-                        phone,
-                        role,
-                        status
-                    )
-                `)
-                .order('booking_date', { ascending: false });
+            console.log('🔍 BookingService: Fetching all bookings (local + external)');
 
-            // Apply filters
+            // Convert BookingFilters to BokunBookingFilters format
+            const bokunFilters = filters ? {
+                startDate: filters.dateRange?.start.toISOString().split('T')[0],
+                endDate: filters.dateRange?.end.toISOString().split('T')[0],
+                // Note: Bokun filters don't support all the same filters as local ones
+            } : undefined;
+
+            // Get all bookings from Bokun service (which includes local + external)
+            const allBookings = await BokunBookingService.getAllBookings(bokunFilters);
+
+            // Apply remaining filters that weren't handled by Bokun service
+            let filteredBookings = allBookings;
+
             if (filters) {
-                if (filters.dateRange) {
-                    query = query
-                        .gte('booking_date', filters.dateRange.start.toISOString().split('T')[0])
-                        .lte('booking_date', filters.dateRange.end.toISOString().split('T')[0]);
-                }
-
                 if (filters.tourType && filters.tourType.length > 0) {
-                    query = query.in('tour_type', filters.tourType);
+                    filteredBookings = filteredBookings.filter(booking =>
+                        filters.tourType!.includes(booking.tour_type as any)
+                    );
                 }
 
                 if (filters.status && filters.status.length > 0) {
-                    query = query.in('status', filters.status);
+                    filteredBookings = filteredBookings.filter(booking =>
+                        filters.status!.includes(booking.status as any)
+                    );
                 }
 
                 if (filters.assignedGuide && filters.assignedGuide.length > 0) {
-                    query = query.in('assigned_guide_id', filters.assignedGuide);
+                    filteredBookings = filteredBookings.filter(booking =>
+                        booking.assigned_guide_id && filters.assignedGuide!.includes(booking.assigned_guide_id)
+                    );
                 }
 
                 if (filters.searchQuery) {
-                    const searchTerm = `%${filters.searchQuery}%`;
-                    query = query.or(`customer_name.ilike.${searchTerm},customer_email.ilike.${searchTerm}`);
+                    const searchTerm = filters.searchQuery.toLowerCase();
+                    filteredBookings = filteredBookings.filter(booking =>
+                        booking.customer_name.toLowerCase().includes(searchTerm) ||
+                        booking.customer_email.toLowerCase().includes(searchTerm)
+                    );
                 }
             }
 
-            const { data, error } = await query;
+            // Sort by booking date (most recent first)
+            filteredBookings.sort((a, b) => {
+                const dateA = new Date(`${a.booking_date}T${a.booking_time}`);
+                const dateB = new Date(`${b.booking_date}T${b.booking_time}`);
+                return dateB.getTime() - dateA.getTime();
+            });
 
-            if (error) {
-                console.error('Error fetching bookings:', error);
-                throw error;
-            }
-
-            return data || [];
+            console.log(`✅ BookingService: Returning ${filteredBookings.length} filtered bookings`);
+            return filteredBookings;
         } catch (error) {
             console.error('BookingService.getBookings error:', error);
             throw error;

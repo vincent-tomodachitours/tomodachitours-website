@@ -16,6 +16,23 @@ import { BookingService } from '../../services/bookingService';
 import { Booking, BookingStatus } from '../../types';
 import { format } from 'date-fns';
 
+// Safe date formatting function that handles invalid dates
+const safeFormatDate = (dateValue: any, formatString: string, fallback: string = 'Invalid Date'): string => {
+    if (!dateValue) return fallback;
+
+    try {
+        const date = new Date(dateValue);
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date value:', dateValue);
+            return fallback;
+        }
+        return format(date, formatString);
+    } catch (error) {
+        console.warn('Date formatting error:', error, 'for value:', dateValue);
+        return fallback;
+    }
+};
+
 interface BookingDetailsModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -222,7 +239,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
                                 Date
                             </p>
                             <p className="font-medium">
-                                {format(new Date(booking.booking_date), 'EEEE, MMMM dd, yyyy')}
+                                {safeFormatDate(booking.booking_date, 'EEEE, MMMM dd, yyyy', 'Invalid Date')}
                             </p>
                         </div>
                         <div>
@@ -247,7 +264,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
                         <div>
                             <p className="text-sm text-gray-600">Booking Date</p>
                             <p className="font-medium">
-                                {format(new Date(booking.created_at), 'MMM dd, yyyy HH:mm')}
+                                {safeFormatDate(booking.created_at, 'MMM dd, yyyy HH:mm', 'Unknown Date')}
                             </p>
                         </div>
                         {booking.charge_id && (

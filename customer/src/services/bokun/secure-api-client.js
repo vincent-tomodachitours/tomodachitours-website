@@ -37,8 +37,6 @@ export class SecureBokunAPI {
             config.body = JSON.stringify(data);
         }
 
-        console.log(`🔗 Making secure request: ${method} ${url}`);
-
         const response = await fetch(url, config);
 
         if (!response.ok) {
@@ -76,6 +74,34 @@ export class SecureBokunAPI {
         });
 
         return this.makeRequest(`/availabilities?${params}`, 'GET');
+    }
+
+    /**
+     * Get bookings for a specific product and date range
+     */
+    async getBookings(productId, startDate, endDate) {
+        // Ensure dates are in YYYY-MM-DD format, not ISO timestamps
+        const formatDate = (date) => {
+            if (typeof date === 'string' && date.includes('T')) {
+                // Convert ISO timestamp to date-only
+                return date.split('T')[0];
+            }
+            return date;
+        };
+
+        const params = new URLSearchParams({
+            productId,
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate)
+        });
+
+        console.log('📅 Fetching Bokun bookings:', {
+            productId,
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate)
+        });
+
+        return this.makeRequest(`/bookings?${params}`, 'GET');
     }
 
     /**

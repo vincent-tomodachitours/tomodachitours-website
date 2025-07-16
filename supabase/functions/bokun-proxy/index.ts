@@ -44,7 +44,7 @@ serve(async (req) => {
         }
 
         // Proxy different Bokun endpoints
-        if (pathname.includes('/availabilities') || req.method === 'GET') {
+        if (pathname.includes('/availabilities')) {
             // GET /availabilities?activityId=15221&startDate=2025-06-26&endDate=2025-06-26
             const activityId = url.searchParams.get('activityId')
             let startDate = url.searchParams.get('startDate')
@@ -98,11 +98,196 @@ serve(async (req) => {
                 }
             })
 
+            console.log('Bokun availability API response status:', bokunResponse.status)
+
+            if (!bokunResponse.ok) {
+                const errorText = await bokunResponse.text()
+                console.error('Bokun availability API error:', {
+                    status: bokunResponse.status,
+                    statusText: bokunResponse.statusText,
+                    error: errorText,
+                    url: `${bokunBaseURL}${bokunPath}`,
+                    headers: {
+                        'X-Bokun-Date': timestamp,
+                        'X-Bokun-AccessKey': BOKUN_PUBLIC_KEY,
+                        'X-Bokun-Signature': 'REDACTED'
+                    }
+                })
+                return new Response(JSON.stringify({ error: `Bokun API error: ${bokunResponse.status} ${errorText}` }), {
+                    status: bokunResponse.status,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                })
+            }
+
             const data = await bokunResponse.json()
 
             return new Response(JSON.stringify(data), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             })
+        }
+
+        // Get bookings for a specific product and date range
+        if (pathname.includes('/bookings')) {
+            const productId = url.searchParams.get('productId')
+            let startDate = url.searchParams.get('startDate')
+            let endDate = url.searchParams.get('endDate')
+
+            console.log('Bokun proxy bookings endpoint called with:', {
+                pathname,
+                productId,
+                startDate,
+                endDate,
+                searchParams: url.searchParams.toString()
+            })
+
+            if (!productId || !startDate || !endDate) {
+                console.log('Missing parameters detected:', {
+                    productId: !!productId,
+                    startDate: !!startDate,
+                    endDate: !!endDate
+                })
+                return new Response(JSON.stringify({ error: 'Missing required parameters: productId, startDate, endDate' }), {
+                    status: 400,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                })
+            }
+
+            // Format dates to YYYY-MM-DD
+            const formatDate = (date: string) => {
+                if (date.includes('T')) {
+                    return date.split('T')[0]
+                }
+                return date
+            }
+
+            startDate = formatDate(startDate)
+            endDate = formatDate(endDate)
+
+            console.log('Fetching ALL Bokun bookings for product (with pagination):', { productId, startDate, endDate })
+
+            // Function to fetch a single page of bookings
+            async function fetchBokunPage(page: number = 1): Promise<any> {
+                const bokunPath = `/booking.json/product-booking-search`
+
+                // Create request body with pagination
+                const requestBody = {
+                    productId: productId,
+                    startDate: startDate,
+                    endDate: endDate,
+                    page: page,
+                    size: 100 // Request larger page size to reduce number of requests
+                }
+
+                const now = new Date()
+                const year = now.getUTCFullYear()
+                const month = String(now.getUTCMonth() + 1).padStart(2, '0')
+                const day = String(now.getUTCDate()).padStart(2, '0')
+                const hours = String(now.getUTCHours()).padStart(2, '0')
+                const minutes = String(now.getUTCMinutes()).padStart(2, '0')
+                const seconds = String(now.getUTCSeconds()).padStart(2, '0')
+                const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+
+                const signature = await createSignature('POST', bokunPath, timestamp)
+
+                const bokunBaseURL = Deno.env.get('BOKUN_API_URL') || 'https://api.bokun.io'
+                const response = await fetch(`${bokunBaseURL}${bokunPath}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Bokun-Date': timestamp,
+                        'X-Bokun-AccessKey': BOKUN_PUBLIC_KEY,
+                        'X-Bokun-Signature': signature,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                })
+
+                if (!response.ok) {
+                    const errorText = await response.text()
+                    console.error(`Bokun page ${page} API error:`, {
+                        status: response.status,
+                        error: errorText
+                    })
+                    throw new Error(`Bokun API error: ${response.status}`)
+                }
+
+                return await response.json()
+            }
+
+            try {
+                // Fetch all pages of bookings
+                const allBookings: any[] = []
+                let page = 1
+                let totalHits = 0
+                let hasMorePages = true
+
+                while (hasMorePages) {
+                    console.log(`Fetching Bokun bookings page ${page} for product ${productId}`)
+
+                    const pageData = await fetchBokunPage(page)
+
+                    if (page === 1) {
+                        totalHits = pageData.totalHits || 0
+                        console.log(`Total bookings available: ${totalHits}`)
+                    }
+
+                    if (pageData.results && Array.isArray(pageData.results)) {
+                        allBookings.push(...pageData.results)
+                        console.log(`Page ${page}: fetched ${pageData.results.length} bookings (total so far: ${allBookings.length})`)
+
+                        // Check if we have more pages
+                        if (pageData.results.length === 0 || allBookings.length >= totalHits) {
+                            hasMorePages = false
+                        } else {
+                            page++
+                        }
+                    } else {
+                        console.log(`Page ${page}: No results array found, stopping pagination`)
+                        hasMorePages = false
+                    }
+
+                    // Safety check to prevent infinite loops
+                    if (page > 50) {
+                        console.warn('Reached maximum page limit (50), stopping pagination')
+                        break
+                    }
+                }
+
+                console.log(`✅ Successfully fetched ${allBookings.length} total bookings from ${page} pages`)
+
+                // Return all bookings in the same format as the original API
+                const response = {
+                    tookInMillis: Date.now() % 1000, // Approximate timing
+                    totalHits: allBookings.length,
+                    results: allBookings,
+                    paginationInfo: {
+                        totalPages: page,
+                        totalBookingsFetched: allBookings.length,
+                        originalTotalHits: totalHits
+                    }
+                }
+
+                return new Response(JSON.stringify(response), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                })
+
+            } catch (error) {
+                console.error('Error fetching paginated Bokun bookings:', error)
+
+                // Fallback: try to fetch just the first page
+                try {
+                    const firstPageData = await fetchBokunPage(1)
+                    console.log('Fallback: returning first page only')
+                    return new Response(JSON.stringify(firstPageData), {
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                    })
+                } catch (fallbackError) {
+                    console.error('Fallback also failed:', fallbackError)
+                    return new Response(JSON.stringify({ error: 'Failed to fetch bookings', results: [] }), {
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                    })
+                }
+            }
         }
 
         return new Response(JSON.stringify({ error: 'Endpoint not found' }), {

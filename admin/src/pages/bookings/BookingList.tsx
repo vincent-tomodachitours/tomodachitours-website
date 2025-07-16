@@ -1,44 +1,101 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, UserIcon } from '@heroicons/react/24/outline';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, UserIcon, ArrowPathIcon, TrashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { BookingService } from '../../services/bookingService';
-import { Booking, BookingFilters, TourType, BookingStatus } from '../../types';
+import { BokunBookingService } from '../../services/bokunBookingService';
+import { BookingFilters, TourType, BookingStatus } from '../../types';
 import { Badge, getStatusBadgeVariant, getTourTypeBadgeVariant, formatTourType } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import BookingDetailsModal from './BookingDetailsModal';
 import { format } from 'date-fns';
 
+// Safe date formatting function that handles invalid dates
+const safeFormatDate = (dateValue: any, formatString: string, fallback: string = 'Invalid Date'): string => {
+    if (!dateValue) return fallback;
+
+    try {
+        const date = new Date(dateValue);
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date value:', dateValue);
+            return fallback;
+        }
+        return format(date, formatString);
+    } catch (error) {
+        console.warn('Date formatting error:', error, 'for value:', dateValue);
+        return fallback;
+    }
+};
+
 const BookingList: React.FC = () => {
     const [filters, setFilters] = useState<BookingFilters>({});
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
-    const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+    const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showCacheManager, setShowCacheManager] = useState(false);
 
-    // Query for bookings
+    const queryClient = useQueryClient();
+
+    // Query for all bookings (local + external Bokun bookings)
     const {
-        data: bookings = [],
+        data: allBookings = [],
         isLoading,
         error,
         refetch
     } = useQuery({
         queryKey: ['bookings', filters],
         queryFn: () => BookingService.getBookings(filters),
-        refetchInterval: 30000, // Refetch every 30 seconds
+        refetchInterval: 30000,
+        // refetchOnWindowFocus is already disabled globally in QueryProvider
     });
 
-    // Update filters when search query changes
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setFilters(prev => ({
-                ...prev,
-                searchQuery: searchQuery.trim() || undefined
-            }));
-        }, 300); // Debounce search
+    // Query cache health
+    const { data: cacheHealth, refetch: refetchCacheHealth } = useQuery({
+        queryKey: ['cache-health'],
+        queryFn: () => BokunBookingService.getCacheHealth(),
+        refetchInterval: 60000, // Check every minute
+        // refetchOnWindowFocus is already disabled globally in QueryProvider
+    });
 
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
+    // Cache sync mutation
+    const syncCacheMutation = useMutation({
+        mutationFn: () => BokunBookingService.syncBokunCache(),
+        onSuccess: (result) => {
+            if (result.success) {
+                // Refresh bookings and cache health after successful sync
+                refetch();
+                refetchCacheHealth();
+                queryClient.invalidateQueries({ queryKey: ['bookings'] });
+            }
+        }
+    });
+
+    // Cache clear mutation
+    const clearCacheMutation = useMutation({
+        mutationFn: () => BokunBookingService.clearCache(),
+        onSuccess: (result) => {
+            if (result.success) {
+                // Refresh bookings and cache health after clearing
+                refetch();
+                refetchCacheHealth();
+                queryClient.invalidateQueries({ queryKey: ['bookings'] });
+            }
+        }
+    });
+
+    // Apply search filtering client-side for better performance
+    const bookings = useMemo(() => {
+        if (!searchQuery.trim()) {
+            return allBookings;
+        }
+
+        const searchTerm = searchQuery.toLowerCase();
+        return allBookings.filter(booking =>
+            booking.customer_name.toLowerCase().includes(searchTerm) ||
+            booking.customer_email.toLowerCase().includes(searchTerm)
+        );
+    }, [allBookings, searchQuery]);
 
     // Filter state for the UI
     const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
@@ -67,10 +124,6 @@ const BookingList: React.FC = () => {
             newFilters.status = selectedStatuses;
         }
 
-        if (searchQuery.trim()) {
-            newFilters.searchQuery = searchQuery.trim();
-        }
-
         setFilters(newFilters);
         setShowFilters(false);
     };
@@ -86,7 +139,7 @@ const BookingList: React.FC = () => {
     };
 
     // Handle booking click
-    const handleBookingClick = (booking: Booking) => {
+    const handleBookingClick = (booking: any) => {
         setSelectedBooking(booking);
         setShowDetailsModal(true);
     };
@@ -132,9 +185,13 @@ const BookingList: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-                <p className="text-gray-600">Manage and track all tour bookings</p>
+            <div className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
+                    <p className="text-gray-600">
+                        All bookings (direct website bookings + external Bokun bookings)
+                    </p>
+                </div>
             </div>
 
             {/* Search and Filter Bar */}
@@ -170,6 +227,25 @@ const BookingList: React.FC = () => {
                             )}
                         </Button>
 
+                        {/* Cache Management Button */}
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowCacheManager(true)}
+                            className="relative"
+                        >
+                            <ArrowPathIcon className="h-5 w-5 mr-2" />
+                            Cache
+                            {cacheHealth?.success && cacheHealth.data && (
+                                <Badge
+                                    variant="primary"
+                                    size="sm"
+                                    className="ml-2"
+                                >
+                                    {cacheHealth.data.total_cached_bookings}
+                                </Badge>
+                            )}
+                        </Button>
+
                         {/* Refresh Button */}
                         <Button variant="ghost" onClick={() => refetch()}>
                             Refresh
@@ -179,17 +255,21 @@ const BookingList: React.FC = () => {
             </div>
 
             {/* Bookings Table */}
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-                <div className="px-4 py-5 sm:p-6">
-                    {bookings.length === 0 ? (
-                        <div className="text-center py-12">
-                            <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">No bookings found</h3>
-                            <p className="mt-1 text-sm text-gray-500">
-                                {Object.keys(filters).length > 0
-                                    ? 'Try adjusting your filters'
-                                    : 'No bookings have been made yet'}
+            <div className="bg-white shadow rounded-lg">
+                <div className="p-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900">All Bookings</h2>
+                            <p className="text-sm text-gray-600">
+                                {bookings.length} total bookings
                             </p>
+                        </div>
+                    </div>
+
+                    {bookings.length === 0 ? (
+                        <div className="text-center py-8">
+                            <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-500">No bookings found</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
@@ -212,6 +292,9 @@ const BookingList: React.FC = () => {
                                             Participants
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Source
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Guide
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -223,64 +306,62 @@ const BookingList: React.FC = () => {
                                     {bookings.map((booking) => (
                                         <tr
                                             key={booking.id}
-                                            onClick={() => handleBookingClick(booking)}
                                             className="hover:bg-gray-50 cursor-pointer"
+                                            onClick={() => handleBookingClick(booking)}
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm">
-                                                    <div className="font-medium text-gray-900">#{booking.id}</div>
-                                                    <div className="text-gray-500">
-                                                        {format(new Date(booking.created_at), 'MMM dd, yyyy')}
-                                                    </div>
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    #{booking.id}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {safeFormatDate(booking.created_at, 'MMM d, yyyy', 'Unknown Date')}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm">
-                                                    <div className="font-medium text-gray-900">{booking.customer_name}</div>
-                                                    <div className="text-gray-500">{booking.customer_email}</div>
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {booking.customer_name}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {booking.customer_email}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <Badge
-                                                    variant={getTourTypeBadgeVariant(booking.tour_type)}
-                                                    size="sm"
-                                                >
+                                                <Badge variant={getTourTypeBadgeVariant(booking.tour_type)}>
                                                     {formatTourType(booking.tour_type)}
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm">
-                                                    <div className="font-medium text-gray-900">
-                                                        {format(new Date(booking.booking_date), 'MMM dd, yyyy')}
-                                                    </div>
-                                                    <div className="text-gray-500">{booking.booking_time}</div>
+                                                <div className="text-sm text-gray-900">
+                                                    {safeFormatDate(booking.booking_date, 'MMM d, yyyy', 'Invalid Date')}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {booking.booking_time}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-gray-900">
-                                                    {booking.adults + booking.children + booking.infants} total
-                                                    <div className="text-gray-500 text-xs">
-                                                        {booking.adults}A {booking.children}C {booking.infants}I
-                                                    </div>
+                                                    {booking.total_participants} total
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {booking.adults}A {booking.children}C {booking.infants}I
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
+                                                <Badge variant={(booking.external_source || 'website') === 'bokun' ? 'warning' : 'primary'}>
+                                                    {(booking.external_source || 'website') === 'bokun' ? 'Bokun' : 'Website'}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
                                                 {booking.assigned_guide ? (
-                                                    <div className="flex items-center">
-                                                        <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
-                                                        <span className="text-sm text-gray-900">
-                                                            {booking.assigned_guide.first_name} {booking.assigned_guide.last_name}
-                                                        </span>
+                                                    <div className="text-sm text-gray-900">
+                                                        {booking.assigned_guide.first_name} {booking.assigned_guide.last_name}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-sm text-gray-400">Unassigned</span>
+                                                    <span className="text-sm text-gray-500">Unassigned</span>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <Badge
-                                                    variant={getStatusBadgeVariant(booking.status)}
-                                                    size="sm"
-                                                >
+                                                <Badge variant={getStatusBadgeVariant(booking.status)}>
                                                     {booking.status}
                                                 </Badge>
                                             </td>
@@ -298,7 +379,6 @@ const BookingList: React.FC = () => {
                 isOpen={showFilters}
                 onClose={() => setShowFilters(false)}
                 title="Filter Bookings"
-                size="md"
             >
                 <div className="space-y-6">
                     {/* Date Range */}
@@ -307,18 +387,24 @@ const BookingList: React.FC = () => {
                             Date Range
                         </label>
                         <div className="grid grid-cols-2 gap-4">
-                            <input
-                                type="date"
-                                value={dateRange.start}
-                                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                                className="border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                            <input
-                                type="date"
-                                value={dateRange.end}
-                                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                                className="border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            />
+                            <div>
+                                <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                                <input
+                                    type="date"
+                                    value={dateRange.start}
+                                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                                <input
+                                    type="date"
+                                    value={dateRange.end}
+                                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -391,6 +477,161 @@ const BookingList: React.FC = () => {
                                 Apply Filters
                             </Button>
                         </div>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Cache Management Modal */}
+            <Modal
+                isOpen={showCacheManager}
+                onClose={() => setShowCacheManager(false)}
+                title="Bokun Cache Management"
+            >
+                <div className="space-y-6">
+                    {/* Cache Status */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="text-lg font-medium text-gray-900 mb-3">Cache Status</h3>
+
+                        {cacheHealth?.success && cacheHealth.data ? (
+                            <div className="space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Total Cached Bookings:</span>
+                                    <Badge variant="primary">
+                                        {cacheHealth.data.total_cached_bookings.toLocaleString()}
+                                    </Badge>
+                                </div>
+
+                                {cacheHealth.data.products_metadata?.length > 0 && (
+                                    <div className="mt-4">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2">Products Status:</h4>
+                                        <div className="space-y-1">
+                                            {cacheHealth.data.products_metadata.map((product: any) => (
+                                                <div key={product.product_id} className="flex justify-between text-sm">
+                                                    <span className="text-gray-600">Product {product.product_id}:</span>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Badge
+                                                            variant={product.sync_status === 'completed' ? 'success' :
+                                                                product.sync_status === 'error' ? 'danger' : 'warning'}
+                                                            size="sm"
+                                                        >
+                                                            {product.sync_status}
+                                                        </Badge>
+                                                        {product.total_bookings_cached && (
+                                                            <span className="text-gray-500">
+                                                                ({product.total_bookings_cached} bookings)
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : cacheHealth?.error ? (
+                            <div className="text-red-600 flex items-center">
+                                <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
+                                Error: {cacheHealth.error}
+                            </div>
+                        ) : (
+                            <div className="text-gray-500">Loading cache status...</div>
+                        )}
+                    </div>
+
+                    {/* Sync Status */}
+                    {(syncCacheMutation.isPending || syncCacheMutation.data) && (
+                        <div className="bg-blue-50 rounded-lg p-4">
+                            <h3 className="text-lg font-medium text-blue-900 mb-2">Sync Status</h3>
+
+                            {syncCacheMutation.isPending && (
+                                <div className="flex items-center text-blue-700">
+                                    <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
+                                    Syncing cache... This may take a few minutes.
+                                </div>
+                            )}
+
+                            {syncCacheMutation.data && (
+                                <div className={`${syncCacheMutation.data.success ? 'text-green-700' : 'text-red-700'}`}>
+                                    {syncCacheMutation.data.message}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Clear Status */}
+                    {(clearCacheMutation.isPending || clearCacheMutation.data) && (
+                        <div className="bg-orange-50 rounded-lg p-4">
+                            <h3 className="text-lg font-medium text-orange-900 mb-2">Clear Status</h3>
+
+                            {clearCacheMutation.isPending && (
+                                <div className="flex items-center text-orange-700">
+                                    <TrashIcon className="h-5 w-5 mr-2" />
+                                    Clearing cache...
+                                </div>
+                            )}
+
+                            {clearCacheMutation.data && (
+                                <div className={`${clearCacheMutation.data.success ? 'text-green-700' : 'text-red-700'}`}>
+                                    {clearCacheMutation.data.message}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex justify-between pt-4 border-t border-gray-200">
+                        <div className="space-x-3">
+                            <Button
+                                onClick={() => syncCacheMutation.mutate()}
+                                disabled={syncCacheMutation.isPending || clearCacheMutation.isPending}
+                                className="bg-blue-600 hover:bg-blue-700"
+                            >
+                                {syncCacheMutation.isPending ? (
+                                    <>
+                                        <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
+                                        Syncing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <ArrowPathIcon className="h-4 w-4 mr-2" />
+                                        Sync Cache
+                                    </>
+                                )}
+                            </Button>
+
+                            <Button
+                                variant="ghost"
+                                onClick={() => clearCacheMutation.mutate()}
+                                disabled={syncCacheMutation.isPending || clearCacheMutation.isPending}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                                {clearCacheMutation.isPending ? (
+                                    <>
+                                        <TrashIcon className="h-4 w-4 mr-2" />
+                                        Clearing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <TrashIcon className="h-4 w-4 mr-2" />
+                                        Clear Cache
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowCacheManager(false)}
+                        >
+                            Close
+                        </Button>
+                    </div>
+
+                    {/* Help Text */}
+                    <div className="text-sm text-gray-500 bg-gray-50 rounded p-3">
+                        <p><strong>Sync Cache:</strong> Fetches latest bookings from Bokun API and stores them locally for fast access.</p>
+                        <p><strong>Clear Cache:</strong> Removes all cached data. Cache will be empty until next sync.</p>
+                        <p className="mt-2 text-xs">💡 Tip: Cache is automatically used for fast loading. Sync when you need latest data.</p>
                     </div>
                 </div>
             </Modal>

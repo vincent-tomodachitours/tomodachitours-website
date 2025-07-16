@@ -70,6 +70,9 @@ export interface Booking {
     assigned_guide_id?: string;
     guide_notes?: string;
     assigned_guide?: Employee;
+    external_source?: string;
+    bokun_booking_id?: string;
+    bokun_synced?: boolean;
 }
 
 // Admin activity log interface

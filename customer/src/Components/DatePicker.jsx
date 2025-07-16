@@ -6,6 +6,7 @@ import { ReactComponent as Clock } from '../SVG/Clock.svg'
 import Checkout from './Checkout'
 import { supabase } from '../lib/supabase';
 import { bokunAvailabilityService } from '../services/bokun/availability-service-production';
+import { bokunBookingService } from '../services/bokun/booking-service.js';
 
 function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime }) {
     const [checkout, setCheckout] = useState(false);
@@ -67,12 +68,10 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
         // Only process bookings if it's an array (not the initial "Loading" string)
         if (Array.isArray(bookings)) {
-            console.log('Processing bookings array:', bookings);
             bookings.forEach((booking) => {
                 if (booking.booking_date && booking.booking_time) {
                     const formattedDate = booking.booking_date;
                     const timeSlot = booking.booking_time;
-                    console.log('Processing booking:', { formattedDate, timeSlot, booking });
 
                     // Initialize date entry if it doesn't exist
                     if (!dateMap[formattedDate]) {
@@ -87,11 +86,9 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
                     // Calculate total participants using the new schema
                     const totalParticipants = booking.adults + booking.children;
-                    console.log('Adding participants:', { formattedDate, timeSlot, totalParticipants });
                     dateMap[formattedDate][timeSlot] += totalParticipants;
                 }
             });
-            console.log('Final participantsByDate:', dateMap);
         }
 
         return dateMap;
@@ -105,6 +102,14 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         const newAvailabilityData = {};
 
         try {
+            // Get current preloaded availability data
+            const currentPreloadedAvailability = await new Promise(resolve => {
+                setPreloadedAvailability(current => {
+                    resolve(current);
+                    return current;
+                });
+            });
+
             const currentDate = new Date(startDate);
             const promises = [];
 
@@ -112,9 +117,9 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 const dateKey = currentDate.toLocaleDateString("en-CA");
 
                 // Skip if we already have recent data for this date
-                if (preloadedAvailability[dateKey] &&
-                    (Date.now() - preloadedAvailability[dateKey].timestamp) < 5 * 60 * 1000) {
-                    newAvailabilityData[dateKey] = preloadedAvailability[dateKey];
+                if (currentPreloadedAvailability[dateKey] &&
+                    (Date.now() - currentPreloadedAvailability[dateKey].timestamp) < 5 * 60 * 1000) {
+                    newAvailabilityData[dateKey] = currentPreloadedAvailability[dateKey];
                     currentDate.setDate(currentDate.getDate() + 1);
                     continue;
                 }
@@ -169,7 +174,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         } finally {
             setAvailabilityLoading(false);
         }
-    }, [sheetId, availableTimes, preloadedAvailability]);
+    }, [sheetId, availableTimes]);
 
 
 
@@ -180,20 +185,14 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         const dateKey = date.toLocaleDateString("en-CA");
 
         try {
-            console.log(`🔍 DatePicker: Fetching Bokun time slots for ${sheetId} on ${dateKey}`);
-            console.log(`🔍 DatePicker: Available times fallback:`, availableTimes);
-
             // Get Bokun time slots
             const bokunTimeSlots = await bokunAvailabilityService.getAvailableTimeSlots(sheetId, dateKey);
-            console.log('🎯 DatePicker: Bokun time slots received:', bokunTimeSlots);
 
             // If we have Bokun data, use it; otherwise fall back to configured times
             if (bokunTimeSlots && bokunTimeSlots.length > 0) {
                 const timeSlotsList = bokunTimeSlots.map(slot => slot.time);
-                console.log('✅ DatePicker: Using Bokun time slots:', timeSlotsList);
                 return timeSlotsList;
             } else {
-                console.log('⚠️ DatePicker: No Bokun time slots, using configured times:', availableTimes);
                 return availableTimes;
             }
         } catch (error) {
@@ -219,52 +218,59 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         const tourType = tourTypeMap[sheetId];
 
         if (!tourType) {
+            console.error(`❌ Invalid tour type: ${sheetId}`);
             throw new Error(`Invalid tour type: ${sheetId}`);
         }
 
-        const { data, error } = await supabase
-            .from('bookings')
-            .select('*')
-            .eq('tour_type', tourType)
-            .eq('status', 'CONFIRMED');
+        try {
+            // Fetch all bookings (local + external Bokun bookings)
+            const allBookings = await bokunBookingService.getAllBookings(tourType);
+            setBookings(allBookings);
+        } catch (error) {
+            console.error('❌ Error fetching bookings, falling back to local only:', error);
 
-        if (error) {
-            throw error;
+            // Fallback to local bookings only if Bokun service fails
+            const { data, error: supabaseError } = await supabase
+                .from('bookings')
+                .select('*')
+                .eq('tour_type', tourType)
+                .eq('status', 'CONFIRMED');
+
+            if (supabaseError) {
+                console.error('❌ Supabase fallback error:', supabaseError);
+                throw supabaseError;
+            }
+            setBookings(data || []);
         }
-
-        setBookings(data);
     }, [sheetId]);
 
     const returnAvailableTimes = useCallback(async (date, participants) => {
         const formattedDate = date.toLocaleDateString("en-CA");
         const dayData = participantsByDate[formattedDate] || {};
 
-        console.log(`🎯 DatePicker: returnAvailableTimes called for ${formattedDate} with ${participants} participants`);
-
-        // Use preloaded availability data if available, otherwise fall back to API call
+        // Use preloaded availability data if available, otherwise fall back to configured times
         const preloadedData = preloadedAvailability[formattedDate];
         let timeSlots;
+        let hasBokunData = false;
 
         if (preloadedData && preloadedData.timeSlots) {
-            console.log(`📋 DatePicker: Using preloaded time slots for ${formattedDate}:`, preloadedData.timeSlots);
-            // Extract time strings from preloaded data (handle both string and object formats)
+            // Keep full slot objects when we have Bokun data with availability info
             timeSlots = preloadedData.timeSlots.map(slot => {
                 if (typeof slot === 'string') {
-                    return slot;
+                    return { time: slot, availableSpots: null }; // String format, no availability data
                 } else if (slot && slot.time) {
-                    return slot.time;
+                    return slot; // Keep full object with availableSpots
                 } else {
-                    console.warn('Invalid time slot format in preloaded data:', slot);
                     return null;
                 }
             }).filter(Boolean);
-        } else {
-            console.log(`📋 DatePicker: No preloaded data, falling back to API call for ${formattedDate}`);
-            // Fallback to API call if no preloaded data
-            timeSlots = await getAvailableTimeSlotsForDate(date);
-        }
 
-        console.log(`📋 DatePicker: Final time slots to process:`, timeSlots);
+            // Check if we have actual Bokun availability data (not fallback)
+            hasBokunData = !preloadedData.fallback && timeSlots.some(slot => slot.availableSpots !== null);
+        } else {
+            // Fallback to configured times
+            timeSlots = availableTimes.map(time => ({ time, availableSpots: null }));
+        }
         const nowJST = getNowInJST();
 
         // Check if this is a booking for tomorrow
@@ -278,52 +284,46 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         const isBookingForTomorrow =
             dateStart.getTime() === todayStart.getTime() + (24 * 60 * 60 * 1000);
 
-        console.log('Time Debug (returnAvailableTimes):', {
-            nowJST: nowJST.toISOString(),
-            dateJST: dateJST.toISOString(),
-            todayJST: todayJST.toISOString(),
-            isBookingForTomorrow,
-            nextDayCutoffTime
-        });
-
         // If booking for tomorrow and there's a next-day cut-off time
         if (isBookingForTomorrow && nextDayCutoffTime) {
             const [cutoffHour, cutoffMinute] = nextDayCutoffTime.split(':').map(Number);
             const todayCutoff = new Date(todayStart); // Use todayStart to ensure correct date
             todayCutoff.setHours(cutoffHour, cutoffMinute, 0, 0);
 
-            console.log('Cutoff Time Debug:', {
-                todayCutoff: todayCutoff.toISOString(),
-                nowJST: nowJST.toISOString(),
-                isPastCutoff: nowJST.getTime() >= todayCutoff.getTime()
-            });
-
             if (nowJST.getTime() >= todayCutoff.getTime()) {
-                console.log('Blocking booking - past cutoff time');
                 return []; // Past cut-off time for tomorrow's bookings
             }
         }
 
-        // Filter options based on local bookings and time constraints
-        // Since we're using preloaded Bokun data, we don't need to make additional API calls
+        // Filter options based on availability and time constraints
         const filteredOptions = [];
         for (const currentSlot of timeSlots) {
-            const currentParticipants = dayData[currentSlot] || 0;
-            const tourDateTimeJST = getTourDateTimeJST(date, currentSlot);
+            const slotTime = currentSlot.time || currentSlot;
+            const currentParticipants = dayData[slotTime] || 0;
+            const tourDateTimeJST = getTourDateTimeJST(date, slotTime);
             const hoursUntilTour = (tourDateTimeJST - nowJST) / (1000 * 60 * 60);
             const hasParticipants = currentParticipants > 0;
             const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
 
-            // Check local availability and time constraints
-            const localSpotsAvailable = maxSlots - currentParticipants >= participants;
+            // Check availability - use Bokun data if available, otherwise fall back to local calculation
+            let spotsAvailable;
+            if (hasBokunData && currentSlot.availableSpots !== null && currentSlot.availableSpots !== undefined) {
+                // Use Bokun's availability data (already accounts for all bookings)
+                spotsAvailable = currentSlot.availableSpots >= participants;
+                console.log(`🎯 Using Bokun availability for ${slotTime}: ${currentSlot.availableSpots} spots available, need ${participants}`);
+            } else {
+                // Fall back to local calculation (only accounts for local bookings)
+                spotsAvailable = maxSlots - currentParticipants >= participants;
+                console.log(`💾 Using local availability for ${slotTime}: ${maxSlots - currentParticipants} spots available, need ${participants}`);
+            }
+
             const notPastCutoff = hoursUntilTour >= cutoffHours;
 
-            if (localSpotsAvailable && notPastCutoff) {
-                filteredOptions.push(currentSlot);
+            if (spotsAvailable && notPastCutoff) {
+                filteredOptions.push(slotTime);
             }
         }
 
-        console.log(`✅ DatePicker: Filtered available times for ${formattedDate}:`, filteredOptions);
         return filteredOptions;
     }, [maxSlots, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime, preloadedAvailability, getAvailableTimeSlotsForDate]);
 
@@ -351,7 +351,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         }
     }, [calendarState, calendarSelectedDate, participants, userSetTourTime, tourTime, returnAvailableTimes]);
 
-    // Update available times for the time slot selector
+    // Update available times for the time slot selector (with proper debouncing)
     useEffect(() => {
         if (calendarState === 1) {
             const updateAvailableTimes = async () => {
@@ -367,14 +367,14 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 }
             };
 
-            // Use a small delay to prevent infinite loops
-            const timeoutId = setTimeout(updateAvailableTimes, 100);
+            // Use longer debounce to prevent excessive calls
+            const timeoutId = setTimeout(updateAvailableTimes, 500);
             return () => clearTimeout(timeoutId);
         } else {
             setAvailableTimesForDate([]);
             setLoadingAvailability(false);
         }
-    }, [calendarState, calendarSelectedDate, participants, returnAvailableTimes]);
+    }, [calendarState, calendarSelectedDate, participants]);
 
     useEffect(() => {
         const appContainer = document.getElementById('app-container');
@@ -442,44 +442,27 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         };
     }, []);
 
-    // Preload availability for all visible dates in the calendar view
+    // Preload availability for the next 3 months on page load only
     useEffect(() => {
-        const preloadVisibleDatesAvailability = async () => {
+        const preloadInitialAvailability = async () => {
             setAvailabilityLoading(true);
 
-            const currentMonth = calendarSelectedDate.getMonth();
-            const currentYear = calendarSelectedDate.getFullYear();
-
-            // Get the first day of the month
-            const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-
-            // Get the last day of the month
-            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-
-            // Find the first Sunday of the calendar view (may be from previous month)
-            const startDate = new Date(firstDayOfMonth);
-            startDate.setDate(startDate.getDate() - firstDayOfMonth.getDay());
-
-            // Find the last Saturday of the calendar view (may be from next month)
-            const endDate = new Date(lastDayOfMonth);
-            endDate.setDate(endDate.getDate() + (6 - lastDayOfMonth.getDay()));
-
-            // Only preload dates that are today or in the future
+            // Preload from today to 3 months ahead
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const actualStartDate = new Date(Math.max(startDate.getTime(), today.getTime()));
 
-            console.log(`🔄 Preloading availability for visible calendar dates: ${actualStartDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
-            await preloadAvailabilityForDates(actualStartDate, endDate);
+            const endDate = new Date(today);
+            endDate.setMonth(endDate.getMonth() + 3);
 
-            // Loading is handled by preloadAvailabilityForDates, but ensure it's false if something goes wrong
+            console.log(`📅 Initial availability preload: ${today.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+            await preloadAvailabilityForDates(today, endDate);
+
             setAvailabilityLoading(false);
         };
 
-        // Start immediately on mount, then debounce for subsequent changes
-        const timeoutId = setTimeout(preloadVisibleDatesAvailability, 100);
-        return () => clearTimeout(timeoutId);
-    }, [calendarSelectedDate, preloadAvailabilityForDates]); // Triggered when user navigates to different month
+        // Only run once on component mount
+        preloadInitialAvailability();
+    }, [preloadAvailabilityForDates]); // Only depends on the function, not on date changes
 
     const today = new Date();
 
@@ -521,7 +504,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                             const hasParticipants = dayData[slot] > 0;
                             const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
                             const enabled = hoursUntilTour >= cutoffHours;
-                            console.log({ slot, hoursUntilTour, hasParticipants, cutoffHours, enabled });
                             return (
                                 <option
                                     value={slot}
@@ -545,7 +527,34 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const isDateFull = (date, participants) => {
         const formattedDate = date.toLocaleDateString("en-CA");
         const dayData = participantsByDate[formattedDate];
+        const preloadedData = preloadedAvailability[formattedDate];
 
+        // If we have Bokun data, use it
+        if (preloadedData && preloadedData.timeSlots && !preloadedData.fallback) {
+            for (const slot of preloadedData.timeSlots) {
+                let availableSpots = null;
+                if (slot && typeof slot === 'object' && slot.availableSpots !== undefined) {
+                    availableSpots = slot.availableSpots;
+                }
+
+                if (availableSpots !== null) {
+                    // Use Bokun availability data
+                    if (availableSpots >= participants) {
+                        return false; // Date is NOT full because this slot has availability
+                    }
+                } else {
+                    // Fall back to local calculation for this slot
+                    const timeString = slot.time || slot;
+                    const currentParticipants = dayData ? (dayData[timeString] || 0) : 0;
+                    if (currentParticipants + participants <= maxSlots) {
+                        return false; // Date is NOT full because this slot is available
+                    }
+                }
+            }
+            return true; // Date IS full because no slots have availability
+        }
+
+        // Fallback to original logic when no Bokun data
         if (!dayData) return false;
 
         for (let i = 0; i < availableTimes.length; i++) {
@@ -614,7 +623,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             todayCutoff.setHours(cutoffHour, cutoffMinute, 0, 0);
 
             if (todayJST.getTime() >= todayCutoff.getTime()) {
-                console.log('Disabling date - past cutoff time');
                 return true; // Past cut-off time for tomorrow's bookings
             }
         }
@@ -641,10 +649,13 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 for (const slot of availableSlots) {
                     // Handle both string format and object format
                     let timeString;
+                    let availableSpots = null;
+
                     if (typeof slot === 'string') {
                         timeString = slot;
                     } else if (slot && slot.time) {
                         timeString = slot.time;
+                        availableSpots = slot.availableSpots;
                     } else {
                         console.warn('Invalid time slot format:', slot);
                         continue;
@@ -655,9 +666,18 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                     const dayData = participantsByDate[formattedDate] || {};
                     const hasParticipants = dayData[timeString] > 0;
                     const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
-                    const localSpotsAvailable = (dayData[timeString] || 0) + participants <= maxSlots;
 
-                    if (hoursUntilTour >= cutoffHours && localSpotsAvailable) {
+                    // Check availability - use Bokun data if available, otherwise fall back to local calculation
+                    let spotsAvailable;
+                    if (availableSpots !== null && availableSpots !== undefined) {
+                        // Use Bokun's availability data (already accounts for all bookings)
+                        spotsAvailable = availableSpots >= participants;
+                    } else {
+                        // Fall back to local calculation (only accounts for local bookings)
+                        spotsAvailable = (dayData[timeString] || 0) + participants <= maxSlots;
+                    }
+
+                    if (hoursUntilTour >= cutoffHours && spotsAvailable) {
                         hasValidSlot = true;
                         break;
                     }
