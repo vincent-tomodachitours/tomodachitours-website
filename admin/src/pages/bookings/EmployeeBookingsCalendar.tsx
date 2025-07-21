@@ -9,7 +9,6 @@ import {
     endOfWeek,
     isSameMonth,
     isToday,
-    isSameDay,
     parseISO
 } from 'date-fns';
 import {
@@ -18,7 +17,6 @@ import {
     CalendarIcon,
     UsersIcon,
     ClockIcon,
-    MapPinIcon,
     PhoneIcon,
     EnvelopeIcon
 } from '@heroicons/react/24/outline';
@@ -27,7 +25,6 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import { BookingService } from '../../services/bookingService';
-import { BokunBookingService } from '../../services/bokunBookingService';
 import { Booking } from '../../types';
 
 interface BookingDetailsModalProps {

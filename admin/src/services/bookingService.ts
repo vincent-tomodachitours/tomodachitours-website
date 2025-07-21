@@ -314,7 +314,7 @@ export class BookingService {
     static async getAvailableGuides(tourType: string, date: string, timeSlot: string): Promise<EmployeeShift[]> {
         try {
             // Step 1: Get guides already assigned to bookings at this exact time
-            const { data: conflictingBookings, error: conflictError } = await supabase
+            const { data: conflictingBookings, error: _conflictError } = await supabase
                 .from('bookings')
                 .select('assigned_guide_id')
                 .eq('booking_date', date)
@@ -322,12 +322,12 @@ export class BookingService {
                 .in('status', ['CONFIRMED', 'PENDING_PAYMENT'])
                 .not('assigned_guide_id', 'is', null);
 
-            if (conflictError) {
-                console.error('Error checking booking conflicts:', conflictError);
+            if (_conflictError) {
+                console.error('Error checking booking conflicts:', _conflictError);
             }
 
             // Step 2: Check Bokun bookings cache for conflicts too
-            const { data: bokunConflicts, error: bokunConflictError } = await supabase
+            const { data: bokunConflicts, error: _bokunConflictError } = await supabase
                 .from('bokun_bookings_cache')
                 .select('assigned_guide_id')
                 .eq('booking_date', date)
@@ -335,8 +335,8 @@ export class BookingService {
                 .eq('status', 'CONFIRMED')
                 .not('assigned_guide_id', 'is', null);
 
-            if (bokunConflictError) {
-                console.error('Error checking Bokun booking conflicts:', bokunConflictError);
+            if (_bokunConflictError) {
+                console.error('Error checking Bokun booking conflicts:', _bokunConflictError);
             }
 
             // Combine all conflicting guide IDs
@@ -401,7 +401,8 @@ export class BookingService {
             // If date is provided, return guides with explicit availability for that date (any time slot)
             if (date) {
                 // Get guides already assigned to bookings at this exact time to exclude them
-                const { data: conflictingBookings, error: conflictError } = await supabase
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { data: conflictingBookings, error: _conflictError } = await supabase
                     .from('bookings')
                     .select('assigned_guide_id')
                     .eq('booking_date', date)
@@ -409,7 +410,8 @@ export class BookingService {
                     .in('status', ['CONFIRMED', 'PENDING_PAYMENT'])
                     .not('assigned_guide_id', 'is', null);
 
-                const { data: bokunConflicts, error: bokunConflictError } = await supabase
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { data: bokunConflicts, error: _bokunConflictError } = await supabase
                     .from('bokun_bookings_cache')
                     .select('assigned_guide_id')
                     .eq('booking_date', date)

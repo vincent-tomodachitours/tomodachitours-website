@@ -15,7 +15,7 @@ import { TourList } from './pages/tours';
 
 // Conditional Bookings component based on user role
 const BookingsPage: React.FC = () => {
-    const { employee, hasPermission } = useAdminAuth();
+    const { hasPermission } = useAdminAuth();
 
     // Show admin booking list for admins/managers, employee calendar for tour guides
     if (hasPermission('manage_employees') || hasPermission('edit_bookings')) {
