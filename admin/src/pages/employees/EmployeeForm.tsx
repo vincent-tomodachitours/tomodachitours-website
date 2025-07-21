@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { EmployeeService } from '../../services/employeeService';
-import { Employee, EmployeeFormData, EmployeeRole } from '../../types';
+import { Employee, EmployeeFormData, EmployeeRole, TourType } from '../../types';
 import { Button } from '../../components/ui/Button';
 
 interface EmployeeFormProps {
@@ -24,7 +24,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSuccess, onCanc
         hire_date: employee?.hire_date || new Date().toISOString().split('T')[0],
         emergency_contact: employee?.emergency_contact || {},
         certifications: employee?.certifications || [],
-        languages: employee?.languages || ['en', 'ja']
+        tour_types: employee?.tour_types || ['NIGHT_TOUR']
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -40,14 +40,12 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSuccess, onCanc
     // Certification input
     const [newCertification, setNewCertification] = useState('');
 
-    // Available languages
-    const availableLanguages = [
-        { code: 'en', name: 'English' },
-        { code: 'ja', name: 'Japanese' },
-        { code: 'ko', name: 'Korean' },
-        { code: 'zh', name: 'Chinese' },
-        { code: 'es', name: 'Spanish' },
-        { code: 'fr', name: 'French' }
+    // Available tour types
+    const availableTourTypes = [
+        { code: 'NIGHT_TOUR' as TourType, name: 'Night Tour' },
+        { code: 'MORNING_TOUR' as TourType, name: 'Morning Tour' },
+        { code: 'UJI_TOUR' as TourType, name: 'Uji Tour' },
+        { code: 'GION_TOUR' as TourType, name: 'Gion Tour' }
     ];
 
     // Update emergency contact in form data when it changes
@@ -141,12 +139,12 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSuccess, onCanc
         }
     };
 
-    const handleLanguageToggle = (languageCode: string) => {
+    const handleTourTypeToggle = (tourType: TourType) => {
         setFormData(prev => ({
             ...prev,
-            languages: prev.languages.includes(languageCode)
-                ? prev.languages.filter(lang => lang !== languageCode)
-                : [...prev.languages, languageCode]
+            tour_types: prev.tour_types.includes(tourType)
+                ? prev.tour_types.filter(type => type !== tourType)
+                : [...prev.tour_types, tourType]
         }));
     };
 
@@ -313,19 +311,20 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSuccess, onCanc
                 </div>
             </div>
 
-            {/* Languages */}
+            {/* Tour Types */}
             <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Languages</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {availableLanguages.map((language) => (
-                        <label key={language.code} className="flex items-center">
+                <h3 className="text-lg font-medium text-gray-900">Tours</h3>
+                <p className="text-sm text-gray-600">Select which tours this guide can lead</p>
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-2">
+                    {availableTourTypes.map((tourType) => (
+                        <label key={tourType.code} className="flex items-center">
                             <input
                                 type="checkbox"
                                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                                checked={formData.languages.includes(language.code)}
-                                onChange={() => handleLanguageToggle(language.code)}
+                                checked={formData.tour_types.includes(tourType.code)}
+                                onChange={() => handleTourTypeToggle(tourType.code)}
                             />
-                            <span className="ml-2 text-sm text-gray-700">{language.name}</span>
+                            <span className="ml-2 text-sm text-gray-700">{tourType.name}</span>
                         </label>
                     ))}
                 </div>

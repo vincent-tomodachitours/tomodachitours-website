@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { EmployeeShift, ShiftFormData, ShiftStatus, TourType } from '../types';
+import { EmployeeShift, ShiftFormData, ShiftStatus, TourType, Employee } from '../types';
 
 export class ShiftService {
     /**
@@ -241,7 +241,7 @@ export class ShiftService {
     }
 
     /**
-     * Get available guides for a specific tour type, date, and time
+     * Get available guides for a specific tour type, date, and time (checks qualification)
      */
     static async getAvailableGuides(
         tourType: TourType,
@@ -249,7 +249,8 @@ export class ShiftService {
         timeSlot: string
     ): Promise<EmployeeShift[]> {
         try {
-            const { data, error } = await supabase
+            // Get guides with scheduled shifts for this tour type
+            const { data: shiftGuides, error: shiftError } = await supabase
                 .from('employee_shifts')
                 .select(`
                     *,
@@ -261,7 +262,8 @@ export class ShiftService {
                         email,
                         phone,
                         role,
-                        status
+                        status,
+                        tour_types
                     )
                 `)
                 .eq('tour_type', tourType)
@@ -270,14 +272,44 @@ export class ShiftService {
                 .eq('status', 'available')
                 .eq('employees.status', 'active');
 
+            if (shiftError) {
+                console.error('Error fetching shift guides:', shiftError);
+                throw shiftError;
+            }
+
+            // Filter to only qualified guides
+            const qualifiedGuides = (shiftGuides || []).filter(shift => {
+                return shift.employee?.tour_types?.includes(tourType);
+            });
+
+            return qualifiedGuides;
+        } catch (error) {
+            console.error('ShiftService.getAvailableGuides error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get all qualified guides for a tour type (for manual assignment)
+     */
+    static async getQualifiedGuides(tourType: TourType): Promise<Employee[]> {
+        try {
+            const { data, error } = await supabase
+                .from('employees')
+                .select('*')
+                .eq('role', 'tour_guide')
+                .eq('status', 'active')
+                .contains('tour_types', [tourType])
+                .order('first_name');
+
             if (error) {
-                console.error('Error fetching available guides:', error);
+                console.error('Error fetching qualified guides:', error);
                 throw error;
             }
 
             return data || [];
         } catch (error) {
-            console.error('ShiftService.getAvailableGuides error:', error);
+            console.error('ShiftService.getQualifiedGuides error:', error);
             throw error;
         }
     }

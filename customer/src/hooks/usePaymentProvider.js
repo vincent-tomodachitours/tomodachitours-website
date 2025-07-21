@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 
 export const usePaymentProvider = () => {
-    const [primaryProvider, setPrimaryProvider] = useState('payjp'); // Default to PAYJP
-    const [loading, setLoading] = useState(true);
+    // HARD CODED: Always use Stripe as primary provider
+    const [primaryProvider, setPrimaryProvider] = useState('stripe'); // Changed from 'payjp' to 'stripe'
+    const [loading, setLoading] = useState(false); // Changed to false since we're not fetching
     const [error, setError] = useState(null);
 
+    // COMMENTED OUT: Dynamic provider fetching - uncomment to restore dynamic switching
+    /*
     useEffect(() => {
         fetchPrimaryProvider();
     }, []);
@@ -34,11 +37,13 @@ export const usePaymentProvider = () => {
             setLoading(false);
         }
     };
+    */
 
+    // HARD CODED: Always return Stripe - no backend call needed
     return {
-        primaryProvider,
-        loading,
-        error,
-        refresh: fetchPrimaryProvider
+        primaryProvider: 'stripe', // Hard coded to always return Stripe
+        loading: false,
+        error: null,
+        refresh: () => { } // Dummy function since we're not fetching
     };
 }; 

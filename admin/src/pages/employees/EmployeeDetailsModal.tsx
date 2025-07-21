@@ -1,5 +1,5 @@
 import React from 'react';
-import { Employee } from '../../types';
+import { Employee, TourType } from '../../types';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Badge, getStatusBadgeVariant } from '../../components/ui/Badge';
@@ -42,16 +42,14 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         return statusMap[status as keyof typeof statusMap] || status;
     };
 
-    const getLanguageDisplay = (languages: string[]) => {
-        const languageMap = {
-            en: 'English',
-            ja: 'Japanese',
-            ko: 'Korean',
-            zh: 'Chinese',
-            es: 'Spanish',
-            fr: 'French'
+    const getTourTypeDisplay = (tourTypes: TourType[]) => {
+        const tourTypeMap = {
+            'NIGHT_TOUR': 'Night Tour',
+            'MORNING_TOUR': 'Morning Tour',
+            'UJI_TOUR': 'Uji Tour',
+            'GION_TOUR': 'Gion Tour'
         };
-        return languages.map(lang => languageMap[lang as keyof typeof languageMap] || lang).join(', ');
+        return tourTypes.map(type => tourTypeMap[type] || type).join(', ');
     };
 
     return (
@@ -144,17 +142,18 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                     </div>
                 </div>
 
-                {/* Languages */}
-                {employee.languages && employee.languages.length > 0 && (
+                {/* Tour Types */}
+                {employee.tour_types && employee.tour_types.length > 0 && (
                     <div className="bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Languages</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Tours</h3>
+                        <p className="text-sm text-gray-600 mb-3">Tours this guide can lead</p>
                         <div className="flex flex-wrap gap-2">
-                            {employee.languages.map((language) => (
+                            {employee.tour_types.map((tourType) => (
                                 <span
-                                    key={language}
-                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                    key={tourType}
+                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
                                 >
-                                    {getLanguageDisplay([language])}
+                                    {getTourTypeDisplay([tourType])}
                                 </span>
                             ))}
                         </div>

@@ -6,12 +6,24 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import AdminLayout from './components/layout/AdminLayout';
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
-import BookingList from './pages/bookings/BookingList';
+import { BookingList, EmployeeBookingsCalendar } from './pages/bookings';
 import { AvailabilityCalendar } from './pages/availability';
 import EmployeeList from './pages/employees/EmployeeList';
 import { ShiftCalendar } from './pages/schedule';
 import AnalyticsDashboard from './pages/analytics/AnalyticsDashboard';
 import { TourList } from './pages/tours';
+
+// Conditional Bookings component based on user role
+const BookingsPage: React.FC = () => {
+    const { employee, hasPermission } = useAdminAuth();
+
+    // Show admin booking list for admins/managers, employee calendar for tour guides
+    if (hasPermission('manage_employees') || hasPermission('edit_bookings')) {
+        return <BookingList />;
+    } else {
+        return <EmployeeBookingsCalendar />;
+    }
+};
 
 // Redirect component to handle root route
 const RootRedirect: React.FC = () => {
@@ -73,7 +85,7 @@ function App() {
                                         <AdminLayout>
                                             <div className="py-6">
                                                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                                    <BookingList />
+                                                    <BookingsPage />
                                                 </div>
                                             </div>
                                         </AdminLayout>

@@ -19,7 +19,7 @@ export interface Employee {
     hire_date: string;
     emergency_contact?: any;
     certifications?: string[];
-    languages: string[];
+    tour_types: TourType[];
     created_at: string;
     updated_at: string;
 }
@@ -45,6 +45,7 @@ export interface EmployeeShift {
         phone?: string;
         role: EmployeeRole;
         status: EmployeeStatus;
+        tour_types: TourType[];
     };
 }
 
@@ -149,7 +150,7 @@ export interface EmployeeFormData {
     hire_date: string;
     emergency_contact?: any;
     certifications?: string[];
-    languages: string[];
+    tour_types: TourType[];
 }
 
 export interface ShiftFormData {

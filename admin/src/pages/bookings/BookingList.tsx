@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, UserIcon, ArrowPathIcon, TrashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, ArrowPathIcon, TrashIcon, ExclamationTriangleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookingService } from '../../services/bookingService';
 import { BokunBookingService } from '../../services/bokunBookingService';
 import { BookingFilters, TourType, BookingStatus } from '../../types';
@@ -27,6 +27,24 @@ const safeFormatDate = (dateValue: any, formatString: string, fallback: string =
     }
 };
 
+// Copy email to clipboard function
+const copyEmailToClipboard = async (email: string) => {
+    try {
+        await navigator.clipboard.writeText(email);
+        // You could add a toast notification here if you have one set up
+        console.log('Email copied to clipboard:', email);
+    } catch (error) {
+        console.error('Failed to copy email:', error);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = email;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+    }
+};
+
 const BookingList: React.FC = () => {
     const [filters, setFilters] = useState<BookingFilters>({});
     const [searchQuery, setSearchQuery] = useState('');
@@ -37,7 +55,7 @@ const BookingList: React.FC = () => {
 
     const queryClient = useQueryClient();
 
-    // Query for all bookings (local + external Bokun bookings)
+    // Query for upcoming bookings (local + external Bokun bookings)
     const {
         data: allBookings = [],
         isLoading,
@@ -160,6 +178,28 @@ const BookingList: React.FC = () => {
         return count;
     }, [dateRange, selectedTourTypes, selectedStatuses]);
 
+    // Function to get alternating background color based on date
+    const getDateBackgroundColor = (dateString: string): string => {
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return 'bg-white'; // Default to white for invalid dates
+            }
+
+            // Get the day number from the date (this will alternate based on the date)
+            const dayOfMonth = date.getDate();
+
+            // Alternate between white and very light green based on even/odd day
+            if (dayOfMonth % 2 === 0) {
+                return 'bg-green-100'; // Very light green for even days
+            } else {
+                return 'bg-white'; // White for odd days
+            }
+        } catch {
+            return 'bg-white'; // Default to white on error
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -187,9 +227,9 @@ const BookingList: React.FC = () => {
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Upcoming Bookings</h1>
                     <p className="text-gray-600">
-                        All bookings (direct website bookings + external Bokun bookings)
+                        Upcoming tours only (direct website bookings + external Bokun bookings)
                     </p>
                 </div>
             </div>
@@ -259,9 +299,9 @@ const BookingList: React.FC = () => {
                 <div className="p-4">
                     <div className="flex justify-between items-center mb-4">
                         <div>
-                            <h2 className="text-lg font-semibold text-gray-900">All Bookings</h2>
+                            <h2 className="text-lg font-semibold text-gray-900">Upcoming Bookings</h2>
                             <p className="text-sm text-gray-600">
-                                {bookings.length} total bookings
+                                {bookings.length} upcoming bookings
                             </p>
                         </div>
                     </div>
@@ -269,7 +309,7 @@ const BookingList: React.FC = () => {
                     {bookings.length === 0 ? (
                         <div className="text-center py-8">
                             <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-500">No bookings found</p>
+                            <p className="text-gray-500">No upcoming bookings found</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
@@ -306,7 +346,7 @@ const BookingList: React.FC = () => {
                                     {bookings.map((booking) => (
                                         <tr
                                             key={booking.id}
-                                            className="hover:bg-gray-50 cursor-pointer"
+                                            className={`${getDateBackgroundColor(booking.booking_date)} hover:bg-gray-100 cursor-pointer transition-colors`}
                                             onClick={() => handleBookingClick(booking)}
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap">
@@ -317,12 +357,24 @@ const BookingList: React.FC = () => {
                                                     {safeFormatDate(booking.created_at, 'MMM d, yyyy', 'Unknown Date')}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-6 py-4 whitespace-nowrap w-48 max-w-48">
                                                 <div className="text-sm font-medium text-gray-900">
                                                     {booking.customer_name}
                                                 </div>
-                                                <div className="text-sm text-gray-500">
-                                                    {booking.customer_email}
+                                                <div className="flex items-center gap-2">
+                                                    <div className="text-sm text-gray-500 truncate flex-1 min-w-0">
+                                                        {booking.customer_email}
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            copyEmailToClipboard(booking.customer_email);
+                                                        }}
+                                                        className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                                        title="Copy email"
+                                                    >
+                                                        <ClipboardDocumentIcon className="h-4 w-4" />
+                                                    </button>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">

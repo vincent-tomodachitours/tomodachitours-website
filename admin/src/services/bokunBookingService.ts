@@ -170,10 +170,23 @@ export class BokunBookingService {
         try {
             console.log('🚀 Admin: Fetching Bokun bookings from cache (fast!)');
 
-            // Build query for cached bookings
+            // Build query for cached bookings with guide assignment data
             let query = supabase
                 .from('bokun_bookings_cache')
-                .select('*')
+                .select(`
+                    *,
+                    assigned_guide:employees!assigned_guide_id (
+                        id,
+                        first_name,
+                        last_name,
+                        employee_code,
+                        email,
+                        phone,
+                        role,
+                        status,
+                        tour_types
+                    )
+                `)
                 .order('booking_date', { ascending: false });
 
             // Apply filters
@@ -233,17 +246,18 @@ export class BokunBookingService {
                 bokun_booking_id: cached.bokun_booking_id,
                 created_at: cached.last_synced, // Use sync time as created_at
                 bokun_synced: true,
-                // Admin specific fields
-                assigned_guide_id: undefined,
-                guide_notes: undefined,
-                assigned_guide: undefined,
+                // Guide assignment fields from cache
+                assigned_guide_id: cached.assigned_guide_id,
+                guide_notes: cached.guide_notes,
+                assigned_guide: cached.assigned_guide,
+                // Other admin fields
                 charge_id: undefined,
                 discount_amount: undefined,
                 discount_code: undefined,
                 discount_code_id: undefined
             }));
 
-            console.log(`✅ Admin: Retrieved ${transformedBookings.length} cached Bokun bookings`);
+            console.log(`✅ Admin: Retrieved ${transformedBookings.length} cached Bokun bookings with guide assignments`);
             return transformedBookings;
 
         } catch (error) {
@@ -586,6 +600,7 @@ export class BokunBookingService {
             confirmation_code: `${booking.external_source === 'bokun' ? 'BOKUN' : 'LOCAL'}-${booking.id}`,
             total_amount: 0, // No amount data available
             currency: 'USD',
+            // Guide assignment fields - now properly included for Bokun bookings too
             assigned_guide_id: booking.assigned_guide_id,
             guide_notes: booking.guide_notes,
             assigned_guide: booking.assigned_guide,

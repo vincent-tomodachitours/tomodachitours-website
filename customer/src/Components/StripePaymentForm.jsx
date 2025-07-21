@@ -7,7 +7,7 @@ import {
     useElements
 } from '@stripe/react-stripe-js';
 
-// Load Stripe only if we have the publishable key
+// Load Stripe with environment variable
 const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
     ? loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY)
     : Promise.resolve(null);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     UserIcon,
     CalendarIcon,
@@ -13,6 +13,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Badge, getStatusBadgeVariant, getTourTypeBadgeVariant, formatTourType } from '../../components/ui/Badge';
 import { BookingService } from '../../services/bookingService';
+import { GuideAssignmentSection } from '../../components/bookings/GuideAssignmentSection';
 import { Booking, BookingStatus } from '../../types';
 import { format } from 'date-fns';
 
@@ -47,48 +48,14 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
     onUpdate,
 }) => {
     const queryClient = useQueryClient();
-    const [selectedGuide, setSelectedGuide] = useState<string>(booking.assigned_guide_id || '');
-    const [guideNotes, setGuideNotes] = useState(booking.guide_notes || '');
     const [newStatus, setNewStatus] = useState<BookingStatus>(booking.status as BookingStatus);
 
     // Reset form when booking changes
     useEffect(() => {
-        setSelectedGuide(booking.assigned_guide_id || '');
-        setGuideNotes(booking.guide_notes || '');
         setNewStatus(booking.status as BookingStatus);
     }, [booking]);
 
-    // Fetch available guides for this booking
-    const { data: availableGuides = [] } = useQuery({
-        queryKey: ['availableGuides', booking.tour_type, booking.booking_date, booking.booking_time],
-        queryFn: () => BookingService.getAvailableGuides(
-            booking.tour_type,
-            booking.booking_date,
-            booking.booking_time
-        ),
-        enabled: isOpen,
-    });
-
     // Mutations
-    const assignGuideMutation = useMutation({
-        mutationFn: ({ guideId, notes }: { guideId: string; notes?: string }) =>
-            BookingService.assignGuide(booking.id, guideId, notes),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['bookings'] });
-            onUpdate();
-        },
-    });
-
-    const removeGuideMutation = useMutation({
-        mutationFn: () => BookingService.removeGuide(booking.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['bookings'] });
-            setSelectedGuide('');
-            setGuideNotes('');
-            onUpdate();
-        },
-    });
-
     const updateStatusMutation = useMutation({
         mutationFn: (status: string) => BookingService.updateBookingStatus(booking.id, status),
         onSuccess: () => {
@@ -97,42 +64,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
         },
     });
 
-    const updateNotesMutation = useMutation({
-        mutationFn: (notes: string) => BookingService.updateGuideNotes(booking.id, notes),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['bookings'] });
-            onUpdate();
-        },
-    });
-
     // Handlers
-    const handleAssignGuide = async () => {
-        if (!selectedGuide) return;
-
-        try {
-            await assignGuideMutation.mutateAsync({
-                guideId: selectedGuide,
-                notes: guideNotes || undefined
-            });
-        } catch (error) {
-            console.error('Error assigning guide:', error);
-            alert('Failed to assign guide. Please try again.');
-        }
-    };
-
-    const handleRemoveGuide = async () => {
-        if (!window.confirm('Are you sure you want to remove the assigned guide?')) {
-            return;
-        }
-
-        try {
-            await removeGuideMutation.mutateAsync();
-        } catch (error) {
-            console.error('Error removing guide:', error);
-            alert('Failed to remove guide. Please try again.');
-        }
-    };
-
     const handleUpdateStatus = async () => {
         if (newStatus === booking.status) return;
 
@@ -151,21 +83,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
         }
     };
 
-    const handleUpdateNotes = async () => {
-        if (guideNotes === (booking.guide_notes || '')) return;
-
-        try {
-            await updateNotesMutation.mutateAsync(guideNotes);
-        } catch (error) {
-            console.error('Error updating notes:', error);
-            alert('Failed to update notes. Please try again.');
-        }
-    };
-
-    const isLoading = assignGuideMutation.isPending ||
-        removeGuideMutation.isPending ||
-        updateStatusMutation.isPending ||
-        updateNotesMutation.isPending;
+    const isLoading = updateStatusMutation.isPending;
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Booking #${booking.id}`} size="xl">
@@ -293,83 +211,10 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
                 </div>
 
                 {/* Guide Assignment */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
-                        <UserIcon className="h-4 w-4 mr-2" />
-                        Guide Assignment
-                    </h4>
-
-                    {booking.assigned_guide ? (
-                        <div className="space-y-3">
-                            <div className="bg-white p-3 rounded-md border">
-                                <p className="text-sm text-gray-600">Currently Assigned</p>
-                                <p className="font-medium">
-                                    {booking.assigned_guide.first_name} {booking.assigned_guide.last_name}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                    {booking.assigned_guide.employee_code} • {booking.assigned_guide.email}
-                                </p>
-                                <Button
-                                    variant="danger"
-                                    size="sm"
-                                    onClick={handleRemoveGuide}
-                                    loading={removeGuideMutation.isPending}
-                                    className="mt-2"
-                                >
-                                    Remove Guide
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Select Guide
-                                </label>
-                                <select
-                                    value={selectedGuide}
-                                    onChange={(e) => setSelectedGuide(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    disabled={isLoading}
-                                >
-                                    <option value="">Select a guide...</option>
-                                    {availableGuides.map((shift) => (
-                                        <option key={shift.id} value={shift.employee_id}>
-                                            {shift.employee?.first_name} {shift.employee?.last_name} ({shift.employee?.employee_code})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Guide Notes */}
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Guide Notes
-                        </label>
-                        <textarea
-                            value={guideNotes}
-                            onChange={(e) => setGuideNotes(e.target.value)}
-                            onBlur={handleUpdateNotes}
-                            placeholder="Add notes for the guide..."
-                            rows={3}
-                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            disabled={isLoading}
-                        />
-                    </div>
-
-                    {/* Assign Button (only show if no guide assigned and guide selected) */}
-                    {!booking.assigned_guide && selectedGuide && (
-                        <Button
-                            onClick={handleAssignGuide}
-                            loading={assignGuideMutation.isPending}
-                            className="mt-3"
-                        >
-                            Assign Guide
-                        </Button>
-                    )}
-                </div>
+                <GuideAssignmentSection
+                    booking={booking}
+                    onUpdate={onUpdate}
+                />
 
                 {/* Actions */}
                 <div className="flex justify-end space-x-3 pt-4 border-t">

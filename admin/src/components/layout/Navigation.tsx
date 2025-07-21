@@ -17,6 +17,11 @@ const Navigation: React.FC = () => {
     const { employee, signOut, hasPermission } = useAdminAuth();
     const location = useLocation();
 
+    // Determine the bookings page name based on user role
+    const bookingsPageName = hasPermission('manage_employees') || hasPermission('edit_bookings')
+        ? 'Bookings'
+        : 'My Bookings';
+
     const navigation = [
         {
             name: 'Dashboard',
@@ -25,7 +30,7 @@ const Navigation: React.FC = () => {
             permission: null, // Available to all authenticated users
         },
         {
-            name: 'Bookings',
+            name: bookingsPageName,
             href: '/bookings',
             icon: CalendarDaysIcon,
             permission: 'view_bookings' as const,

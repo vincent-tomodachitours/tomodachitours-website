@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { EmployeeShift, ShiftStatus, TourType } from '../../types';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
@@ -14,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
+import { ShiftService } from '../../services/shiftService';
 
 interface ShiftDetailsModalProps {
     shift: EmployeeShift;
@@ -34,6 +36,19 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
 }) => {
     const { hasPermission } = useAdminAuth();
     const [showStatusMenu, setShowStatusMenu] = useState(false);
+
+    // Fetch all shifts for this employee on this date
+    const { data: dayShifts = [] } = useQuery({
+        queryKey: ['employeeDayShifts', shift.employee_id, shift.shift_date],
+        queryFn: () => ShiftService.getShifts({
+            employeeId: shift.employee_id,
+            dateRange: {
+                start: new Date(shift.shift_date),
+                end: new Date(shift.shift_date)
+            }
+        }),
+        enabled: isOpen,
+    });
 
     const getTourTypeDisplay = (tourType: TourType) => {
         const names = {
@@ -73,6 +88,56 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
         { value: 'completed', label: 'Completed', color: 'text-green-600' },
         { value: 'cancelled', label: 'Cancelled', color: 'text-red-600' }
     ];
+
+    // Calculate comprehensive availability for this day
+    const availabilityInfo = useMemo(() => {
+        if (!dayShifts.length) return null;
+
+        // Group shifts by tour type and time
+        const availableShifts = dayShifts.filter(s => s.status === 'available');
+        const tourTypes = ['NIGHT_TOUR', 'MORNING_TOUR', 'UJI_TOUR', 'GION_TOUR'] as TourType[];
+        const timeSlots = ['06:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+            '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00',
+            '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
+            '19:00', '19:30', '20:00', '20:30'];
+
+        // Check if available for all major tour types with reasonable coverage
+        const tourTypeCoverage = tourTypes.reduce((acc, tourType) => {
+            const shiftsForTour = availableShifts.filter(s => s.tour_type === tourType);
+            acc[tourType] = shiftsForTour.length;
+            return acc;
+        }, {} as Record<TourType, number>);
+
+        const totalAvailableSlots = availableShifts.length;
+        const hasGoodCoverage = Object.values(tourTypeCoverage).every(count => count >= 3);
+        const hasHighVolume = totalAvailableSlots >= 12; // Arbitrary threshold for "all day"
+
+        if (hasGoodCoverage && hasHighVolume) {
+            return {
+                isAllDay: true,
+                totalSlots: totalAvailableSlots,
+                tourTypes: Object.keys(tourTypeCoverage).filter(t => tourTypeCoverage[t as TourType] > 0)
+            };
+        }
+
+        // Group by tour type for detailed display
+        const groupedAvailability = tourTypes.reduce((acc, tourType) => {
+            const shifts = availableShifts
+                .filter(s => s.tour_type === tourType)
+                .sort((a, b) => a.time_slot.localeCompare(b.time_slot));
+
+            if (shifts.length > 0) {
+                acc[tourType] = shifts.map(s => s.time_slot);
+            }
+            return acc;
+        }, {} as Record<TourType, string[]>);
+
+        return {
+            isAllDay: false,
+            grouped: groupedAvailability,
+            totalSlots: totalAvailableSlots
+        };
+    }, [dayShifts]);
 
     const handleStatusChange = (newStatus: ShiftStatus) => {
         if (window.confirm(`Are you sure you want to change the status to ${getStatusDisplay(newStatus)}?`)) {
@@ -137,51 +202,85 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                     )}
                 </div>
 
-                {/* Shift Information */}
+                {/* Availability Information */}
                 <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Shift Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center space-x-3">
-                            <MapPinIcon className="h-5 w-5 text-gray-400" />
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Tour Type</p>
-                                <p className={`text-sm font-semibold ${getTourTypeColor(shift.tour_type)}`}>
-                                    {getTourTypeDisplay(shift.tour_type)}
-                                </p>
-                            </div>
-                        </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Availability for This Day</h3>
 
-                        <div className="flex items-center space-x-3">
-                            <CalendarIcon className="h-5 w-5 text-gray-400" />
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Date</p>
-                                <p className="text-sm font-semibold text-gray-900">
-                                    {format(new Date(shift.shift_date), 'EEEE, MMMM d, yyyy')}
-                                </p>
-                            </div>
+                    <div className="flex items-center space-x-3 mb-4">
+                        <CalendarIcon className="h-5 w-5 text-gray-400" />
+                        <div>
+                            <p className="text-sm font-medium text-gray-500">Date</p>
+                            <p className="text-sm font-semibold text-gray-900">
+                                {format(new Date(shift.shift_date), 'EEEE, MMMM d, yyyy')}
+                            </p>
                         </div>
+                    </div>
 
-                        <div className="flex items-center space-x-3">
-                            <ClockIcon className="h-5 w-5 text-gray-400" />
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Time</p>
-                                <p className="text-sm font-semibold text-gray-900">
-                                    {shift.time_slot}
-                                </p>
-                            </div>
-                        </div>
-
-                        {shift.max_participants && (
-                            <div className="flex items-center space-x-3">
-                                <UsersIcon className="h-5 w-5 text-gray-400" />
-                                <div>
-                                    <p className="text-sm font-medium text-gray-500">Max Participants</p>
-                                    <p className="text-sm font-semibold text-gray-900">
-                                        {shift.max_participants} people
-                                    </p>
+                    {availabilityInfo ? (
+                        availabilityInfo.isAllDay ? (
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div className="flex items-center space-x-2">
+                                    <ClockIcon className="h-5 w-5 text-green-600" />
+                                    <div>
+                                        <p className="text-sm font-semibold text-green-800">Available All Day</p>
+                                        <p className="text-xs text-green-600">
+                                            {availabilityInfo.totalSlots} time slots across all tour types
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                        )}
+                        ) : (
+                            <div className="space-y-3">
+                                {Object.entries(availabilityInfo.grouped || {}).map(([tourType, timeSlots]) => (
+                                    <div key={tourType} className="border border-gray-200 rounded-lg p-3">
+                                        <div className="flex items-center space-x-2 mb-2">
+                                            <MapPinIcon className="h-4 w-4 text-gray-400" />
+                                            <span className={`text-sm font-semibold ${getTourTypeColor(tourType as TourType)}`}>
+                                                {getTourTypeDisplay(tourType as TourType)}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {timeSlots.map((time) => (
+                                                <Badge
+                                                    key={`${tourType}-${time}`}
+                                                    variant={time === shift.time_slot && tourType === shift.tour_type ? 'primary' : 'default'}
+                                                    size="sm"
+                                                >
+                                                    {time}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                                <div className="text-xs text-gray-500 mt-2">
+                                    Total: {availabilityInfo.totalSlots} time slots available
+                                </div>
+                            </div>
+                        )
+                    ) : (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <p className="text-sm text-amber-800">No availability information found for this date.</p>
+                        </div>
+                    )}
+
+                    {/* Current Selected Shift Highlight */}
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                                <div className="h-2 w-2 rounded-full bg-indigo-600"></div>
+                                <p className="text-xs font-medium text-gray-600">
+                                    Currently viewing: {getTourTypeDisplay(shift.tour_type)} at {shift.time_slot}
+                                </p>
+                            </div>
+                            {shift.max_participants && (
+                                <div className="flex items-center space-x-1">
+                                    <UsersIcon className="h-3 w-3 text-gray-400" />
+                                    <span className="text-xs text-gray-500">
+                                        Max: {shift.max_participants}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

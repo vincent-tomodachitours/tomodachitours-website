@@ -3,7 +3,8 @@ import PaymentFailed from '../Pages/PaymentFailed';
 import { supabase } from '../lib/supabase';
 import { usePaymentProvider } from '../hooks/usePaymentProvider';
 import StripePaymentForm from './StripePaymentForm';
-import PayjpPaymentForm from './PayjpPaymentForm';
+// COMMENTED OUT: PayJP import - uncomment to restore PayJP functionality
+// import PayjpPaymentForm from './PayjpPaymentForm';
 
 const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formRef, tourName, sheetId, setPaymentProcessing }, ref) => {
     const { primaryProvider, loading: providerLoading, error: providerError } = usePaymentProvider();
@@ -126,17 +127,22 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
         setPaymentProcessing(true);
         setPaymentStatus(message);
 
+        // COMMENTED OUT: PayJP protection flags - uncomment if you restore PayJP
+        /*
         // Set protection flags early if this is PayJP
         if (primaryProvider === 'payjp') {
             sessionStorage.setItem('checkout_should_stay_open', 'true');
             console.log('🛡️ Early PayJP protection flags set in CardForm');
         }
+        */
     };
 
     useImperativeHandle(ref, () => ({
         handleCreateBooking
     }));
 
+    // COMMENTED OUT: Provider loading states since we're hard coding Stripe
+    /*
     // Show loading state while determining payment provider
     if (providerLoading) {
         return (
@@ -159,6 +165,7 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
             </div>
         );
     }
+    */
 
     return (
         <div className='w-full flex flex-col gap-4'>
@@ -171,32 +178,21 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
                 </div>
             )}
 
-            {/* Always show payment form */}
+            {/* HARD CODED: Always show Stripe */}
             <div className='text-sm text-gray-600 mb-2'>
-                Payment powered by {primaryProvider === 'stripe' ? 'Stripe' : 'PayJP'}
+                Payment powered by Stripe
             </div>
 
-            {primaryProvider === 'stripe' ? (
-                <StripePaymentForm
-                    totalPrice={totalPrice}
-                    originalPrice={originalPrice}
-                    appliedDiscount={appliedDiscount}
-                    onCreateBookingAndPayment={handleCreateBookingAndPayment}
-                    onError={handlePaymentError}
-                    onProcessing={handlePaymentProcessing}
-                    isProcessing={isProcessing}
-                />
-            ) : (
-                <PayjpPaymentForm
-                    totalPrice={totalPrice}
-                    originalPrice={originalPrice}
-                    appliedDiscount={appliedDiscount}
-                    onCreateBookingAndPayment={handleCreateBookingAndPayment}
-                    onError={handlePaymentError}
-                    onProcessing={handlePaymentProcessing}
-                    isProcessing={isProcessing}
-                />
-            )}
+            {/* HARD CODED: Always show Stripe payment form */}
+            <StripePaymentForm
+                totalPrice={totalPrice}
+                originalPrice={originalPrice}
+                appliedDiscount={appliedDiscount}
+                onCreateBookingAndPayment={handleCreateBookingAndPayment}
+                onError={handlePaymentError}
+                onProcessing={handlePaymentProcessing}
+                isProcessing={isProcessing}
+            />
 
             {paymentFailed && (
                 <PaymentFailed onClick={() => setPaymentFailed(false)} />

@@ -20,7 +20,7 @@ const Dashboard: React.FC = () => {
     });
 
     const quickActions = [
-        { name: 'View Today\'s Bookings', href: '/bookings', description: 'See all bookings for today' },
+        { name: 'View Upcoming Bookings', href: '/bookings', description: 'See all upcoming bookings' },
         { name: 'Manage Guides', href: '/employees', description: 'View and assign tour guides' },
         { name: 'Tour Availability', href: '/tours', description: 'Manage tour schedules and capacity' },
         { name: 'Analytics', href: '/analytics', description: 'View performance reports' },
