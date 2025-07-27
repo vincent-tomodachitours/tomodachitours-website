@@ -351,29 +351,55 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         }
     }, [calendarState, calendarSelectedDate, participants, userSetTourTime, tourTime, returnAvailableTimes]);
 
-    // Update available times for the time slot selector (with proper debouncing)
+    // Update available times for the time slot selector - CONSOLIDATED VERSION
     useEffect(() => {
-        if (calendarState === 1) {
-            const updateAvailableTimes = async () => {
-                try {
-                    setLoadingAvailability(true);
-                    const times = await returnAvailableTimes(calendarSelectedDate, participants);
-                    setAvailableTimesForDate(times || []);
-                } catch (error) {
-                    console.error('Error updating available times:', error);
-                    setAvailableTimesForDate([]);
-                } finally {
-                    setLoadingAvailability(false);
-                }
-            };
-
-            // Use longer debounce to prevent excessive calls
-            const timeoutId = setTimeout(updateAvailableTimes, 500);
-            return () => clearTimeout(timeoutId);
-        } else {
+        if (calendarState !== 1) {
             setAvailableTimesForDate([]);
             setLoadingAvailability(false);
+            return;
         }
+
+        let isCancelled = false;
+
+        const updateAvailableTimes = async () => {
+            try {
+                if (isCancelled) return;
+                setLoadingAvailability(true);
+
+                const times = await returnAvailableTimes(calendarSelectedDate, participants);
+
+                if (isCancelled) return;
+
+                setAvailableTimesForDate(times || []);
+
+                // Auto-select first available time if none selected and user hasn't manually set one
+                if (!userSetTourTime && times && times.length > 0 && !tourTime) {
+                    setTourTime(times[0]);
+                }
+
+                // Reset tour time if current selection is no longer available
+                if (tourTime && times && !times.includes(tourTime)) {
+                    setTourTime(times[0] || "");
+                }
+            } catch (error) {
+                if (!isCancelled) {
+                    console.error('Error updating available times:', error);
+                    setAvailableTimesForDate([]);
+                }
+            } finally {
+                if (!isCancelled) {
+                    setLoadingAvailability(false);
+                }
+            }
+        };
+
+        // Shorter debounce for better responsiveness 
+        const timeoutId = setTimeout(updateAvailableTimes, 50);
+
+        return () => {
+            isCancelled = true;
+            clearTimeout(timeoutId);
+        };
     }, [calendarState, calendarSelectedDate, participants]);
 
     useEffect(() => {

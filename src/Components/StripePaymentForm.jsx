@@ -55,6 +55,8 @@ const StripePaymentForm = ({ totalPrice, originalPrice, appliedDiscount, onCreat
         const cardElement = elements.getElement(CardElement);
 
         try {
+            console.log('Creating payment method with Stripe...');
+
             // Create payment method
             const { error, paymentMethod } = await stripe.createPaymentMethod({
                 type: 'card',
@@ -62,8 +64,11 @@ const StripePaymentForm = ({ totalPrice, originalPrice, appliedDiscount, onCreat
             });
 
             if (error) {
+                console.error('Stripe payment method creation error:', error);
                 throw new Error(error.message);
             }
+
+            console.log('Payment method created successfully:', paymentMethod.id);
 
             // Call the booking and payment handler with Stripe payment data
             await onCreateBookingAndPayment({
@@ -73,7 +78,7 @@ const StripePaymentForm = ({ totalPrice, originalPrice, appliedDiscount, onCreat
 
         } catch (error) {
             console.error('Stripe payment error:', error);
-            onError(error.message);
+            onError(error.message || 'Payment processing failed');
         }
     }, [stripe, elements, isProcessing, onCreateBookingAndPayment, onError, onProcessing]);
 

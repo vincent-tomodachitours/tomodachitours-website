@@ -127,6 +127,44 @@ export class StripeService {
     }
 
     /**
+     * Create a payment intent for frontend confirmation
+     * This allows for 3D Secure and other authentication flows
+     */
+    async createPaymentIntent(
+        amount: number,
+        bookingId: number,
+        paymentMethodId: string,
+        discountCode?: string,
+        originalAmount?: number
+    ): Promise<StripePaymentResult> {
+        try {
+            const paymentIntent = await this.stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'jpy',
+                payment_method: paymentMethodId,
+                confirmation_method: 'automatic',
+                confirm: true,
+                metadata: {
+                    booking_id: bookingId.toString(),
+                    discount_code: discountCode || '',
+                    original_amount: (originalAmount || amount).toString()
+                },
+                return_url: `${Deno.env.get('FRONTEND_URL') || 'https://localhost:3000'}/thankyou`,
+            });
+
+            return {
+                id: paymentIntent.id,
+                status: paymentIntent.status,
+                amount: paymentIntent.amount,
+                client_secret: paymentIntent.client_secret || undefined
+            };
+        } catch (error) {
+            console.error('Stripe payment intent creation error:', error);
+            throw new Error(`Stripe payment failed: ${error.message}`);
+        }
+    }
+
+    /**
      * Process immediate payment (create + confirm in one step)
      * This is for direct server-side processing without client interaction
      */

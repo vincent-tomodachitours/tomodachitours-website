@@ -202,19 +202,42 @@ async function triggerBokunSync(bookingId: number) {
 }
 
 /**
- * Process payment with the specified provider
+ * Process payment with Stripe
  */
-async function processPaymentWithProvider(provider: string, data: any): Promise<any> {
-  if (provider === 'payjp') {
-    return await processPayJPPayment(data)
-  } else if (provider === 'stripe') {
-    return await processStripePayment(data)
+async function processStripePayment(data: any): Promise<any> {
+  if (!data.payment_method_id) {
+    throw new Error('Stripe payment requires payment_method_id');
   }
-  throw new Error(`Unknown payment provider: ${provider}`)
+
+  const stripeService = new StripeService();
+
+  try {
+    // Process immediate payment with the payment method ID from frontend
+    const paymentResult = await stripeService.processImmediatePayment(
+      data.amount,
+      data.bookingId,
+      data.payment_method_id,
+      data.discountCode,
+      data.originalAmount
+    );
+
+    console.log('Stripe payment result:', paymentResult);
+
+    // Accept both 'succeeded' and 'requires_action' status
+    // 'requires_action' will be handled by frontend (3D Secure, etc.)
+    if (paymentResult.status === 'succeeded' || paymentResult.status === 'requires_action') {
+      return paymentResult;
+    } else {
+      throw new Error(`Stripe payment failed with status: ${paymentResult.status}`);
+    }
+  } catch (error) {
+    console.error('Stripe payment processing error:', error);
+    throw error;
+  }
 }
 
 /**
- * Process payment with PayJP (existing logic)
+ * Process payment with PayJP (legacy fallback)
  */
 async function processPayJPPayment(data: any): Promise<PayJPCharge> {
   const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
@@ -247,32 +270,6 @@ async function processPayJPPayment(data: any): Promise<PayJPCharge> {
   }
 
   return charge
-}
-
-/**
- * Process payment with Stripe
- */
-async function processStripePayment(data: any): Promise<any> {
-  if (!data.payment_method_id) {
-    throw new Error('Stripe payment requires payment_method_id');
-  }
-
-  const stripeService = new StripeService();
-
-  // Process immediate payment with the payment method ID from frontend
-  const paymentResult = await stripeService.processImmediatePayment(
-    data.amount,
-    data.bookingId,
-    data.payment_method_id,
-    data.discountCode,
-    data.originalAmount
-  );
-
-  if (paymentResult.status !== 'succeeded') {
-    throw new Error(`Stripe payment failed with status: ${paymentResult.status}`);
-  }
-
-  return paymentResult;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -314,51 +311,39 @@ const handler = async (req: Request): Promise<Response> => {
     )
 
     const paymentService = new PaymentProviderService(supabase)
-    const providers = await paymentService.getActiveProviders()
+    const primaryProvider = paymentService.getPrimaryProvider()
 
     let paymentResult: any = null
-    let usedProvider: string = providers.primary
-    let isBackupUsed = false
 
-    // Try primary provider first
+    // Process payment with configured provider
     try {
-      console.log(`Attempting payment with primary provider: ${providers.primary}`)
-      paymentResult = await processPaymentWithProvider(providers.primary, data)
-      await paymentService.logPaymentAttempt(data.bookingId, providers.primary, data.amount, 'success', undefined, 1)
-      console.log(`Payment successful with ${providers.primary}`)
-    } catch (primaryError) {
-      console.error(`Primary provider (${providers.primary}) failed:`, primaryError)
-      await paymentService.logPaymentAttempt(data.bookingId, providers.primary, data.amount, 'failed', primaryError.message, 1)
+      console.log(`Processing payment with provider: ${primaryProvider}`)
 
-      // Try backup provider if enabled
-      if (providers.backup && paymentService.isAutoFallbackEnabled()) {
-        try {
-          console.log(`Attempting backup provider: ${providers.backup}`)
-          paymentResult = await processPaymentWithProvider(providers.backup, data)
-          usedProvider = providers.backup
-          isBackupUsed = true
-          await paymentService.logPaymentAttempt(data.bookingId, providers.backup, data.amount, 'success', undefined, 2)
-          console.log(`Payment successful with backup provider: ${providers.backup}`)
-        } catch (backupError) {
-          console.error(`Backup provider (${providers.backup}) failed:`, backupError)
-          await paymentService.logPaymentAttempt(data.bookingId, providers.backup, data.amount, 'failed', backupError.message, 2)
-          throw new Error('Both payment providers failed')
-        }
+      if (primaryProvider === 'stripe') {
+        paymentResult = await processStripePayment(data)
       } else {
-        throw primaryError
+        // Fallback to PayJP
+        paymentResult = await processPayJPPayment(data)
       }
+
+      await paymentService.logPaymentAttempt(data.bookingId, primaryProvider, data.amount, 'success', undefined, 1)
+      console.log(`Payment successful with ${primaryProvider}`)
+    } catch (paymentError) {
+      console.error(`Payment failed with ${primaryProvider}:`, paymentError)
+      await paymentService.logPaymentAttempt(data.bookingId, primaryProvider, data.amount, 'failed', paymentError.message, 1)
+      throw paymentError
     }
 
     // Update booking with payment information
     const updateData: any = {
       status: 'CONFIRMED',
-      payment_provider: usedProvider,
-      backup_payment_used: isBackupUsed
+      payment_provider: primaryProvider,
+      backup_payment_used: false
     }
 
-    if (usedProvider === 'payjp') {
+    if (primaryProvider === 'payjp') {
       updateData.charge_id = paymentResult.id
-    } else if (usedProvider === 'stripe') {
+    } else if (primaryProvider === 'stripe') {
       updateData.stripe_payment_intent_id = paymentResult.id
     }
 
@@ -431,8 +416,8 @@ const handler = async (req: Request): Promise<Response> => {
           amount: paymentResult.amount,
           status: paymentResult.status
         },
-        backup_used: isBackupUsed,
-        provider_used: usedProvider
+        backup_used: false,
+        provider_used: primaryProvider
       }),
       {
         headers: addSecurityHeaders(new Headers({

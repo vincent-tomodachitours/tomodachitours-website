@@ -174,31 +174,24 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
 
     /**
- * Get available time slots for a date combining local and Bokun data
- */
+     * Get available time slots for a date combining local and Bokun data
+     */
     const getAvailableTimeSlotsForDate = useCallback(async (date) => {
         const dateKey = date.toLocaleDateString("en-CA");
 
         try {
-            console.log(`🔍 DatePicker: Fetching Bokun time slots for ${sheetId} on ${dateKey}`);
-            console.log(`🔍 DatePicker: Available times fallback:`, availableTimes);
-
             // Get Bokun time slots
             const bokunTimeSlots = await bokunAvailabilityService.getAvailableTimeSlots(sheetId, dateKey);
-            console.log('🎯 DatePicker: Bokun time slots received:', bokunTimeSlots);
 
             // If we have Bokun data, use it; otherwise fall back to configured times
             if (bokunTimeSlots && bokunTimeSlots.length > 0) {
                 const timeSlotsList = bokunTimeSlots.map(slot => slot.time);
-                console.log('✅ DatePicker: Using Bokun time slots:', timeSlotsList);
                 return timeSlotsList;
             } else {
-                console.log('⚠️ DatePicker: No Bokun time slots, using configured times:', availableTimes);
                 return availableTimes;
             }
         } catch (error) {
             console.error('❌ DatePicker: Error getting Bokun time slots:', error);
-            console.log('💾 DatePicker: Falling back to configured times:', availableTimes);
             return availableTimes; // Fall back to configured times
         }
     }, [sheetId, availableTimes]);
@@ -235,18 +228,18 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         setBookings(data);
     }, [sheetId]);
 
+    /**
+     * Calculate available times for a specific date
+     */
     const returnAvailableTimes = useCallback(async (date, participants) => {
         const formattedDate = date.toLocaleDateString("en-CA");
         const dayData = participantsByDate[formattedDate] || {};
-
-        console.log(`🎯 DatePicker: returnAvailableTimes called for ${formattedDate} with ${participants} participants`);
 
         // Use preloaded availability data if available, otherwise fall back to API call
         const preloadedData = preloadedAvailability[formattedDate];
         let timeSlots;
 
         if (preloadedData && preloadedData.timeSlots) {
-            console.log(`📋 DatePicker: Using preloaded time slots for ${formattedDate}:`, preloadedData.timeSlots);
             // Extract time strings from preloaded data (handle both string and object formats)
             timeSlots = preloadedData.timeSlots.map(slot => {
                 if (typeof slot === 'string') {
@@ -259,12 +252,10 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 }
             }).filter(Boolean);
         } else {
-            console.log(`📋 DatePicker: No preloaded data, falling back to API call for ${formattedDate}`);
             // Fallback to API call if no preloaded data
             timeSlots = await getAvailableTimeSlotsForDate(date);
         }
 
-        console.log(`📋 DatePicker: Final time slots to process:`, timeSlots);
         const nowJST = getNowInJST();
 
         // Check if this is a booking for tomorrow
@@ -278,35 +269,19 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         const isBookingForTomorrow =
             dateStart.getTime() === todayStart.getTime() + (24 * 60 * 60 * 1000);
 
-        console.log('Time Debug (returnAvailableTimes):', {
-            nowJST: nowJST.toISOString(),
-            dateJST: dateJST.toISOString(),
-            todayJST: todayJST.toISOString(),
-            isBookingForTomorrow,
-            nextDayCutoffTime
-        });
-
         // If booking for tomorrow and there's a next-day cut-off time
         if (isBookingForTomorrow && nextDayCutoffTime) {
-            const [cutoffHour, cutoffMinute] = nextDayCutoffTime.split(':').map(Number);
-            const todayCutoff = new Date(todayStart); // Use todayStart to ensure correct date
-            todayCutoff.setHours(cutoffHour, cutoffMinute, 0, 0);
+            const [cutoffHours, cutoffMinutes] = nextDayCutoffTime.split(':').map(Number);
+            const todayEndJST = new Date(todayJST);
+            todayEndJST.setHours(cutoffHours, cutoffMinutes, 0, 0);
 
-            console.log('Cutoff Time Debug:', {
-                todayCutoff: todayCutoff.toISOString(),
-                nowJST: nowJST.toISOString(),
-                isPastCutoff: nowJST.getTime() >= todayCutoff.getTime()
-            });
-
-            if (nowJST.getTime() >= todayCutoff.getTime()) {
-                console.log('Blocking booking - past cutoff time');
-                return []; // Past cut-off time for tomorrow's bookings
+            if (nowJST > todayEndJST) {
+                return []; // Past cut-off time for next-day bookings
             }
         }
 
-        // Filter options based on local bookings and time constraints
-        // Since we're using preloaded Bokun data, we don't need to make additional API calls
         const filteredOptions = [];
+
         for (const currentSlot of timeSlots) {
             const currentParticipants = dayData[currentSlot] || 0;
             const tourDateTimeJST = getTourDateTimeJST(date, currentSlot);
@@ -323,7 +298,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             }
         }
 
-        console.log(`✅ DatePicker: Filtered available times for ${formattedDate}:`, filteredOptions);
         return filteredOptions;
     }, [maxSlots, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime, preloadedAvailability, getAvailableTimeSlotsForDate]);
 
@@ -331,50 +305,56 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         fetchBookings();
     }, [sheetId, fetchBookings]);
 
+    // Single consolidated useEffect for managing available times
     useEffect(() => {
-        if (calendarState === 1 && !userSetTourTime) {
-            returnAvailableTimes(calendarSelectedDate, participants).then(times => {
-                if (times && times.length > 0) {
-                    setTourTime(times[0]);
-                }
-            });
-        }
-    }, [calendarState, calendarSelectedDate, participants, userSetTourTime, returnAvailableTimes]);
-
-    useEffect(() => {
-        if (calendarState === 1) {
-            returnAvailableTimes(calendarSelectedDate, participants).then(enabledOptions => {
-                if (!enabledOptions.includes(tourTime)) {
-                    setTourTime(enabledOptions[0] || "");
-                }
-            });
-        }
-    }, [calendarState, calendarSelectedDate, participants, userSetTourTime, tourTime, returnAvailableTimes]);
-
-    // Update available times for the time slot selector
-    useEffect(() => {
-        if (calendarState === 1) {
-            const updateAvailableTimes = async () => {
-                try {
-                    setLoadingAvailability(true);
-                    const times = await returnAvailableTimes(calendarSelectedDate, participants);
-                    setAvailableTimesForDate(times || []);
-                } catch (error) {
-                    console.error('Error updating available times:', error);
-                    setAvailableTimesForDate([]);
-                } finally {
-                    setLoadingAvailability(false);
-                }
-            };
-
-            // Use a small delay to prevent infinite loops
-            const timeoutId = setTimeout(updateAvailableTimes, 100);
-            return () => clearTimeout(timeoutId);
-        } else {
+        if (calendarState !== 1) {
             setAvailableTimesForDate([]);
             setLoadingAvailability(false);
+            return;
         }
-    }, [calendarState, calendarSelectedDate, participants, returnAvailableTimes]);
+
+        let isCancelled = false;
+
+        const updateAvailableTimes = async () => {
+            try {
+                if (isCancelled) return;
+                setLoadingAvailability(true);
+
+                const times = await returnAvailableTimes(calendarSelectedDate, participants);
+
+                if (isCancelled) return;
+
+                setAvailableTimesForDate(times || []);
+
+                // Auto-select first available time if none selected and user hasn't manually set one
+                if (!userSetTourTime && times && times.length > 0 && !tourTime) {
+                    setTourTime(times[0]);
+                }
+
+                // Reset tour time if current selection is no longer available
+                if (tourTime && times && !times.includes(tourTime)) {
+                    setTourTime(times[0] || "");
+                }
+            } catch (error) {
+                if (!isCancelled) {
+                    console.error('Error updating available times:', error);
+                    setAvailableTimesForDate([]);
+                }
+            } finally {
+                if (!isCancelled) {
+                    setLoadingAvailability(false);
+                }
+            }
+        };
+
+        // Shorter debounce for better responsiveness, but prevent rapid-fire calls
+        const timeoutId = setTimeout(updateAvailableTimes, 50);
+
+        return () => {
+            isCancelled = true;
+            clearTimeout(timeoutId);
+        };
+    }, [calendarState, calendarSelectedDate, participants]);
 
     useEffect(() => {
         const appContainer = document.getElementById('app-container');
@@ -469,7 +449,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             today.setHours(0, 0, 0, 0);
             const actualStartDate = new Date(Math.max(startDate.getTime(), today.getTime()));
 
-            console.log(`🔄 Preloading availability for visible calendar dates: ${actualStartDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
             await preloadAvailabilityForDates(actualStartDate, endDate);
 
             // Loading is handled by preloadAvailabilityForDates, but ensure it's false if something goes wrong
@@ -521,7 +500,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                             const hasParticipants = dayData[slot] > 0;
                             const cutoffHours = hasParticipants ? (cancellationCutoffHoursWithParticipant || 24) : (cancellationCutoffHours || 24);
                             const enabled = hoursUntilTour >= cutoffHours;
-                            console.log({ slot, hoursUntilTour, hasParticipants, cutoffHours, enabled });
+
                             return (
                                 <option
                                     value={slot}
@@ -537,10 +516,11 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                             );
                         })
                     )}
+                    <option value="" disabled>Choose a time</option>
                 </select>
             </div>
         );
-    }
+    };
 
     const isDateFull = (date, participants) => {
         const formattedDate = date.toLocaleDateString("en-CA");

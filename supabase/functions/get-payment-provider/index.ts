@@ -18,14 +18,14 @@ const handler = async (req: Request): Promise<Response> => {
         )
 
         const paymentService = new PaymentProviderService(supabase)
-        const providers = await paymentService.getActiveProviders()
+        const primaryProvider = paymentService.getPrimaryProvider()
 
         return new Response(
             JSON.stringify({
-                primary: providers.primary,
-                backup: providers.backup,
-                backup_enabled: !!providers.backup,
-                auto_fallback_enabled: paymentService.isAutoFallbackEnabled()
+                primary: primaryProvider,
+                backup: null,
+                backup_enabled: false,
+                auto_fallback_enabled: false
             }),
             {
                 headers: {
@@ -42,6 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
                 primary: 'payjp', // Safe fallback
                 backup: null,
                 backup_enabled: false,
+                auto_fallback_enabled: false,
                 error: error instanceof Error ? error.message : 'Unknown error'
             }),
             {
