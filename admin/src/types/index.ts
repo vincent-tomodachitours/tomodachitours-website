@@ -183,6 +183,7 @@ export interface Tour {
     name: string;
     description: string;
     duration_minutes: number;
+    base_price: number;
     time_slots: TimeSlot[];
     meeting_point: string;
     meeting_point_lat?: number;

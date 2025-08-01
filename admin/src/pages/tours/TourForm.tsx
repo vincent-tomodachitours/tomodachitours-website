@@ -11,6 +11,7 @@ interface TourFormData {
     name: string;
     description: string;
     duration_minutes: number;
+    price_jpy: number;
     time_slots: TimeSlot[];
     meeting_point: string;
     meeting_point_lat?: number;
@@ -50,6 +51,7 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
         name: tour?.name || '',
         description: tour?.description || '',
         duration_minutes: tour?.duration_minutes || 0, // No default - user must specify duration
+        price_jpy: tour?.base_price || 0, // Use actual base_price from database
         time_slots: tour?.time_slots || [],
         meeting_point: tour?.meeting_point ? getMeetingPointLocation(tour.meeting_point) : '',
         meeting_point_lat: tour?.meeting_point_lat,
@@ -87,17 +89,19 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
 
     const updateMutation = useMutation({
         mutationFn: (data: Partial<TourFormData>) => {
-            // Update core tour fields including time slots
+            // Update core tour fields including time slots and price
             const updateData = {
                 name: data.name,
                 description: data.description,
                 duration_minutes: data.duration_minutes,
+                price_jpy: data.price_jpy,
                 min_participants: data.min_participants,
                 max_participants: data.max_participants,
                 time_slots: data.time_slots
             };
             console.log('updateMutation called with:', { tourId: tour!.id, data: updateData });
             console.log('🕐 Time slots being updated:', data.time_slots);
+            console.log('💰 Price being updated:', data.price_jpy);
             return TourService.updateTour(tour!.id, updateData);
         },
         onSuccess: (result) => {
@@ -165,7 +169,10 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
             console.log('❌ Validation failed: Min participants exceeds max participants');
         }
 
-
+        if (formData.price_jpy <= 0) {
+            newErrors.price_jpy = 'Price must be greater than 0';
+            console.log('❌ Validation failed: Price is', formData.price_jpy);
+        }
 
         console.log('🔍 Validation errors found:', newErrors);
         console.log('🔍 Number of errors:', Object.keys(newErrors).length);
@@ -437,7 +444,7 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
                         )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div>
                             <label htmlFor="duration_hours" className="block text-sm font-medium text-gray-700">
                                 Duration (hours) *
@@ -460,6 +467,32 @@ const TourForm: React.FC<TourFormProps> = ({ tour, onSuccess, onCancel }) => {
                             />
                             {errors.duration_minutes && (
                                 <p className="mt-1 text-sm text-red-600">{errors.duration_minutes}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label htmlFor="price_jpy" className="block text-sm font-medium text-gray-700">
+                                Price (JPY) *
+                            </label>
+                            <div className="mt-1 relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-500 sm:text-sm">¥</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    id="price_jpy"
+                                    min="1"
+                                    step="1"
+                                    className={`block w-full pl-8 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${errors.price_jpy ? 'border-red-300' : 'border-gray-300'
+                                        } [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                                    value={formData.price_jpy}
+                                    onChange={(e) => handleInputChange('price_jpy', parseInt(e.target.value) || 0)}
+                                    placeholder="5000"
+                                    required
+                                />
+                            </div>
+                            {errors.price_jpy && (
+                                <p className="mt-1 text-sm text-red-600">{errors.price_jpy}</p>
                             )}
                         </div>
 

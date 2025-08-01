@@ -239,19 +239,27 @@ const handler = async (req: Request): Promise<Response> => {
         })
       })
 
-      // Send cancellation notification to admin
-      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          to: 'spirivincent03@gmail.com',
-          templateId: 'd-827197c8d2b34edc8c706c00dff6cf87', // CANCELLATION_NOTIFICATION template
-          templateData: templateData
+      // Send cancellation notifications to all company emails
+      const companyEmails = [
+        'spirivincent03@gmail.com',
+        'contact@tomodachitours.com',
+        'yutaka.m@tomodachitours.com'
+      ];
+
+      for (const email of companyEmails) {
+        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            to: email,
+            templateId: 'd-827197c8d2b34edc8c706c00dff6cf87', // CANCELLATION_NOTIFICATION template
+            templateData: templateData
+          })
         })
-      })
+      }
 
       console.log('Cancellation emails sent successfully')
     } catch (emailError) {

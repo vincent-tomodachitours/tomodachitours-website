@@ -40,21 +40,22 @@ const BookingCancellation = () => {
         return tours[tourKey]?.['tour-title'] || tourType;
     };
 
-    // Helper function to calculate refund amount
+    // Helper function to get refund amount - ONLY use the actual paid amount from database
     const calculateRefundAmount = (booking) => {
-        if (!tours) return 0;
+        console.log('Booking data for refund calculation:', {
+            id: booking.id,
+            paid_amount: booking.paid_amount,
+            discount_amount: booking.discount_amount,
+            discount_code: booking.discount_code,
+            tour_type: booking.tour_type
+        });
 
-        const tourKey = {
-            'NIGHT_TOUR': 'night-tour',
-            'MORNING_TOUR': 'morning-tour',
-            'UJI_TOUR': 'uji-tour',
-            'GION_TOUR': 'gion-tour'
-        }[booking.tour_type];
+        // ONLY return the actual paid amount from the database
+        // If paid_amount is missing, return 0 (don't calculate anything)
+        const refundAmount = booking.paid_amount || 0;
+        console.log('Refund amount (paid_amount only):', refundAmount);
 
-        const tourPrice = tours[tourKey]?.['tour-price'] || 0;
-        const totalParticipants = (booking.adults || 0) + (booking.children || 0);
-
-        return tourPrice * totalParticipants;
+        return refundAmount;
     };
 
     // Helper function to get tour URL from tour type

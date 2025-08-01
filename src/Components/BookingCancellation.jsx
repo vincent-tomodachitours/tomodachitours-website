@@ -6,6 +6,8 @@ import { fetchTours } from '../services/toursService';
 import { Link } from 'react-router-dom';
 
 const BookingCancellation = () => {
+    console.log('BookingCancellation component loaded');
+
     const [email, setEmail] = useState('');
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -40,21 +42,22 @@ const BookingCancellation = () => {
         return tours[tourKey]?.['tour-title'] || tourType;
     };
 
-    // Helper function to calculate refund amount
+    // Helper function to get refund amount - ONLY use the actual paid amount from database
     const calculateRefundAmount = (booking) => {
-        if (!tours) return 0;
+        console.log('Booking data for refund calculation:', {
+            id: booking.id,
+            paid_amount: booking.paid_amount,
+            discount_amount: booking.discount_amount,
+            discount_code: booking.discount_code,
+            tour_type: booking.tour_type
+        });
 
-        const tourKey = {
-            'NIGHT_TOUR': 'night-tour',
-            'MORNING_TOUR': 'morning-tour',
-            'UJI_TOUR': 'uji-tour',
-            'GION_TOUR': 'gion-tour'
-        }[booking.tour_type];
+        // ONLY return the actual paid amount from the database
+        // If paid_amount is missing, return 0 (don't calculate anything)
+        const refundAmount = booking.paid_amount || 0;
+        console.log('Refund amount (paid_amount only):', refundAmount);
 
-        const tourPrice = tours[tourKey]?.['tour-price'] || 0;
-        const totalParticipants = (booking.adults || 0) + (booking.children || 0);
-
-        return tourPrice * totalParticipants;
+        return refundAmount;
     };
 
     // Helper function to get tour URL from tour type
@@ -69,7 +72,13 @@ const BookingCancellation = () => {
     };
 
     const handleLookupBookings = async () => {
-        if (!email.trim()) return;
+        console.log('=== BOOKING LOOKUP STARTED ===');
+        console.log('Email entered:', email);
+
+        if (!email.trim()) {
+            console.log('No email entered, returning early');
+            return;
+        }
 
         setLoading(true);
         setMessage('');
@@ -83,12 +92,15 @@ const BookingCancellation = () => {
                 .order('booking_time', { ascending: false });
 
             if (error) {
+                console.error('Database error:', error);
                 setMessage('Failed to lookup bookings');
                 setBookings([]);
             } else if (!data || data.length === 0) {
+                console.log('No bookings found for email:', email);
                 setMessage('No bookings found for this email address');
                 setBookings([]);
             } else {
+                console.log('Found bookings:', data);
                 setBookings(data);
             }
         } catch (error) {
@@ -169,13 +181,32 @@ const BookingCancellation = () => {
     }
 
     const now = new Date();
+    console.log('Current time:', now);
+    console.log('All bookings before filtering:', bookings);
+
     const futureBookings = bookings
-        .filter(booking => getBookingDateTime(booking) > now && booking.status !== 'CANCELLED' && booking.status !== 'REFUNDED')
+        .filter(booking => {
+            const bookingDateTime = getBookingDateTime(booking);
+            const isFuture = bookingDateTime > now;
+            const isNotCancelled = booking.status !== 'CANCELLED' && booking.status !== 'REFUNDED';
+
+            console.log(`Booking ${booking.id}:`, {
+                bookingDateTime,
+                isFuture,
+                isNotCancelled,
+                status: booking.status,
+                willShow: isFuture && isNotCancelled
+            });
+
+            return isFuture && isNotCancelled;
+        })
         .sort((a, b) => {
             const dateA = getBookingDateTime(a);
             const dateB = getBookingDateTime(b);
             return dateB.getTime() - dateA.getTime(); // Most recent first
         });
+
+    console.log('Future bookings after filtering:', futureBookings);
 
     return (
         <div className='min-h-screen bg-gray-50 flex flex-col'>
@@ -285,6 +316,7 @@ const BookingCancellation = () => {
                                         const bookingDateTime = getBookingDateTime(booking);
                                         const canCancel = (bookingDateTime - now) > (24 * 60 * 60 * 1000);
                                         const tourName = getTourName(booking.tour_type);
+                                        console.log('Full booking object:', booking);
                                         const refundAmount = calculateRefundAmount(booking);
 
                                         return (

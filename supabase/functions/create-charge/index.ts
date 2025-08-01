@@ -121,33 +121,44 @@ async function sendBookingEmails(supabase: any, booking: any) {
       }
     });
 
-    // Send company notification email
+    // Send company notification emails to all three addresses
     const now = new Date();
-    await sgMail.send({
-      to: 'spirivincent03@gmail.com', // Company email
-      from: SENDGRID_FROM,
-      templateId: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
-      dynamicTemplateData: {
-        bookingId: booking.id,
-        productBookingRef: '',
-        extBookingRef: '',
-        productId: booking.tour_type,
-        tourName: tourName,
-        customerName: booking.customer_name,
-        customerEmail: booking.customer_email,
-        customerPhone: booking.customer_phone || '',
-        tourDate: formattedDate,
-        tourTime: booking.booking_time,
-        adults: booking.adults,
-        adultPlural: booking.adults > 1,
-        children: booking.children || 0,
-        infants: booking.infants || 0,
-        createdDate: now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }),
-        createdTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        totalAmount: booking.amount?.toLocaleString() || '0',
-        meetingPoint: meetingPoint
-      }
-    });
+    const companyEmails = [
+      'spirivincent03@gmail.com',
+      'contact@tomodachitours.com',
+      'yutaka.m@tomodachitours.com'
+    ];
+
+    const notificationData = {
+      bookingId: booking.id,
+      productBookingRef: '',
+      extBookingRef: '',
+      productId: booking.tour_type,
+      tourName: tourName,
+      customerName: booking.customer_name,
+      customerEmail: booking.customer_email,
+      customerPhone: booking.customer_phone || '',
+      tourDate: formattedDate,
+      tourTime: booking.booking_time,
+      adults: booking.adults,
+      adultPlural: booking.adults > 1,
+      children: booking.children || 0,
+      infants: booking.infants || 0,
+      createdDate: now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }),
+      createdTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      totalAmount: booking.amount?.toLocaleString() || '0',
+      meetingPoint: meetingPoint
+    };
+
+    // Send notification to each company email
+    for (const email of companyEmails) {
+      await sgMail.send({
+        to: email,
+        from: SENDGRID_FROM,
+        templateId: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
+        dynamicTemplateData: notificationData
+      });
+    }
 
     console.log('Booking confirmation emails sent successfully');
   } catch (error) {
@@ -338,7 +349,8 @@ const handler = async (req: Request): Promise<Response> => {
     const updateData: any = {
       status: 'CONFIRMED',
       payment_provider: primaryProvider,
-      backup_payment_used: false
+      backup_payment_used: false,
+      paid_amount: data.amount // Store the actual amount paid (after discounts)
     }
 
     if (primaryProvider === 'payjp') {

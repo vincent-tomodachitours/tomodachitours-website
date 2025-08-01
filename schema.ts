@@ -49,6 +49,7 @@ export type Database = {
           discount_code: string | null
           discount_code_id: number | null
           id: number
+          paid_amount: number | null
           infants: number
           status: string
           total_participants: number | null
@@ -68,6 +69,7 @@ export type Database = {
           discount_code?: string | null
           discount_code_id?: number | null
           id?: number
+          paid_amount?: number | null
           infants?: number
           status?: string
           total_participants?: number | null
@@ -87,6 +89,7 @@ export type Database = {
           discount_code?: string | null
           discount_code_id?: number | null
           id?: number
+          paid_amount?: number | null
           infants?: number
           status?: string
           total_participants?: number | null

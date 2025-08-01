@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, ArrowPathIcon, TrashIcon, ExclamationTriangleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, ArrowPathIcon, TrashIcon, ExclamationTriangleIcon, ClipboardDocumentIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { BookingService } from '../../services/bookingService';
 import { BokunBookingService } from '../../services/bokunBookingService';
 import { BookingFilters, TourType, BookingStatus } from '../../types';
@@ -8,6 +8,7 @@ import { Badge, getStatusBadgeVariant, getTourTypeBadgeVariant, formatTourType }
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import BookingDetailsModal from './BookingDetailsModal';
+import BookingCalendarView from './BookingCalendarView';
 import { format } from 'date-fns';
 
 // Safe date formatting function that handles invalid dates
@@ -52,6 +53,7 @@ const BookingList: React.FC = () => {
     const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showCacheManager, setShowCacheManager] = useState(false);
+    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
     const queryClient = useQueryClient();
 
@@ -286,6 +288,28 @@ const BookingList: React.FC = () => {
                             )}
                         </Button>
 
+                        {/* View Toggle */}
+                        <div className="flex rounded-md shadow-sm">
+                            <Button
+                                variant={viewMode === 'list' ? 'primary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewMode('list')}
+                                className="rounded-r-none"
+                            >
+                                <ListBulletIcon className="h-4 w-4 mr-1" />
+                                List
+                            </Button>
+                            <Button
+                                variant={viewMode === 'calendar' ? 'primary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewMode('calendar')}
+                                className="rounded-l-none border-l-0"
+                            >
+                                <CalendarIcon className="h-4 w-4 mr-1" />
+                                Calendar
+                            </Button>
+                        </div>
+
                         {/* Refresh Button */}
                         <Button variant="ghost" onClick={() => refetch()}>
                             Refresh
@@ -294,137 +318,145 @@ const BookingList: React.FC = () => {
                 </div>
             </div>
 
-            {/* Bookings Table */}
-            <div className="bg-white shadow rounded-lg">
-                <div className="p-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <div>
-                            <h2 className="text-lg font-semibold text-gray-900">Upcoming Bookings</h2>
-                            <p className="text-sm text-gray-600">
-                                {bookings.length} upcoming bookings
-                            </p>
+            {/* Bookings Content - List or Calendar View */}
+            {viewMode === 'list' ? (
+                <div className="bg-white shadow rounded-lg">
+                    <div className="p-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900">Upcoming Bookings</h2>
+                                <p className="text-sm text-gray-600">
+                                    {bookings.length} upcoming bookings
+                                </p>
+                            </div>
                         </div>
-                    </div>
 
-                    {bookings.length === 0 ? (
-                        <div className="text-center py-8">
-                            <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-500">No upcoming bookings found</p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Booking
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Customer
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Tour
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Date & Time
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Participants
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Source
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Guide
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {bookings.map((booking) => (
-                                        <tr
-                                            key={booking.id}
-                                            className={`${getDateBackgroundColor(booking.booking_date)} hover:bg-gray-100 cursor-pointer transition-colors`}
-                                            onClick={() => handleBookingClick(booking)}
-                                        >
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    #{booking.id}
-                                                </div>
-                                                <div className="text-sm text-gray-500">
-                                                    {safeFormatDate(booking.created_at, 'MMM d, yyyy', 'Unknown Date')}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap w-48 max-w-48">
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {booking.customer_name}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="text-sm text-gray-500 truncate flex-1 min-w-0">
-                                                        {booking.customer_email}
-                                                    </div>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            copyEmailToClipboard(booking.customer_email);
-                                                        }}
-                                                        className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                                                        title="Copy email"
-                                                    >
-                                                        <ClipboardDocumentIcon className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <Badge variant={getTourTypeBadgeVariant(booking.tour_type)}>
-                                                    {formatTourType(booking.tour_type)}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {safeFormatDate(booking.booking_date, 'MMM d, yyyy', 'Invalid Date')}
-                                                </div>
-                                                <div className="text-sm text-gray-500">
-                                                    {booking.booking_time}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {booking.total_participants} total
-                                                </div>
-                                                <div className="text-sm text-gray-500">
-                                                    {booking.adults}A {booking.children}C {booking.infants}I
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <Badge variant={(booking.external_source || 'website') === 'bokun' ? 'warning' : 'primary'}>
-                                                    {(booking.external_source || 'website') === 'bokun' ? 'Bokun' : 'Website'}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {booking.assigned_guide ? (
-                                                    <div className="text-sm text-gray-900">
-                                                        {booking.assigned_guide.first_name} {booking.assigned_guide.last_name}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-sm text-gray-500">Unassigned</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <Badge variant={getStatusBadgeVariant(booking.status)}>
-                                                    {booking.status}
-                                                </Badge>
-                                            </td>
+                        {bookings.length === 0 ? (
+                            <div className="text-center py-8">
+                                <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-500">No upcoming bookings found</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Booking
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Customer
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Tour
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Date & Time
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Participants
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Source
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Guide
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Status
+                                            </th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {bookings.map((booking) => (
+                                            <tr
+                                                key={booking.id}
+                                                className={`${getDateBackgroundColor(booking.booking_date)} hover:bg-gray-100 cursor-pointer transition-colors`}
+                                                onClick={() => handleBookingClick(booking)}
+                                            >
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        #{booking.id}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">
+                                                        {safeFormatDate(booking.created_at, 'MMM d, yyyy', 'Unknown Date')}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap w-48 max-w-48">
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {booking.customer_name}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="text-sm text-gray-500 truncate flex-1 min-w-0">
+                                                            {booking.customer_email}
+                                                        </div>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                copyEmailToClipboard(booking.customer_email);
+                                                            }}
+                                                            className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                                            title="Copy email"
+                                                        >
+                                                            <ClipboardDocumentIcon className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <Badge variant={getTourTypeBadgeVariant(booking.tour_type)}>
+                                                        {formatTourType(booking.tour_type)}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">
+                                                        {safeFormatDate(booking.booking_date, 'MMM d, yyyy', 'Invalid Date')}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">
+                                                        {booking.booking_time}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">
+                                                        {booking.total_participants} total
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">
+                                                        {booking.adults}A {booking.children}C {booking.infants}I
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <Badge variant={(booking.external_source || 'website') === 'bokun' ? 'warning' : 'primary'}>
+                                                        {(booking.external_source || 'website') === 'bokun' ? 'Bokun' : 'Website'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {booking.assigned_guide ? (
+                                                        <div className="text-sm text-gray-900">
+                                                            {booking.assigned_guide.first_name} {booking.assigned_guide.last_name}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-sm text-gray-500">Unassigned</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <Badge variant={getStatusBadgeVariant(booking.status)}>
+                                                        {booking.status}
+                                                    </Badge>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <BookingCalendarView
+                    bookings={bookings}
+                    onBookingClick={handleBookingClick}
+                    isLoading={isLoading}
+                />
+            )}
 
             {/* Filter Modal */}
             <Modal

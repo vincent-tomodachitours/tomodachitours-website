@@ -7,6 +7,7 @@ export interface Tour {
     name: string;
     description: string;
     duration_minutes: number;
+    base_price: number;
     time_slots: TimeSlot[];
     meeting_point: string;
     meeting_point_lat?: number;
@@ -84,6 +85,7 @@ export interface TourFormData {
     name: string;
     description: string;
     duration_minutes: number;
+    price_jpy?: number; // This maps to base_price in the database
     time_slots: TimeSlot[];
     meeting_point: string;
     meeting_point_lat?: number;
@@ -206,13 +208,19 @@ export class TourService {
      */
     static async createTour(tourData: TourFormData): Promise<Tour> {
         try {
+            // Map price_jpy to base_price for database
+            const dbData = { ...tourData };
+            if (tourData.price_jpy !== undefined) {
+                (dbData as any).base_price = tourData.price_jpy;
+                delete dbData.price_jpy;
+            }
+
             const { data, error } = await supabase
                 .from('tours')
                 .insert({
-                    ...tourData,
+                    ...dbData,
                     id: crypto.randomUUID(),
                     images: tourData.images || [],
-
                 })
                 .select()
                 .single();
@@ -236,11 +244,19 @@ export class TourService {
         try {
             console.log('🔄 TourService.updateTour called with:', { id, updates });
             console.log('🕐 Duration minutes being sent:', updates.duration_minutes);
+            console.log('💰 Price being sent:', updates.price_jpy);
+
+            // Map price_jpy to base_price for database
+            const dbUpdates = { ...updates };
+            if (updates.price_jpy !== undefined) {
+                (dbUpdates as any).base_price = updates.price_jpy;
+                delete dbUpdates.price_jpy;
+            }
 
             const { data, error } = await supabase
                 .from('tours')
                 .update({
-                    ...updates,
+                    ...dbUpdates,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)
@@ -254,6 +270,7 @@ export class TourService {
 
             console.log('✅ Database update successful:', data);
             console.log('🕐 Updated duration_minutes in DB:', data.duration_minutes);
+            console.log('💰 Updated base_price in DB:', data.base_price);
 
             return data;
         } catch (error) {
