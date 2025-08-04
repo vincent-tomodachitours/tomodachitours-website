@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react'
 import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import { Link } from 'react-router-dom'
+import SEO from '../components/SEO'
+import StructuredData from '../components/StructuredData'
+import LocalSEO from '../components/LocalSEO'
+import { seoData } from '../data/seoData'
+import { organizationSchema, localBusinessSchema, breadcrumbSchemas, faqSchemas } from '../data/schemaData'
 
 // Import tour services
 import { fetchTours } from '../services/toursService';
@@ -115,6 +120,25 @@ const Home = () => {
 
     return (
         <div className='min-h-screen flex flex-col bg-gradient-to-b from-white to-stone-100'>
+            <SEO
+                title={seoData.home.title}
+                description={seoData.home.description}
+                keywords={seoData.home.keywords}
+            />
+
+            {/* Structured Data */}
+            <StructuredData data={organizationSchema} />
+            <StructuredData data={localBusinessSchema} />
+            <StructuredData data={breadcrumbSchemas.home} />
+            <StructuredData data={faqSchemas.general} />
+
+            {/* Local SEO */}
+            <LocalSEO
+                location="Kyoto"
+                tourType="English Walking Tours"
+                additionalKeywords={['avoid crowds', 'early morning tours', 'sustainable tourism']}
+            />
+
             <Header />
 
             {/* Hero Section */}

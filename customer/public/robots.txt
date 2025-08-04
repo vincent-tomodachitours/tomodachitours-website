@@ -1,0 +1,29 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://tomodachitours.com/sitemap.xml
+
+# Allow all tour pages
+Allow: /tours/
+Allow: /about
+Allow: /recommendations
+Allow: /jobs
+
+# Block admin areas if any exist
+Disallow: /admin/
+Disallow: /login
+
+# Block unnecessary files
+Disallow: /*.json$
+Disallow: /static/js/
+Disallow: /static/css/
+
+# Local SEO optimization
+# Allow search engines to crawl location-specific content
+Allow: /tours/kyoto-*
+Allow: /tours/*-kyoto*
+
+# Tourism-specific crawl guidance
+# Prioritize tour and location pages
+Crawl-delay: 1

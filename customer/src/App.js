@@ -13,12 +13,14 @@ import CommercialDisclosure from './Pages/CommercialDisclosure';
 import Recommendations from './Pages/Recommendations';
 import Thankyou from './Pages/Thankyou';
 import BookingCancellation from './Components/BookingCancellation';
+import PerformanceOptimizer from './components/PerformanceOptimizer';
 import Login from './components/Login';
 import Jobs from './Pages/Jobs';
 
 function App() {
   return (
     <Router>
+      <PerformanceOptimizer />
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
