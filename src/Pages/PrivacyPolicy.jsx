@@ -2,10 +2,17 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
+import SEO from '../components/SEO'
+import { seoData } from '../data/seoData'
 
 const PrivacyPolicy = () => {
     return (
         <div className='min-h-screen flex flex-col bg-gradient-to-b from-white to-stone-100'>
+            <SEO
+                title={seoData.privacyPolicy.title}
+                description={seoData.privacyPolicy.description}
+                keywords={seoData.privacyPolicy.keywords}
+            />
             <Header />
 
             <main className='flex-grow container mx-auto px-4 py-12 max-w-4xl'>

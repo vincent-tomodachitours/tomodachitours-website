@@ -1,10 +1,17 @@
 import React from 'react'
 import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
+import SEO from '../components/SEO'
+import { seoData } from '../data/seoData'
 
 const Jobs = () => {
     return (
         <div>
+            <SEO
+                title={seoData.jobs.title}
+                description={seoData.jobs.description}
+                keywords={seoData.jobs.keywords}
+            />
             <Header />
             <div className='max-w-6xl mx-auto px-4 py-12 md:py-20'>
                 {/* Hero Section */}

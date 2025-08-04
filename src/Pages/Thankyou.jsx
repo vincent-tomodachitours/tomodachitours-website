@@ -5,10 +5,17 @@ import { ReactComponent as CheckCircle } from '../SVG/check-circle.svg'
 import { ReactComponent as Instagram } from '../SVG/instagram.svg'
 import { ReactComponent as Whatsapp } from '../SVG/whatsapp.svg'
 import { Link } from 'react-router-dom'
+import SEO from '../components/SEO'
+import { seoData } from '../data/seoData'
 
 const Thankyou = () => {
     return (
         <div className='min-h-screen flex flex-col justify-between bg-gradient-to-b from-blue-50 to-white'>
+            <SEO
+                title={seoData.thankyou.title}
+                description={seoData.thankyou.description}
+                keywords={seoData.thankyou.keywords}
+            />
             <Header1 />
 
             <main className='flex-grow flex items-center justify-center px-4 py-12'>

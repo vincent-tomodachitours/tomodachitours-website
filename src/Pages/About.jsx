@@ -1,5 +1,9 @@
 import React from 'react'
 import Header from '../Components/Headers/Header1'
+import SEO from '../components/SEO'
+import StructuredData from '../components/StructuredData'
+import { seoData } from '../data/seoData'
+import { breadcrumbSchemas } from '../data/schemaData'
 
 import main1 from "../IMG/About/sep2024-2.webp"
 import main2 from "../IMG/Morning-Tour/bamboo-main-highres1.85.webp"
@@ -9,6 +13,15 @@ import Footer from '../Components/Footer'
 const About = () => {
     return (
         <div>
+            <SEO
+                title={seoData.about.title}
+                description={seoData.about.description}
+                keywords={seoData.about.keywords}
+            />
+
+            {/* Structured Data */}
+            <StructuredData data={breadcrumbSchemas.about} />
+
             <Header />
             <div className='max-w-7xl mx-auto px-4 py-12 md:py-20'>
                 {/* Hero Section */}

@@ -1,6 +1,10 @@
 import React from 'react'
 import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
+import SEO from '../components/SEO'
+import StructuredData from '../components/StructuredData'
+import { seoData } from '../data/seoData'
+import { breadcrumbSchemas } from '../data/schemaData'
 import { Link } from 'react-router-dom'
 
 import fushimiInari from "../IMG/Night-Tour/2.webp"
@@ -180,6 +184,26 @@ const Recommendations = () => {
 
     return (
         <div className='min-h-screen flex flex-col bg-gradient-to-b from-white to-stone-100'>
+            <SEO
+                title={seoData.recommendations.title}
+                description={seoData.recommendations.description}
+                keywords={seoData.recommendations.keywords}
+            />
+
+            {/* Structured Data */}
+            <StructuredData data={{
+                ...breadcrumbSchemas.home,
+                itemListElement: [
+                    ...breadcrumbSchemas.home.itemListElement,
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Recommendations",
+                        "item": "https://tomodachitours.com/recommendations"
+                    }
+                ]
+            }} />
+
             <Header />
 
             <main className='flex-grow'>

@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import SEO from '../components/SEO'
+import StructuredData from '../components/StructuredData'
+import { seoData } from '../data/seoData'
+import { tourSchemas, breadcrumbSchemas } from '../data/schemaData'
 
 //Import tour services
 import { getTour } from '../services/toursService';
@@ -122,6 +126,28 @@ const GionTour = () => {
 
     return (
         <div id="app-container" className='w-full h-screen min-h-screen flex flex-col overflow-y-auto'>
+            <SEO
+                title={seoData.gionTour.title}
+                description={seoData.gionTour.description}
+                keywords={seoData.gionTour.keywords}
+                image="/IMG/Gion-Tour/geisha.webp"
+            />
+
+            {/* Structured Data */}
+            <StructuredData data={tourSchemas.gionTour} />
+            <StructuredData data={{
+                ...breadcrumbSchemas.tours,
+                itemListElement: [
+                    ...breadcrumbSchemas.tours.itemListElement,
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "Kyoto Gion Early Morning Walking Tour",
+                        "item": "https://tomodachitours.com/tours/kyoto-gion-early-morning-walking-tour"
+                    }
+                ]
+            }} />
+
             <Header />
             <div className='w-[95%] sm:w-4/5 md:w-3/4 mx-auto flex flex-col text-gray-700 mt-6 sm:mt-12'>
                 <div className='mb-6 sm:mb-8'>
