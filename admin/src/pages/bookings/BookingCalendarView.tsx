@@ -20,7 +20,7 @@ import {
     ClockIcon,
     UserIcon
 } from '@heroicons/react/24/outline';
-import { Badge, formatTourType, getTourTypeBadgeVariant, getStatusBadgeVariant } from '../../components/ui/Badge';
+import { Badge, formatTourType, getTourTypeBadgeVariant } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Booking } from '../../types';
 import TimeSlotModal from './TimeSlotModal';
@@ -150,15 +150,7 @@ const BookingCalendarView: React.FC<BookingCalendarViewProps> = ({
         return colors[tourType as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200';
     };
 
-    const getStatusColor = (status: string) => {
-        const colors = {
-            'CONFIRMED': 'border-l-green-500',
-            'PENDING': 'border-l-yellow-500',
-            'CANCELLED': 'border-l-red-500',
-            'REFUNDED': 'border-l-gray-500'
-        };
-        return colors[status as keyof typeof colors] || 'border-l-gray-500';
-    };
+
 
     if (isLoading) {
         return (
