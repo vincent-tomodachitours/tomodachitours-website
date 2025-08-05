@@ -9,19 +9,6 @@
             }
         }
     ],
-    "redirects": [
-        {
-            "source": "/(.*)",
-            "destination": "https://tomodachitours.com/$1",
-            "permanent": true,
-            "has": [
-                {
-                    "type": "host",
-                    "value": "tomodachitours-website.vercel.app"
-                }
-            ]
-        }
-    ],
     "routes": [
         {
             "src": "/static/(.*)",
