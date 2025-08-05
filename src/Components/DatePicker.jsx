@@ -40,7 +40,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         setCheckout(false);
     };
     const [bookings, setBookings] = useState([]);
-    const [bokunAvailabilityCache, setBokunAvailabilityCache] = useState({});
     const [loadingAvailability, setLoadingAvailability] = useState(false);
 
     const [calendarState, setCalendarState] = useState(0);
@@ -354,7 +353,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             isCancelled = true;
             clearTimeout(timeoutId);
         };
-    }, [calendarState, calendarSelectedDate, participants]);
+    }, [calendarState, calendarSelectedDate, participants, returnAvailableTimes, tourTime, userSetTourTime]);
 
     useEffect(() => {
         const appContainer = document.getElementById('app-container');
