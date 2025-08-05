@@ -46,21 +46,19 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
             const { data: booking, error: bookingError } = await supabase
                 .from('bookings')
                 .insert({
-                    contact_name: contactName,
-                    contact_email: contactEmail,
-                    contact_phone: contactPhone,
-                    tour_date: tourDate,
-                    time_slot: timeSlot,
-                    number_of_people: numberOfPeople,
-                    total_price: totalPrice,
-                    original_price: originalPrice || totalPrice,
-                    discount_applied: appliedDiscount || 0,
+                    customer_name: contactName,
+                    customer_email: contactEmail,
+                    customer_phone: contactPhone,
+                    booking_date: tourDate,
+                    booking_time: timeSlot,
+                    adults: numberOfPeople,
+                    children: 0,
+                    infants: 0,
+                    tour_type: sheetId.toUpperCase().replace(' ', '_'),
+                    discount_amount: appliedDiscount ? (appliedDiscount.originalAmount - appliedDiscount.finalAmount) : null,
                     discount_code: discountCode,
-                    special_requests: specialRequests,
-                    tour_name: tourName,
-                    sheet_id: sheetId,
-                    status: 'PENDING',
-                    payment_provider: 'stripe'
+                    status: 'PENDING_PAYMENT',
+                    paid_amount: totalPrice // Set the paid amount (final price after discount) during booking creation
                 })
                 .select()
                 .single();

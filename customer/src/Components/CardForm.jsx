@@ -29,7 +29,9 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
                 children: parseInt(formRef.current.children) || 0,
                 infants: parseInt(formRef.current.infants) || 0,
                 status: 'PENDING_PAYMENT',
-                discount_code: appliedDiscount?.code || null
+                discount_code: appliedDiscount?.code || null,
+                discount_amount: appliedDiscount ? (appliedDiscount.originalAmount - appliedDiscount.finalAmount) : null,
+                paid_amount: totalPrice // Set the paid amount (final price after discount) during booking creation
             };
 
             // Insert booking into Supabase
