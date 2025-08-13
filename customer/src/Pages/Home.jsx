@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
+import TripAdvisorReviews from '../Components/TripAdvisorReviews'
 import { Link } from 'react-router-dom'
 import SEO from '../components/SEO'
 import StructuredData from '../components/StructuredData'
@@ -54,6 +55,32 @@ const LoadingOrErrorState = ({ isLoading, heroImage }) => (
                 </div>
             </div>
         </main>
+
+        {/* Customer Reviews Section */}
+        <section className='bg-white py-16 border-t border-gray-100'>
+            <div className='container mx-auto px-4 max-w-7xl'>
+                <div className='text-center mb-12'>
+                    <h2 className='font-ubuntu text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4'>
+                        Customer Reviews
+                    </h2>
+                    <div className='w-24 h-1 bg-blue-500 mx-auto rounded-full mb-6'></div>
+                    <p className='text-xl text-gray-600 max-w-3xl mx-auto'>
+                        See what our guests are saying about their unforgettable experiences exploring Kyoto with us.
+                    </p>
+                </div>
+
+                <div className='transform transition-all duration-700 ease-out opacity-100 translate-y-0'>
+                    <TripAdvisorReviews
+                        locationId={process.env.REACT_APP_TRIPADVISOR_LOCATION_ID}
+                        maxReviews={6}
+                        showRating={true}
+                        layout="grid"
+                        className="animate-fade-in-up"
+                        showAttribution={true}
+                    />
+                </div>
+            </div>
+        </section>
 
         <Footer />
     </div>
@@ -205,6 +232,32 @@ const Home = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Customer Reviews Section */}
+            <section className='bg-white py-16 border-t border-gray-100'>
+                <div className='container mx-auto px-4 max-w-7xl'>
+                    <div className='text-center mb-12'>
+                        <h2 className='font-ubuntu text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4'>
+                            Customer Reviews
+                        </h2>
+                        <div className='w-24 h-1 bg-blue-500 mx-auto rounded-full mb-6'></div>
+                        <p className='text-xl text-gray-600 max-w-3xl mx-auto'>
+                            See what our guests are saying about their unforgettable experiences exploring Kyoto with us.
+                        </p>
+                    </div>
+
+                    <div className='transform transition-all duration-700 ease-out opacity-100 translate-y-0'>
+                        <TripAdvisorReviews
+                            locationId={process.env.REACT_APP_TRIPADVISOR_LOCATION_ID}
+                            maxReviews={6}
+                            showRating={true}
+                            layout="grid"
+                            className="animate-fade-in-up"
+                            showAttribution={true}
+                        />
+                    </div>
+                </div>
+            </section>
 
             <Footer />
         </div>

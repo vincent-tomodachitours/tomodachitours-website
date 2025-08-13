@@ -24,6 +24,7 @@ import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import DatePicker from '../Components/DatePicker'
 import ImageShowcase from '../Components/TourPages/ImageShowcase'
+import TripAdvisorReviews from '../Components/TripAdvisorReviews'
 
 const NightTour = () => {
     const images = [
@@ -385,6 +386,24 @@ const NightTour = () => {
                             />
                         </div>
                     )}
+                </div>
+
+                {/* Customer Reviews Section */}
+                <div className="mt-16 mb-12">
+                    <div className="text-center mb-8">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Customer Reviews</h2>
+                        <p className="text-gray-600 max-w-2xl mx-auto">
+                            See what our guests say about their evening Fushimi Inari Shrine tour experience
+                        </p>
+                    </div>
+                    <TripAdvisorReviews
+                        locationId={process.env.REACT_APP_TRIPADVISOR_LOCATION_ID}
+                        maxReviews={6}
+                        showRating={true}
+                        layout="grid"
+                        className="px-4"
+                        showAttribution={true}
+                    />
                 </div>
             </div>
             <Footer />
