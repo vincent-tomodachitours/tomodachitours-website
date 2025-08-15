@@ -66,12 +66,137 @@
         gtag('config', conversionId);
       }
     };
+
+    // Analytics Testing Functions - Available immediately
+    window.testAnalytics = {
+      testSetup: function () {
+        console.log('🧪 Testing Analytics Setup...');
+        console.log('- gtag available:', typeof window.gtag);
+        console.log('- dataLayer available:', typeof window.dataLayer);
+        console.log('- GA4 should be loaded with ID: G-5GVJBRE1SY');
+
+        if (typeof window.gtag === 'function') {
+          console.log('✅ Google Analytics is properly loaded');
+          return true;
+        } else {
+          console.log('❌ Google Analytics is NOT loaded');
+          return false;
+        }
+      },
+
+      testTourView: function () {
+        console.log('🧪 Testing Tour View Event...');
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'view_item', {
+            currency: 'JPY',
+            value: 5000,
+            items: [{
+              item_id: 'test_night_tour',
+              item_name: 'Test Night Tour View',
+              category: 'Tour',
+              price: 5000,
+              quantity: 1
+            }]
+          });
+          console.log('✅ Tour view event sent to GA4');
+        } else {
+          console.log('❌ Cannot send event - gtag not available');
+        }
+      },
+
+      testAddToCart: function () {
+        console.log('🧪 Testing Add to Cart Event...');
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'add_to_cart', {
+            currency: 'JPY',
+            value: 10000,
+            items: [{
+              item_id: 'test_night_tour',
+              item_name: 'Test Night Tour - Add to Cart',
+              category: 'Tour',
+              price: 5000,
+              quantity: 2
+            }]
+          });
+          console.log('✅ Add to cart event sent to GA4');
+        } else {
+          console.log('❌ Cannot send event - gtag not available');
+        }
+      },
+
+      testBeginCheckout: function () {
+        console.log('🧪 Testing Begin Checkout Event...');
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'begin_checkout', {
+            currency: 'JPY',
+            value: 10000,
+            items: [{
+              item_id: 'test_night_tour',
+              item_name: 'Test Night Tour - Begin Checkout',
+              category: 'Tour',
+              price: 5000,
+              quantity: 2
+            }]
+          });
+          console.log('✅ Begin checkout event sent to GA4');
+        } else {
+          console.log('❌ Cannot send event - gtag not available');
+        }
+      },
+
+      testPurchase: function () {
+        console.log('🧪 Testing Purchase Event...');
+        if (typeof window.gtag === 'function') {
+          const transactionId = 'test_' + Date.now();
+          window.gtag('event', 'purchase', {
+            transaction_id: transactionId,
+            currency: 'JPY',
+            value: 10000,
+            items: [{
+              item_id: 'test_night_tour',
+              item_name: 'Test Night Tour - Purchase',
+              category: 'Tour',
+              price: 5000,
+              quantity: 2
+            }]
+          });
+          console.log('✅ Purchase event sent to GA4 with transaction ID:', transactionId);
+        } else {
+          console.log('❌ Cannot send event - gtag not available');
+        }
+      },
+
+      runAllTests: function () {
+        console.log('🚀 Running All Analytics Tests...');
+        console.log('================================================');
+
+        if (!window.testAnalytics.testSetup()) {
+          console.log('❌ Setup test failed - stopping other tests');
+          return;
+        }
+
+        console.log('Running events with 1 second delays...');
+        setTimeout(() => window.testAnalytics.testTourView(), 1000);
+        setTimeout(() => window.testAnalytics.testAddToCart(), 2000);
+        setTimeout(() => window.testAnalytics.testBeginCheckout(), 3000);
+        setTimeout(() => window.testAnalytics.testPurchase(), 4000);
+
+        setTimeout(() => {
+          console.log('================================================');
+          console.log('✅ All tests completed!');
+          console.log('📊 Check Google Analytics 4 Realtime reports to see the events');
+          console.log('🔗 GA4 Realtime: https://analytics.google.com/analytics/web/#/p' + '/realtime');
+        }, 5000);
+      }
+    };
+
+    console.log('🧪 Analytics test functions loaded and available at window.testAnalytics');
   </script>
 
   <!-- Preload critical resources -->
   <link rel="preload" href="/IMG/Morning-Tour/bamboo-main-highres1.85.webp" as="image" />
 
-  
+
   <!-- Production Tracking Meta Tags -->
   <meta name="google-ads-tracking" content="enabled" />
   <meta name="analytics-environment" content="production" />
