@@ -25,10 +25,13 @@ function App() {
         {/* <Route path="/tours" element={<Tours />} /> */}
         <Route path="/tours/kyoto-fushimi-inari-night-walking-tour" element={<NightTour />} />
         <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
+        <Route path="/kyoto-early-morning-walking-tour-nature-and-history" element={<MorningTour />} />
         <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
         <Route path="/tours/kyoto-gion-early-morning-walking-tour" element={<GionTour />} />
         <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<About />} />
         <Route path="recommendations" element={<Recommendations />} />
+        <Route path="/tours" element={<Home />} />
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
