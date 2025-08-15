@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import Header1 from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import { ReactComponent as CheckCircle } from '../SVG/check-circle.svg'
@@ -7,8 +7,75 @@ import { ReactComponent as Whatsapp } from '../SVG/whatsapp.svg'
 import { Link } from 'react-router-dom'
 import SEO from '../components/SEO'
 import { seoData } from '../data/seoData'
+import { useAnalytics } from '../hooks/useAnalytics'
 
 const Thankyou = () => {
+    const { trackPurchase, trackPageView } = useAnalytics();
+
+    useEffect(() => {
+        // Track page view
+        trackPageView(window.location.pathname, 'Booking Confirmation - Thank You');
+
+        // Get booking data from URL parameters or session storage
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionBookingData = sessionStorage.getItem('completedBooking');
+
+        let bookingData = null;
+
+        // Try to get booking data from session storage first
+        if (sessionBookingData) {
+            try {
+                bookingData = JSON.parse(sessionBookingData);
+                // Clear the session data after use
+                sessionStorage.removeItem('completedBooking');
+            } catch (error) {
+                console.warn('Failed to parse booking data from session:', error);
+            }
+        }
+
+        // Fallback to URL parameters
+        if (!bookingData) {
+            const tourId = urlParams.get('tour') || 'unknown_tour';
+            const price = parseFloat(urlParams.get('price')) || 0;
+            const transactionId = urlParams.get('transaction_id') || `booking_${Date.now()}`;
+
+            if (price > 0) {
+                bookingData = {
+                    tourId,
+                    price,
+                    transactionId,
+                    tourName: `Tour Booking - ${tourId}`,
+                    quantity: 1
+                };
+            }
+        }
+
+        // Track purchase conversion if we have booking data
+        if (bookingData) {
+            console.log('Tracking purchase conversion:', bookingData);
+            trackPurchase({
+                transactionId: bookingData.transactionId,
+                tourId: bookingData.tourId,
+                tourName: bookingData.tourName,
+                price: bookingData.price,
+                currency: 'JPY',
+                quantity: bookingData.quantity || 1,
+                customerEmail: bookingData.customerEmail
+            });
+        } else {
+            // Track a generic purchase event if no specific data available
+            console.log('Tracking generic purchase conversion');
+            trackPurchase({
+                transactionId: `booking_${Date.now()}`,
+                tourId: 'generic_tour',
+                tourName: 'Tour Booking',
+                price: 0,
+                currency: 'JPY',
+                quantity: 1
+            });
+        }
+    }, [trackPurchase, trackPageView]);
+
     return (
         <div className='min-h-screen flex flex-col justify-between bg-gradient-to-b from-blue-50 to-white'>
             <SEO

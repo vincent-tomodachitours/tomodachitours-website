@@ -8,6 +8,9 @@ import { tourSchemas, breadcrumbSchemas } from '../data/schemaData'
 //Import tour services
 import { getTour } from '../services/toursService';
 
+//Analytics
+import { usePageTracking } from '../hooks/useAnalytics';
+
 //SVG
 import { ReactComponent as Location } from '../SVG/Location.svg'
 import { ReactComponent as One } from '../SVG/One-circle.svg'
@@ -66,6 +69,16 @@ const GionTour = () => {
 
         loadTourData();
     }, []);
+
+    // Analytics tracking - track page view and tour view when tour data loads
+    const tourAnalyticsData = tourData ? {
+        tourId: 'gion_tour',
+        tourName: tourData['tour-title'],
+        price: tourData['tour-price'],
+        currency: 'JPY'
+    } : null;
+
+    usePageTracking('Kyoto Gion Early Morning Walking Tour', tourAnalyticsData);
 
     const [activeContent, setActiveContent] = useState(1);
 

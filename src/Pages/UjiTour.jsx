@@ -8,6 +8,9 @@ import { tourSchemas, breadcrumbSchemas } from '../data/schemaData'
 //Import tour services
 import { getTour } from '../services/toursService';
 
+//Analytics
+import { usePageTracking } from '../hooks/useAnalytics';
+
 //SVG
 import { ReactComponent as Location } from '../SVG/Location.svg'
 import { ReactComponent as One } from '../SVG/One-circle.svg'
@@ -66,6 +69,16 @@ const UjiTour = () => {
 
         loadTourData();
     }, []);
+
+    // Analytics tracking - track page view and tour view when tour data loads
+    const tourAnalyticsData = tourData ? {
+        tourId: 'uji_tour',
+        tourName: tourData['tour-title'],
+        price: tourData['tour-price'],
+        currency: 'JPY'
+    } : null;
+
+    usePageTracking('Matcha Grinding Experience & Uji Walking Tour', tourAnalyticsData);
 
     //Mobile resizing logic
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);

@@ -6,10 +6,41 @@ import { ReactComponent as Clock } from '../SVG/Clock.svg'
 import Checkout from './Checkout'
 import { supabase } from '../lib/supabase';
 import { bokunAvailabilityService } from '../services/bokun/availability-service-production';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime }) {
+    const { trackAddToCart, trackBeginCheckout } = useAnalytics();
+
+    // Helper function to map sheet IDs to tour IDs for analytics
+    const getTourIdFromSheetId = (sheetId) => {
+        const tourMap = {
+            'NIGHT_TOUR': 'night_tour',
+            'MORNING_TOUR': 'morning_tour',
+            'UJI_TOUR': 'uji_tour',
+            'GION_TOUR': 'gion_tour',
+            // Keep backwards compatibility
+            'Night tour': 'night_tour',
+            'Morning tour': 'morning_tour',
+            'Uji tour': 'uji_tour',
+            'Gion tour': 'gion_tour'
+        };
+        return tourMap[sheetId] || 'unknown_tour';
+    };
+
     const [checkout, setCheckout] = useState(false);
-    const handleOpenCheckout = () => setCheckout(true);
+    const handleOpenCheckout = () => {
+        // Track begin checkout conversion
+        const tourData = {
+            tourId: getTourIdFromSheetId(sheetId),
+            tourName: tourName,
+            price: totalPrice,
+            currency: 'JPY',
+            quantity: participants
+        };
+
+        trackBeginCheckout(tourData);
+        setCheckout(true);
+    };
     const handleCloseCheckout = () => {
         const payjp3DS = sessionStorage.getItem('payjp_3ds_in_progress') === 'true' ||
             localStorage.getItem('payjp_3ds_in_progress') === 'true';
@@ -52,6 +83,22 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
     const participants = adultParticipants + childParticipants + infantParticipants;
 
     const totalPrice = (adultParticipants + childParticipants) * price;
+
+    // Track add to cart when participants are selected (after initial load)
+    useEffect(() => {
+        // Only track if participants > 0 and not the initial state (1 adult)
+        if (participants > 1 || (participants === 1 && (childParticipants > 0 || infantParticipants > 0))) {
+            const tourData = {
+                tourId: getTourIdFromSheetId(sheetId),
+                tourName: tourName,
+                price: totalPrice,
+                currency: 'JPY',
+                quantity: participants
+            };
+
+            trackAddToCart(tourData);
+        }
+    }, [participants, totalPrice, sheetId, tourName, trackAddToCart, getTourIdFromSheetId, adultParticipants, childParticipants, infantParticipants]);
 
     const [tourTime, setTourTime] = useState(availableTimes[0]);
     const [userSetTourTime, setUserSetTourTime] = useState(false);
