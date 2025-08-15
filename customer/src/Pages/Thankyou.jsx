@@ -1,12 +1,188 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import Header1 from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import { ReactComponent as CheckCircle } from '../SVG/check-circle.svg'
 import { ReactComponent as Instagram } from '../SVG/instagram.svg'
 import { ReactComponent as Whatsapp } from '../SVG/whatsapp.svg'
 import { Link } from 'react-router-dom'
+import { trackPurchase } from '../services/analytics'
+import { trackCustomGoogleAdsConversion } from '../services/googleAdsTracker'
+import attributionService from '../services/attributionService'
+import remarketingManager from '../services/remarketingManager'
+import dynamicRemarketingService from '../services/dynamicRemarketingService'
 
 const Thankyou = () => {
+    useEffect(() => {
+        // Track comprehensive purchase conversion when thank you page loads
+        // Get booking data from URL params or sessionStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const bookingData = {
+            transactionId: urlParams.get('transaction_id') || sessionStorage.getItem('booking_transaction_id') || `booking_${Date.now()}`,
+            tourName: urlParams.get('tour_name') || sessionStorage.getItem('booking_tour_name') || 'Tour Booking',
+            tourId: urlParams.get('tour_id') || sessionStorage.getItem('booking_tour_id') || 'unknown',
+            value: parseFloat(urlParams.get('value')) || parseFloat(sessionStorage.getItem('booking_value')) || 0,
+            price: parseFloat(urlParams.get('price')) || parseFloat(sessionStorage.getItem('booking_price')) || 0,
+            quantity: parseInt(urlParams.get('quantity')) || parseInt(sessionStorage.getItem('booking_quantity')) || 1
+        };
+
+        // Get additional booking data from session storage
+        const additionalData = {
+            adults: parseInt(sessionStorage.getItem('booking_adults')) || 0,
+            children: parseInt(sessionStorage.getItem('booking_children')) || 0,
+            infants: parseInt(sessionStorage.getItem('booking_infants')) || 0,
+            originalPrice: parseFloat(sessionStorage.getItem('booking_original_price')) || bookingData.value,
+            discountApplied: sessionStorage.getItem('booking_discount_applied') === 'true',
+            discountAmount: parseFloat(sessionStorage.getItem('booking_discount_amount')) || 0,
+            discountCode: sessionStorage.getItem('booking_discount_code'),
+            paymentProvider: sessionStorage.getItem('booking_payment_provider') || 'stripe',
+            bookingDate: sessionStorage.getItem('booking_date'),
+            bookingTime: sessionStorage.getItem('booking_time'),
+            customerEmail: sessionStorage.getItem('booking_customer_email'),
+            customerName: sessionStorage.getItem('booking_customer_name')
+        };
+
+        // Combine all booking data
+        const completeBookingData = {
+            ...bookingData,
+            ...additionalData,
+            currency: 'JPY',
+            // Get attribution data for enhanced conversions
+            attribution: attributionService.getAttributionForAnalytics()
+        };
+
+        // Only track if we have meaningful data
+        if (bookingData.value > 0 || bookingData.price > 0) {
+            // Track with existing analytics service (includes GA4 and Google Ads)
+            trackPurchase(completeBookingData);
+
+            // Track additional Google Ads conversion events for remarketing
+            try {
+                // Track purchase completion conversion
+                trackCustomGoogleAdsConversion('purchase_completion', {
+                    value: completeBookingData.value,
+                    currency: 'JPY',
+                    transaction_id: completeBookingData.transactionId,
+                    tour_id: completeBookingData.tourId,
+                    tour_name: completeBookingData.tourName,
+                    conversion_page: 'thank_you',
+                    customer_lifetime_value: completeBookingData.value, // First purchase
+                    new_customer: true
+                });
+
+                // Track tour-specific purchase completion for enhanced segmentation
+                if (completeBookingData.tourId && completeBookingData.tourId !== 'unknown') {
+                    trackCustomGoogleAdsConversion('tour_purchase_completion', {
+                        value: completeBookingData.value,
+                        currency: 'JPY',
+                        transaction_id: completeBookingData.transactionId,
+                        tour_category: completeBookingData.tourId,
+                        tour_location: 'kyoto',
+                        booking_source: completeBookingData.attribution?.source || 'direct'
+                    });
+                }
+
+                console.log('🎯 Enhanced Google Ads conversions tracked');
+            } catch (error) {
+                console.warn('Additional Google Ads conversion tracking failed:', error);
+            }
+
+            // Process purchase completion for remarketing audience management
+            try {
+                remarketingManager.processPurchaseCompletion(completeBookingData);
+                console.log('🎯 Remarketing audience exclusion processed');
+            } catch (error) {
+                console.warn('Remarketing audience processing failed:', error);
+            }
+
+            // Add dynamic remarketing parameters for post-purchase remarketing
+            try {
+                dynamicRemarketingService.addDynamicRemarketingParameters({
+                    ...completeBookingData,
+                    eventType: 'purchase_completion',
+                    customerStatus: 'converted',
+                    conversionValue: completeBookingData.value
+                });
+                console.log('🎯 Dynamic remarketing parameters added');
+            } catch (error) {
+                console.warn('Dynamic remarketing parameter addition failed:', error);
+            }
+
+            console.log('🎯 Comprehensive purchase conversion tracked:', completeBookingData);
+        } else {
+            // Fallback tracking with estimated values
+            const fallbackData = {
+                transactionId: `fallback_${Date.now()}`,
+                tourName: 'Kyoto Tour Booking',
+                tourId: 'tour-booking',
+                value: 7000, // Average tour price
+                price: 7000,
+                quantity: 1,
+                currency: 'JPY',
+                attribution: attributionService.getAttributionForAnalytics()
+            };
+
+            trackPurchase(fallbackData);
+
+            // Track fallback Google Ads conversion
+            try {
+                trackCustomGoogleAdsConversion('purchase_completion', {
+                    value: fallbackData.value,
+                    currency: 'JPY',
+                    transaction_id: fallbackData.transactionId,
+                    conversion_page: 'thank_you',
+                    fallback_tracking: true
+                });
+            } catch (error) {
+                console.warn('Fallback Google Ads conversion tracking failed:', error);
+            }
+
+            console.log('🎯 Fallback purchase conversion tracked');
+        }
+
+        // Track thank you page view for remarketing
+        try {
+            trackCustomGoogleAdsConversion('thank_you_page_view', {
+                page_title: 'Booking Confirmed',
+                page_location: window.location.href,
+                conversion_page: 'thank_you',
+                customer_status: 'converted'
+            });
+        } catch (error) {
+            console.warn('Thank you page view tracking failed:', error);
+        }
+
+        // Clean up session storage after tracking
+        const sessionKeys = [
+            'booking_transaction_id',
+            'booking_tour_name',
+            'booking_tour_id',
+            'booking_value',
+            'booking_price',
+            'booking_quantity',
+            'booking_adults',
+            'booking_children',
+            'booking_infants',
+            'booking_original_price',
+            'booking_discount_applied',
+            'booking_discount_amount',
+            'booking_discount_code',
+            'booking_payment_provider',
+            'booking_date',
+            'booking_time',
+            'booking_customer_email',
+            'booking_customer_name',
+            'checkout_data'
+        ];
+
+        sessionKeys.forEach(key => {
+            try {
+                sessionStorage.removeItem(key);
+            } catch (error) {
+                console.warn(`Failed to remove session storage key: ${key}`, error);
+            }
+        });
+    }, []);
+
     return (
         <div className='min-h-screen flex flex-col justify-between bg-gradient-to-b from-blue-50 to-white'>
             <Header1 />

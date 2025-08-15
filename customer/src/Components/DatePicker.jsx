@@ -7,10 +7,20 @@ import Checkout from './Checkout'
 import { supabase } from '../lib/supabase';
 import { bokunAvailabilityService } from '../services/bokun/availability-service-production';
 import { bokunBookingService } from '../services/bokun/booking-service.js';
+import { trackBeginCheckout } from '../services/analytics';
 
 function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime }) {
     const [checkout, setCheckout] = useState(false);
-    const handleOpenCheckout = () => setCheckout(true);
+    const handleOpenCheckout = () => {
+        setCheckout(true);
+
+        // Track begin checkout event for Google Ads conversion tracking
+        trackBeginCheckout({
+            tourId: tourName.toLowerCase().replace(/\s+/g, '-'),
+            tourName: tourName,
+            price: totalPrice
+        });
+    };
     const handleCloseCheckout = () => {
         const payjp3DS = sessionStorage.getItem('payjp_3ds_in_progress') === 'true' ||
             localStorage.getItem('payjp_3ds_in_progress') === 'true';
@@ -41,7 +51,6 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         setCheckout(false);
     };
     const [bookings, setBookings] = useState([]);
-    const [bokunAvailabilityCache, setBokunAvailabilityCache] = useState({});
     const [loadingAvailability, setLoadingAvailability] = useState(false);
 
     const [calendarState, setCalendarState] = useState(0);

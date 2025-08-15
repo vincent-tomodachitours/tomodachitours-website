@@ -25,12 +25,18 @@ import gionTour3 from "../IMG/Gion-Tour/yasaka4.webp"
 import Footer from '../Components/Footer'
 import DisplayProduct3 from '../Components/DisplayProduct3'
 
+//Analytics
+import attributionService from '../services/attributionService'
+
 const Tours = () => {
     const [tours, setTours] = useState(null);
     const [loading, setLoading] = useState(true);
 
     // Load tour data from Supabase
     useEffect(() => {
+        // Initialize attribution tracking for UTM parameters
+        attributionService.initialize();
+
         const loadTours = async () => {
             try {
                 setLoading(true);

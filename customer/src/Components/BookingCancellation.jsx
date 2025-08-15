@@ -4,6 +4,9 @@ import Footer from './Footer';
 import { supabase } from '../lib/supabase';
 import { fetchTours } from '../services/toursService';
 import { Link } from 'react-router-dom';
+import { trackCustomGoogleAdsConversion } from '../services/googleAdsTracker';
+import remarketingManager from '../services/remarketingManager';
+import attributionService from '../services/attributionService';
 
 const BookingCancellation = () => {
     const [email, setEmail] = useState('');
@@ -145,6 +148,77 @@ const BookingCancellation = () => {
             const result = await response.json();
 
             if (result.success) {
+                // Track booking cancellation for Google Ads and remarketing
+                try {
+                    const cancellationData = {
+                        bookingId: booking.id,
+                        tourId: booking.tour_type.toLowerCase().replace('_', '-'),
+                        tourName: getTourName(booking.tour_type),
+                        refundAmount: refundAmount,
+                        originalValue: booking.paid_amount || refundAmount,
+                        customerEmail: email,
+                        customerName: booking.customer_name,
+                        bookingDate: booking.booking_date,
+                        bookingTime: booking.booking_time,
+                        cancellationTimestamp: Date.now(),
+                        cancellationReason: 'customer_initiated',
+                        attribution: attributionService.getAttributionForAnalytics()
+                    };
+
+                    // Track Google Ads cancellation conversion
+                    trackCustomGoogleAdsConversion('booking_cancellation', {
+                        value: cancellationData.refundAmount,
+                        currency: 'JPY',
+                        transaction_id: cancellationData.bookingId,
+                        tour_id: cancellationData.tourId,
+                        tour_name: cancellationData.tourName,
+                        cancellation_reason: 'customer_initiated',
+                        refund_amount: cancellationData.refundAmount,
+                        days_before_tour: Math.ceil((getBookingDateTime(booking) - Date.now()) / (24 * 60 * 60 * 1000)),
+                        customer_email_hash: btoa(email).substring(0, 10), // Hashed email for privacy
+                        cancellation_page: 'booking_cancellation'
+                    });
+
+                    // Remove user from remarketing audiences
+                    const userId = email; // Use email as user identifier for remarketing
+
+                    // Remove from all acquisition and engagement audiences
+                    const audiencesToRemove = [
+                        'cart_abandoners',
+                        'checkout_abandoners',
+                        'high_engagement_users',
+                        `${cancellationData.tourId.replace('-', '_')}_tour_interest`
+                    ];
+
+                    audiencesToRemove.forEach(audienceId => {
+                        try {
+                            remarketingManager.removeUserFromAudience(userId, audienceId);
+                        } catch (error) {
+                            console.warn(`Failed to remove user from audience ${audienceId}:`, error);
+                        }
+                    });
+
+                    // Add to cancelled customers exclusion audience
+                    remarketingManager.addUserToAudience(userId, 'cancelled_customers', {
+                        ...cancellationData,
+                        exclusionReason: 'booking_cancelled'
+                    });
+
+                    // Track tour-specific cancellation for enhanced segmentation
+                    trackCustomGoogleAdsConversion('tour_cancellation', {
+                        value: cancellationData.refundAmount,
+                        currency: 'JPY',
+                        tour_category: cancellationData.tourId,
+                        tour_location: 'kyoto',
+                        cancellation_source: 'website',
+                        customer_segment: 'cancelled_customer'
+                    });
+
+                    console.log('🎯 Booking cancellation tracked and remarketing audiences updated:', cancellationData);
+                } catch (error) {
+                    console.warn('Failed to track booking cancellation:', error);
+                }
+
                 if (result.refund) {
                     setMessage(`Booking cancelled successfully. Refund of ¥${result.refund.amount.toLocaleString('en-US')} will be processed.`);
                 } else {

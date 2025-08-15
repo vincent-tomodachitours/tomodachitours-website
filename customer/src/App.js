@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import NightTour from './Pages/NightTour';
 import Home from './Pages/Home';
@@ -16,8 +17,14 @@ import BookingCancellation from './Components/BookingCancellation';
 import PerformanceOptimizer from './components/PerformanceOptimizer';
 import Login from './components/Login';
 import Jobs from './Pages/Jobs';
+import { initializeAnalytics } from './services/analytics';
 
 function App() {
+  // Initialize Google Analytics 4
+  React.useEffect(() => {
+    initializeAnalytics();
+  }, []);
+
   return (
     <Router>
       <PerformanceOptimizer />

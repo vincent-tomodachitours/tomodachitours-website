@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export const usePaymentProvider = () => {
     // HARD CODED: Always use Stripe as primary provider
+    // eslint-disable-next-line no-unused-vars
     const [primaryProvider, setPrimaryProvider] = useState('stripe'); // Changed from 'payjp' to 'stripe'
+    // eslint-disable-next-line no-unused-vars
     const [loading, setLoading] = useState(false); // Changed to false since we're not fetching
+    // eslint-disable-next-line no-unused-vars
     const [error, setError] = useState(null);
 
     // COMMENTED OUT: Dynamic provider fetching - uncomment to restore dynamic switching

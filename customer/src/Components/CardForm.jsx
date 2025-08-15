@@ -3,10 +3,14 @@ import PaymentFailed from '../Pages/PaymentFailed';
 import { supabase } from '../lib/supabase';
 import { usePaymentProvider } from '../hooks/usePaymentProvider';
 import StripePaymentForm from './StripePaymentForm';
+import { trackPurchase } from '../services/analytics';
+import attributionService from '../services/attributionService';
+import remarketingManager from '../services/remarketingManager';
 // COMMENTED OUT: PayJP import - uncomment to restore PayJP functionality
 // import PayjpPaymentForm from './PayjpPaymentForm';
 
 const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formRef, tourName, sheetId, setPaymentProcessing }, ref) => {
+    // eslint-disable-next-line no-unused-vars
     const { primaryProvider, loading: providerLoading, error: providerError } = usePaymentProvider();
     const [paymentFailed, setPaymentFailed] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState('');
@@ -93,6 +97,76 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
     };
 
     const handlePaymentSuccess = (data) => {
+        // Track enhanced purchase conversion with comprehensive data
+        try {
+            const transactionData = {
+                transactionId: data.transaction_id || data.charge_id || `booking_${Date.now()}`,
+                tourId: sheetId,
+                tourName: tourName,
+                value: totalPrice,
+                price: totalPrice,
+                originalPrice: originalPrice || totalPrice,
+                quantity: (formRef.current?.adults || 0) + (formRef.current?.children || 0),
+                adults: formRef.current?.adults || 0,
+                children: formRef.current?.children || 0,
+                infants: formRef.current?.infants || 0,
+                currency: 'JPY',
+                // Enhanced conversion data
+                paymentProvider: data.provider_used || 'stripe',
+                backupUsed: data.backup_used || false,
+                discountApplied: appliedDiscount ? true : false,
+                discountAmount: appliedDiscount ? (appliedDiscount.originalAmount - appliedDiscount.finalAmount) : 0,
+                discountCode: appliedDiscount?.code || null,
+                // Customer data for enhanced conversions
+                customerEmail: formRef.current?.email,
+                customerName: formRef.current?.name,
+                customerPhone: formRef.current?.phone,
+                // Booking details
+                bookingDate: formRef.current?.date,
+                bookingTime: formRef.current?.time,
+                // Attribution data
+                attribution: attributionService.getAttributionForAnalytics()
+            };
+
+            // Track with existing analytics service (includes GA4 and Google Ads)
+            trackPurchase(transactionData);
+
+            // Store comprehensive transaction data for thank you page
+            try {
+                sessionStorage.setItem('booking_transaction_id', transactionData.transactionId);
+                sessionStorage.setItem('booking_tour_name', transactionData.tourName);
+                sessionStorage.setItem('booking_tour_id', transactionData.tourId);
+                sessionStorage.setItem('booking_value', transactionData.value.toString());
+                sessionStorage.setItem('booking_price', transactionData.price.toString());
+                sessionStorage.setItem('booking_quantity', transactionData.quantity.toString());
+                sessionStorage.setItem('booking_adults', transactionData.adults.toString());
+                sessionStorage.setItem('booking_children', transactionData.children.toString());
+                sessionStorage.setItem('booking_infants', transactionData.infants.toString());
+                sessionStorage.setItem('booking_original_price', transactionData.originalPrice.toString());
+                sessionStorage.setItem('booking_discount_applied', transactionData.discountApplied.toString());
+                sessionStorage.setItem('booking_discount_amount', transactionData.discountAmount.toString());
+                sessionStorage.setItem('booking_discount_code', transactionData.discountCode || '');
+                sessionStorage.setItem('booking_payment_provider', transactionData.paymentProvider);
+                sessionStorage.setItem('booking_date', transactionData.bookingDate || '');
+                sessionStorage.setItem('booking_time', transactionData.bookingTime || '');
+                sessionStorage.setItem('booking_customer_email', transactionData.customerEmail || '');
+                sessionStorage.setItem('booking_customer_name', transactionData.customerName || '');
+            } catch (error) {
+                console.warn('Failed to store transaction data for thank you page:', error);
+            }
+
+            // Process purchase completion for remarketing audience exclusion
+            try {
+                remarketingManager.processPurchaseCompletion(transactionData);
+            } catch (error) {
+                console.warn('Remarketing purchase processing failed:', error);
+            }
+
+            console.log('🎯 Enhanced purchase conversion tracked:', transactionData);
+        } catch (error) {
+            console.error('Failed to track purchase conversion:', error);
+        }
+
         // Keep loading states active, but update the status message
         // Don't turn off loading until we're about to redirect
 

@@ -34,6 +34,7 @@ const ReviewCard = ({
         const hasHalfStar = rating % 1 !== 0;
 
         // TripAdvisor brand colors
+        // eslint-disable-next-line no-unused-vars
         const tripAdvisorGreen = '#00AA6C';
         const starColor = '#FF5722'; // TripAdvisor orange for stars
 

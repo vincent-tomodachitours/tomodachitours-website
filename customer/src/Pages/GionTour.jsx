@@ -31,6 +31,10 @@ import DatePicker from '../Components/DatePicker'
 import ImageShowcase from '../Components/TourPages/ImageShowcase'
 import TripAdvisorReviews from '../Components/TripAdvisorReviews'
 
+//Analytics
+import { trackTourView } from '../services/analytics'
+import attributionService from '../services/attributionService'
+
 const GionTour = () => {
     const images = [
         { src: photo1 },
@@ -48,12 +52,22 @@ const GionTour = () => {
 
     // Load tour data from Supabase
     useEffect(() => {
+        // Initialize attribution tracking for UTM parameters
+        attributionService.initialize();
+
         const loadTourData = async () => {
             try {
                 setLoading(true);
                 const data = await getTour('gion-tour');
                 setTourData(data);
                 console.log('✅ Gion tour data loaded:', data);
+
+                // Track tour page view with attribution
+                trackTourView({
+                    tourId: 'gion-tour',
+                    tourName: data['tour-title'],
+                    price: data['tour-price']
+                });
             } catch (error) {
                 console.error('❌ Failed to load gion tour data:', error);
             } finally {

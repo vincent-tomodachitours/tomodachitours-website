@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import ReviewCard from './ReviewCard';
-import { getBusinessReviews, getBusinessReviewsWithFallback } from '../services/tripAdvisorService';
+import { getBusinessReviewsWithFallback } from '../services/tripAdvisorService';
 
 const TripAdvisorReviews = ({
     locationId,
@@ -210,6 +210,7 @@ const TripAdvisorReviews = ({
 
         // TripAdvisor brand colors
         const tripAdvisorGreen = '#00AA6C';
+        // eslint-disable-next-line no-unused-vars
         const tripAdvisorOrange = '#FF5722';
 
         return (

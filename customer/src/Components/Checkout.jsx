@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 
 import CardForm from './CardForm';
 import { Link } from 'react-router-dom';
+import { trackBeginCheckout } from '../services/analytics';
 
 import 'react-phone-input-2/lib/style.css'
 import PhoneInput from 'react-phone-input-2';
@@ -179,6 +180,39 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
 
     // Calculate final price with discount
     const finalPrice = appliedDiscount ? appliedDiscount.finalAmount : (adult + child) * tourPrice;
+
+    // Track enhanced begin checkout conversion when component mounts
+    useEffect(() => {
+        // Track begin checkout with enhanced data
+        const tourData = {
+            tourId: sheetId,
+            tourName: tourName,
+            price: finalPrice,
+            originalPrice: (adult + child) * tourPrice,
+            quantity: adult + child,
+            adults: adult,
+            children: child,
+            infants: infant,
+            tourDate: tourDate,
+            tourTime: tourTime,
+            discountApplied: appliedDiscount ? true : false,
+            discountAmount: appliedDiscount ? (appliedDiscount.originalAmount - appliedDiscount.finalAmount) : 0
+        };
+
+        // Track with existing analytics service (includes GA4 and Google Ads)
+        trackBeginCheckout(tourData);
+
+        // Store checkout data for potential abandonment tracking
+        try {
+            sessionStorage.setItem('checkout_data', JSON.stringify({
+                ...tourData,
+                checkoutStartTime: Date.now(),
+                checkoutStep: 1
+            }));
+        } catch (error) {
+            console.warn('Failed to store checkout data:', error);
+        }
+    }, [sheetId, tourName, finalPrice, adult, child, infant, tourDate, tourTime, appliedDiscount, tourPrice]);
 
     return (
         <div className='fixed inset-0 h-screen bg-black bg-opacity-60 backdrop-blur-sm flex justify-center items-center z-40 p-4'>

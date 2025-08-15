@@ -28,6 +28,10 @@ import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import DatePicker from '../Components/DatePicker'
 import ImageShowcase from '../Components/TourPages/ImageShowcase'
+
+//Analytics
+import { trackTourView } from '../services/analytics'
+import attributionService from '../services/attributionService'
 import TripAdvisorReviews from '../Components/TripAdvisorReviews'
 
 const MorningTour = () => {
@@ -47,12 +51,22 @@ const MorningTour = () => {
 
     // Load tour data from Supabase
     useEffect(() => {
+        // Initialize attribution tracking for UTM parameters
+        attributionService.initialize();
+
         const loadTourData = async () => {
             try {
                 setLoading(true);
                 const data = await getTour('morning-tour');
                 setTourData(data);
                 console.log('✅ Morning tour data loaded:', data);
+
+                // Track tour page view with attribution
+                trackTourView({
+                    tourId: 'morning-tour',
+                    tourName: data['tour-title'],
+                    price: data['tour-price']
+                });
             } catch (error) {
                 console.error('❌ Failed to load morning tour data:', error);
             } finally {

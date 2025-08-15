@@ -12,6 +12,9 @@ import { organizationSchema, localBusinessSchema, breadcrumbSchemas, faqSchemas 
 // Import tour services
 import { fetchTours } from '../services/toursService';
 
+//Analytics
+import attributionService from '../services/attributionService';
+
 // Import images
 import main1 from "../IMG/Morning-Tour/bamboo-main-highres1.85.webp"
 import nightTour from "../IMG/Night-Tour/1.webp"
@@ -125,6 +128,9 @@ const Home = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Initialize attribution tracking for UTM parameters
+        attributionService.initialize();
+
         const loadTours = async () => {
             try {
                 setLoading(true);

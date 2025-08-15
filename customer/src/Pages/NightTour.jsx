@@ -26,6 +26,10 @@ import DatePicker from '../Components/DatePicker'
 import ImageShowcase from '../Components/TourPages/ImageShowcase'
 import TripAdvisorReviews from '../Components/TripAdvisorReviews'
 
+//Analytics
+import { trackTourView } from '../services/analytics'
+import attributionService from '../services/attributionService'
+
 const NightTour = () => {
     const images = [
         { src: photo1 },
@@ -43,12 +47,22 @@ const NightTour = () => {
 
     // Load tour data from Supabase
     useEffect(() => {
+        // Initialize attribution tracking for UTM parameters
+        attributionService.initialize();
+
         const loadTourData = async () => {
             try {
                 setLoading(true);
                 const data = await getTour('night-tour');
                 setTourData(data);
                 console.log('✅ Night tour data loaded:', data);
+
+                // Track tour page view with attribution
+                trackTourView({
+                    tourId: 'night-tour',
+                    tourName: data['tour-title'],
+                    price: data['tour-price']
+                });
             } catch (error) {
                 console.error('❌ Failed to load night tour data:', error);
             } finally {

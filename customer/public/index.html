@@ -41,10 +41,41 @@
   <link rel="preconnect" href="https://js.pay.jp" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+  <link rel="dns-prefetch" href="https://www.googleadservices.com" />
+  <link rel="dns-prefetch" href="https://googleads.g.doubleclick.net" />
+
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5GVJBRE1SY"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-5GVJBRE1SY', {
+      page_title: document.title,
+      page_location: window.location.href,
+      send_page_view: true
+    });
+  </script>
+
+  <!-- Google Ads Conversion Tracking -->
+  <script>
+    // Google Ads conversion tracking will be initialized by the React app
+    // This ensures proper access to environment variables
+    window.initGoogleAdsTracking = function (conversionId) {
+      if (typeof gtag !== 'undefined' && conversionId) {
+        gtag('config', conversionId);
+      }
+    };
+  </script>
 
   <!-- Preload critical resources -->
   <link rel="preload" href="/IMG/Morning-Tour/bamboo-main-highres1.85.webp" as="image" />
 
+  
+  <!-- Production Tracking Meta Tags -->
+  <meta name="google-ads-tracking" content="enabled" />
+  <meta name="analytics-environment" content="production" />
+  <meta name="tracking-version" content="1.0.0" />
   <!-- Security Headers -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta http-equiv="X-Frame-Options" content="DENY" />
