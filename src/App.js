@@ -92,10 +92,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         {/* <Route path="/tours" element={<Tours />} /> */}
-        {/* Tour Routes - All tours use /tours/ prefix */}
+        {/* Tour Routes - Current 4 Tours */}
         <Route path="/tours/kyoto-fushimi-inari-night-walking-tour" element={<NightTour />} />
         <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
-        <Route path="/tours/kyoto-early-morning-walking-tour-nature-and-history" element={<MorningTour />} />
         <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
         <Route path="/tours/kyoto-gion-early-morning-walking-tour" element={<GionTour />} />
         <Route path="/about" element={<About />} />
