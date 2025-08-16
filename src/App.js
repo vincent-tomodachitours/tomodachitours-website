@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import NightTour from './Pages/NightTour';
 import Home from './Pages/Home';
@@ -16,7 +17,77 @@ import BookingCancellation from './Components/BookingCancellation';
 import Login from './components/Login';
 import Jobs from './Pages/Jobs';
 
+// Import analytics service to make test functions available
+import analytics from './services/analytics';
+import { useEffect } from 'react';
+
 function App() {
+  // Make test functions available globally
+  useEffect(() => {
+    // Simple test functions that work directly
+    window.testAnalytics = {
+      testSetup: () => {
+        console.log('🧪 Testing Analytics Setup...');
+        console.log('- gtag available:', typeof window.gtag);
+        console.log('- GA4 ID:', process.env.REACT_APP_GA_MEASUREMENT_ID);
+        console.log('- Google Ads ID:', process.env.REACT_APP_GOOGLE_ADS_CONVERSION_ID);
+        console.log('- Analytics enabled:', process.env.REACT_APP_ENABLE_ANALYTICS);
+        return typeof window.gtag === 'function';
+      },
+
+      testTourView: () => {
+        console.log('🧪 Testing Tour View...');
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'view_item', {
+            currency: 'JPY',
+            value: 5000,
+            items: [{
+              item_id: 'test_tour',
+              item_name: 'Test Tour View',
+              category: 'Tour',
+              price: 5000,
+              quantity: 1
+            }]
+          });
+          console.log('✅ Tour view event sent');
+        } else {
+          console.log('❌ gtag not available');
+        }
+      },
+
+      testPurchase: () => {
+        console.log('🧪 Testing Purchase...');
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'purchase', {
+            transaction_id: `test_${Date.now()}`,
+            currency: 'JPY',
+            value: 5000,
+            items: [{
+              item_id: 'test_tour',
+              item_name: 'Test Purchase',
+              category: 'Tour',
+              price: 5000,
+              quantity: 1
+            }]
+          });
+          console.log('✅ Purchase event sent');
+        } else {
+          console.log('❌ gtag not available');
+        }
+      },
+
+      runAllTests: () => {
+        console.log('🚀 Running All Tests...');
+        window.testAnalytics.testSetup();
+        setTimeout(() => window.testAnalytics.testTourView(), 1000);
+        setTimeout(() => window.testAnalytics.testPurchase(), 2000);
+        console.log('✅ Tests completed - check GA4 Realtime reports');
+      }
+    };
+
+    console.log('🧪 Test functions available at window.testAnalytics');
+  }, []);
+
   return (
     <Router>
       <ScrollToTop />

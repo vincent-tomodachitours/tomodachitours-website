@@ -161,6 +161,25 @@
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
   <script src="https://js.pay.jp/v2/pay.js"></script>
+
+  <!-- Google Analytics 4 & Google Ads Global Site Tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5GVJBRE1SY"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    // Configure Google Analytics 4
+    gtag('config', 'G-5GVJBRE1SY', {
+      send_page_view: false // We'll handle page views manually in React
+    });
+
+    // Configure Google Ads Conversion Tracking
+    gtag('config', 'AW-17482092392', {
+      allow_enhanced_conversions: true
+    });
+  </script>
+
   <title>Tomodachi Tours - Kyoto English Walking Tours</title>
 </head>
 

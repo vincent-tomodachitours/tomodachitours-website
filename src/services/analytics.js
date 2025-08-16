@@ -6,6 +6,9 @@ class AnalyticsService {
         this.googleAdsId = process.env.REACT_APP_GOOGLE_ADS_CONVERSION_ID;
         this.conversionLabels = this.parseConversionLabels(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS);
         this.tourLabels = this.parseConversionLabels(process.env.REACT_APP_TOUR_SPECIFIC_CONVERSION_LABELS);
+
+        // Initialize conversion linker
+        this.initializeConversionLinker();
     }
 
     parseConversionLabels(labelsString) {
@@ -14,6 +17,35 @@ class AnalyticsService {
         } catch (error) {
             console.warn('Failed to parse conversion labels:', error);
             return {};
+        }
+    }
+
+    // Initialize Google Ads Conversion Linker
+    initializeConversionLinker() {
+        if (!this.isEnabled || !this.googleAdsId) return;
+
+        // Wait for gtag to be available
+        const initLinker = () => {
+            if (this.isGtagAvailable()) {
+                // Configure Google Ads Conversion Linker
+                window.gtag('config', this.googleAdsId, {
+                    allow_enhanced_conversions: true
+                });
+
+                console.log('✅ Google Ads Conversion Linker initialized:', this.googleAdsId);
+            } else {
+                // Retry after a short delay if gtag isn't ready yet
+                setTimeout(initLinker, 100);
+            }
+        };
+
+        // Initialize immediately or wait for DOM
+        if (typeof window !== 'undefined') {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initLinker);
+            } else {
+                initLinker();
+            }
         }
     }
 
@@ -35,8 +67,20 @@ class AnalyticsService {
     }
 
     // Track Google Ads conversion
-    trackConversion(conversionLabel, value = null, currency = 'JPY') {
-        if (!this.isEnabled || !this.isGtagAvailable() || !this.googleAdsId) return;
+    trackConversion(conversionLabel, value = null, currency = 'JPY', transactionId = null) {
+        if (!this.isEnabled || !this.isGtagAvailable() || !this.googleAdsId) {
+            console.warn('❌ Google Ads conversion tracking not available:', {
+                enabled: this.isEnabled,
+                gtag: this.isGtagAvailable(),
+                adsId: this.googleAdsId
+            });
+            return;
+        }
+
+        if (!conversionLabel || conversionLabel.includes('XXXXXXXXX')) {
+            console.warn('❌ Invalid conversion label:', conversionLabel);
+            return;
+        }
 
         const conversionData = {
             send_to: `${this.googleAdsId}/${conversionLabel}`
@@ -47,8 +91,18 @@ class AnalyticsService {
             conversionData.currency = currency;
         }
 
+        if (transactionId) {
+            conversionData.transaction_id = transactionId;
+        }
+
+        console.log('🎯 Firing Google Ads Conversion:', {
+            label: conversionLabel,
+            fullSendTo: conversionData.send_to,
+            data: conversionData
+        });
+
         window.gtag('event', 'conversion', conversionData);
-        console.log('Google Ads Conversion:', conversionLabel, conversionData);
+        console.log('✅ Google Ads Conversion fired successfully');
     }
 
     // 1. Track tour page views
@@ -166,13 +220,13 @@ class AnalyticsService {
 
         // Google Ads Conversion
         if (this.conversionLabels.purchase) {
-            this.trackConversion(this.conversionLabels.purchase, price * quantity, currency);
+            this.trackConversion(this.conversionLabels.purchase, price * quantity, currency, transactionId);
         }
 
         // Tour-specific tracking
         const tourSpecificLabel = this.getTourSpecificLabel(tourId, 'purchase');
         if (tourSpecificLabel) {
-            this.trackConversion(tourSpecificLabel, price * quantity, currency);
+            this.trackConversion(tourSpecificLabel, price * quantity, currency, transactionId);
         }
 
         // Enhanced conversions with customer data (if available)
@@ -232,6 +286,119 @@ class AnalyticsService {
 
 // Create singleton instance
 const analytics = new AnalyticsService();
+
+// Test functions for browser console
+const testAnalyticsSetup = () => {
+    console.log('🧪 Testing Analytics Setup...');
+
+    // Check if gtag is available
+    if (typeof window.gtag === 'function') {
+        console.log('✅ Google Tag (gtag) is available');
+    } else {
+        console.log('❌ Google Tag (gtag) is NOT available');
+        return false;
+    }
+
+    // Check environment variables
+    console.log('📊 Analytics Configuration:');
+    console.log('- GA4 Measurement ID:', process.env.REACT_APP_GA_MEASUREMENT_ID);
+    console.log('- Google Ads Conversion ID:', process.env.REACT_APP_GOOGLE_ADS_CONVERSION_ID);
+    console.log('- Analytics Enabled:', process.env.REACT_APP_ENABLE_ANALYTICS);
+
+    return true;
+};
+
+const testTourView = (tourId = 'night_tour') => {
+    console.log('🧪 Testing Tour View Tracking...');
+
+    const testData = {
+        tourId: tourId,
+        tourName: 'Test Tour View',
+        price: 5000,
+        currency: 'JPY'
+    };
+
+    analytics.trackTourView(testData);
+    console.log('✅ Tour view tracked:', testData);
+};
+
+const testAddToCart = (tourId = 'night_tour') => {
+    console.log('🧪 Testing Add to Cart Tracking...');
+
+    const testData = {
+        tourId: tourId,
+        tourName: 'Test Add to Cart',
+        price: 5000,
+        currency: 'JPY',
+        quantity: 2
+    };
+
+    analytics.trackAddToCart(testData);
+    console.log('✅ Add to cart tracked:', testData);
+};
+
+const testBeginCheckout = (tourId = 'night_tour') => {
+    console.log('🧪 Testing Begin Checkout Tracking...');
+
+    const testData = {
+        tourId: tourId,
+        tourName: 'Test Begin Checkout',
+        price: 5000,
+        currency: 'JPY',
+        quantity: 2
+    };
+
+    analytics.trackBeginCheckout(testData);
+    console.log('✅ Begin checkout tracked:', testData);
+};
+
+const testPurchase = (tourId = 'night_tour') => {
+    console.log('🧪 Testing Purchase Tracking...');
+
+    const testData = {
+        transactionId: `test_${Date.now()}`,
+        tourId: tourId,
+        tourName: 'Test Purchase',
+        price: 5000,
+        currency: 'JPY',
+        quantity: 2,
+        customerEmail: 'test@example.com'
+    };
+
+    analytics.trackPurchase(testData);
+    console.log('✅ Purchase tracked:', testData);
+};
+
+const runAllAnalyticsTests = () => {
+    console.log('🚀 Running All Analytics Tests...');
+
+    if (!testAnalyticsSetup()) {
+        console.log('❌ Analytics setup test failed. Stopping tests.');
+        return;
+    }
+
+    // Wait between tests to avoid overwhelming the analytics
+    setTimeout(() => testTourView(), 1000);
+    setTimeout(() => testAddToCart(), 2000);
+    setTimeout(() => testBeginCheckout(), 3000);
+    setTimeout(() => testPurchase(), 4000);
+
+    console.log('✅ All analytics tests completed. Check your Google Analytics and Google Ads for events.');
+};
+
+// Make functions available globally for browser console testing
+if (typeof window !== 'undefined') {
+    window.testAnalytics = {
+        testAnalyticsSetup,
+        testTourView,
+        testAddToCart,
+        testBeginCheckout,
+        testPurchase,
+        runAllAnalyticsTests
+    };
+
+    console.log('🧪 Analytics testing functions available at window.testAnalytics');
+}
 
 export default analytics;
 
