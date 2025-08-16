@@ -6,6 +6,7 @@ import StructuredData from '../components/StructuredData'
 import { seoData } from '../data/seoData'
 import { breadcrumbSchemas } from '../data/schemaData'
 import { Link } from 'react-router-dom'
+import { usePageTracking } from '../hooks/useAnalytics'
 
 import fushimiInari from "../IMG/Night-Tour/2.webp"
 import kiyomizuDera from "../IMG/Gion-Tour/kiyomizu-fall.webp"
@@ -75,6 +76,8 @@ const RecommendationSection = ({ title, items }) => (
 );
 
 const Recommendations = () => {
+    usePageTracking('Kyoto Recommendations');
+
     const sections = [
         {
             title: "Main Attractions in Kyoto",

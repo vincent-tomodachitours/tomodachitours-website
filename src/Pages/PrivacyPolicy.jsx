@@ -4,8 +4,11 @@ import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import SEO from '../components/SEO'
 import { seoData } from '../data/seoData'
+import { usePageTracking } from '../hooks/useAnalytics'
 
 const PrivacyPolicy = () => {
+    usePageTracking('Privacy Policy');
+
     return (
         <div className='min-h-screen flex flex-col bg-gradient-to-b from-white to-stone-100'>
             <SEO

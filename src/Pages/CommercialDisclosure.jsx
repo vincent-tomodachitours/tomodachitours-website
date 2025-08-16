@@ -4,8 +4,11 @@ import Footer from '../Components/Footer'
 import { Link } from 'react-router-dom'
 import SEO from '../components/SEO'
 import { seoData } from '../data/seoData'
+import { usePageTracking } from '../hooks/useAnalytics'
 
 const CommercialDisclosure = () => {
+    usePageTracking('Commercial Disclosure');
+
     return (
         <div className='min-h-screen flex flex-col bg-gradient-to-b from-white to-stone-100'>
             <SEO

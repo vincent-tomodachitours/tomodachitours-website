@@ -3,8 +3,11 @@ import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import SEO from '../components/SEO'
 import { seoData } from '../data/seoData'
+import { usePageTracking } from '../hooks/useAnalytics'
 
 const Jobs = () => {
+    usePageTracking('Jobs - Tour Guide Positions');
+
     return (
         <div>
             <SEO

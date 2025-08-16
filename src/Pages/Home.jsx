@@ -6,6 +6,7 @@ import SEO from '../components/SEO'
 import StructuredData from '../components/StructuredData'
 import { seoData } from '../data/seoData'
 import { organizationSchema, localBusinessSchema, breadcrumbSchemas, faqSchemas } from '../data/schemaData'
+import { usePageTracking } from '../hooks/useAnalytics'
 
 // Import tour services
 import { fetchTours } from '../services/toursService';
@@ -95,6 +96,8 @@ const TourCard = ({ image, imageAlt, title, description, price, link }) => (
 const Home = () => {
     const [tours, setTours] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    usePageTracking('Home - Kyoto English Walking Tours');
 
     useEffect(() => {
         const loadTours = async () => {

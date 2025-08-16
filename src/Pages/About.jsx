@@ -4,6 +4,7 @@ import SEO from '../components/SEO'
 import StructuredData from '../components/StructuredData'
 import { seoData } from '../data/seoData'
 import { breadcrumbSchemas } from '../data/schemaData'
+import { usePageTracking } from '../hooks/useAnalytics'
 
 import main1 from "../IMG/About/sep2024-2.webp"
 import main2 from "../IMG/Morning-Tour/bamboo-main-highres1.85.webp"
@@ -11,6 +12,8 @@ import main3 from "../IMG/About/thousand-cranes.webp"
 import Footer from '../Components/Footer'
 
 const About = () => {
+    usePageTracking('About Tomodachi Tours');
+
     return (
         <div>
             <SEO
