@@ -17,8 +17,6 @@ import BookingCancellation from './Components/BookingCancellation';
 import Login from './components/Login';
 import Jobs from './Pages/Jobs';
 
-// Import analytics service to make test functions available
-import analytics from './services/analytics';
 import { useEffect } from 'react';
 
 function App() {
@@ -94,14 +92,15 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         {/* <Route path="/tours" element={<Tours />} /> */}
+        {/* Tour Routes - All tours use /tours/ prefix */}
         <Route path="/tours/kyoto-fushimi-inari-night-walking-tour" element={<NightTour />} />
         <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
-        <Route path="/kyoto-early-morning-walking-tour-nature-and-history" element={<MorningTour />} />
+        <Route path="/tours/kyoto-early-morning-walking-tour-nature-and-history" element={<MorningTour />} />
         <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
         <Route path="/tours/kyoto-gion-early-morning-walking-tour" element={<GionTour />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<About />} />
-        <Route path="recommendations" element={<Recommendations />} />
+        <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/tours" element={<Home />} />
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />
