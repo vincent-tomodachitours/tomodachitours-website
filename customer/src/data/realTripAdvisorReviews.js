@@ -24,8 +24,8 @@ export const REAL_BUSINESS_INFO = {
     locationId: '27931661',
     name: 'Tomodachi Tours',
     overallRating: 5.0, // Calculated from real reviews (all 5-star reviews)
-    totalReviews: 17, // Current count of manually collected reviews, will be overridden by API if available
-    ranking: '#1 of 1,443 Tours & Activities in Kyoto', // Current TripAdvisor ranking
+    totalReviews: 332, // Hardcoded to show actual TripAdvisor review count
+    ranking: '#5 of 734 Tours in Kyoto', // Updated ranking
     tripAdvisorUrl: 'https://www.tripadvisor.com/Attraction_Review-g298564-d27931661-Reviews-Tomodachi_Tours-Kyoto.html'
 };
 
