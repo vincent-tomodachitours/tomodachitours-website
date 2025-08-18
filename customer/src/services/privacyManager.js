@@ -62,6 +62,11 @@ class PrivacyManager {
      * Check if consent is required based on user location or configuration
      */
     isConsentRequired() {
+        // In development mode, don't require consent for easier testing
+        if (process.env.NODE_ENV === 'development') {
+            return false;
+        }
+        
         // In production, you might want to check user's location via IP geolocation
         // For now, we'll require consent for all users to be safe
         return true;

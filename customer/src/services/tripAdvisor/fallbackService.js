@@ -3,7 +3,7 @@
  * Handles fallback to real manually collected reviews
  */
 
-import { getRealBusinessInfo, getRealReviews } from '../../data/realTripAdvisorReviews';
+import { getRealBusinessInfoWithAPI, getRealReviews } from '../../data/realTripAdvisorReviews';
 
 /**
  * Fallback function when TripAdvisor API is unavailable - uses real reviews
@@ -13,7 +13,9 @@ export async function getRealBusinessReviews(options = {}) {
 
     const maxReviews = options.maxReviews || 6;
     const realReviews = getRealReviews(maxReviews);
-    const businessInfo = getRealBusinessInfo();
+
+    // Try to get business info with real API data first
+    const businessInfo = await getRealBusinessInfoWithAPI();
 
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -23,8 +25,10 @@ export async function getRealBusinessReviews(options = {}) {
         businessInfo: businessInfo,
         cached: false,
         fetchedAt: new Date().toISOString(),
-        source: 'real_manual',
-        note: realReviews.length === 0 ? 'No real reviews added yet' : `Showing ${realReviews.length} real reviews`
+        source: businessInfo.totalReviews > realReviews.length ? 'hybrid_api' : 'real_manual',
+        note: businessInfo.totalReviews > realReviews.length
+            ? `Showing ${realReviews.length} manually collected reviews from ${businessInfo.totalReviews} total TripAdvisor reviews`
+            : (realReviews.length === 0 ? 'No real reviews added yet' : `Showing ${realReviews.length} real reviews`)
     };
 }
 
@@ -47,9 +51,11 @@ export async function getBusinessReviewsWithFallback(getBusinessReviews, options
                 ...result,
                 reviews: realReviews,
                 source: 'hybrid', // Real business data + manually collected reviews
-                note: realReviews.length === 0
-                    ? 'No reviews available - add real reviews to display them'
-                    : `Displaying ${realReviews.length} manually collected reviews`
+                note: result.businessInfo.totalReviews > realReviews.length
+                    ? `Displaying ${realReviews.length} manually collected reviews from ${result.businessInfo.totalReviews} total TripAdvisor reviews`
+                    : (realReviews.length === 0
+                        ? 'No reviews available - add real reviews to display them'
+                        : `Displaying ${realReviews.length} manually collected reviews`)
             };
         }
 

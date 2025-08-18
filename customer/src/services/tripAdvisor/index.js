@@ -245,37 +245,35 @@ export {
 
 // Export the enhanced version with fallback
 export async function getBusinessReviewsWithFallbackWrapper(options = {}) {
+    console.log('🚀 Starting getBusinessReviewsWithFallbackWrapper with options:', options);
+    
     try {
-        // Try real API first
-        const result = await getBusinessReviews(options);
+        // Use our working Method 2 implementation directly for business info
+        const { getRealReviews, getRealBusinessInfoWithAPI } = await import('../../data/realTripAdvisorReviews');
+        
+        console.log('📊 Fetching real TripAdvisor business data using Method 2...');
+        const businessInfo = await getRealBusinessInfoWithAPI();
+        
+        console.log('✅ Business info received:', businessInfo);
+        
+        // Get manually collected reviews for display
+        const realReviews = getRealReviews(options.maxReviews || 6);
+        
+        console.log(`🔧 Returning hybrid data: ${businessInfo.totalReviews} total reviews, displaying ${realReviews.length} manually collected reviews`);
 
-        // If we get real data but no reviews, supplement with real collected reviews for display
-        if (result.reviews.length === 0 && result.businessInfo) {
-            console.log('📊 Real business data retrieved, supplementing with manually collected reviews');
-
-            // Use real business info but add manually collected reviews
-            const { getRealReviews } = await import('../../data/realTripAdvisorReviews');
-            const realReviews = getRealReviews(options.maxReviews || 6);
-
-            return {
-                ...result,
-                reviews: realReviews,
-                source: 'hybrid', // Real business data + manually collected reviews
-                note: realReviews.length === 0
-                    ? 'No reviews available - add real reviews to display them'
-                    : `Displaying ${realReviews.length} manually collected reviews`
-            };
-        }
-
-        return result;
+        return {
+            reviews: realReviews,
+            businessInfo: businessInfo,
+            cached: false,
+            fetchedAt: new Date().toISOString(),
+            source: 'hybrid_method2',
+            note: `Displaying ${realReviews.length} manually collected reviews from ${businessInfo.totalReviews} total TripAdvisor reviews`
+        };
+        
     } catch (error) {
-        console.warn('TripAdvisor API failed, using manually collected reviews:', error.message);
+        console.warn('Method 2 API failed, using fallback manual data:', error.message);
 
-        // Check if it's a 403 error (API key/domain issue)
-        if (error.message.includes('403') || error.message.includes('forbidden')) {
-            console.warn('API access forbidden - likely domain registration or API key issue');
-        }
-
+        // Fallback to manual data only
         return await getRealBusinessReviews(options);
     }
 }

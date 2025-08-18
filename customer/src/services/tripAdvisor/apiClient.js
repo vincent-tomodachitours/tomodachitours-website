@@ -67,7 +67,12 @@ export class TripAdvisorApiClient {
             throw new Error('Location ID is required');
         }
 
-        const endpoint = `/location/${locationId}/details`;
+        const queryParams = new URLSearchParams({
+            language: 'en',
+            currency: 'USD'
+        });
+
+        const endpoint = `/location/${locationId}/details?${queryParams}`;
         return await this.makeRequest(endpoint);
     }
 

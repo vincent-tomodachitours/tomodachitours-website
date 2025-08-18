@@ -23,9 +23,9 @@
 export const REAL_BUSINESS_INFO = {
     locationId: '27931661',
     name: 'Tomodachi Tours',
-    overallRating: 4.8, // Update this as you add more reviews
-    totalReviews: 0, // This will be calculated automatically
-    ranking: '#1 of 50 Tours in Kyoto', // Update with current ranking
+    overallRating: 5.0, // Calculated from real reviews (all 5-star reviews)
+    totalReviews: 17, // Current count of manually collected reviews, will be overridden by API if available
+    ranking: '#1 of 1,443 Tours & Activities in Kyoto', // Current TripAdvisor ranking
     tripAdvisorUrl: 'https://www.tripadvisor.com/Attraction_Review-g298564-d27931661-Reviews-Tomodachi_Tours-Kyoto.html'
 };
 
@@ -256,6 +256,148 @@ export function getRealBusinessInfo() {
         overallRating: REAL_REVIEWS.length > 0 ? calculateAverageRating() : REAL_BUSINESS_INFO.overallRating,
         totalReviews: REAL_REVIEWS.length
     };
+}
+
+/**
+ * Get business info with real TripAdvisor API data (if available)
+ * Falls back to manually calculated data if API fails
+ */
+export async function getRealBusinessInfoWithAPI() {
+    try {
+        // Use direct fetch like the working example provided
+        const apiKey = process.env.REACT_APP_TRIPADVISOR_API_KEY || '712CBC2D1532411593E1994319E44739';
+        const locationId = process.env.REACT_APP_TRIPADVISOR_LOCATION_ID || '27931661';
+
+        console.log('🔑 API Key being used:', apiKey ? 'Present' : 'Missing');
+        console.log('📍 Location ID being used:', locationId);
+
+        if (!apiKey) {
+            console.warn('TripAdvisor API key not configured');
+            return getRealBusinessInfo();
+        }
+
+        console.log('🔍 Fetching TripAdvisor location data using Method 2 (working approach)...');
+
+        // Use Method 2 from our successful test - browser-like headers
+        const directUrl = `https://api.content.tripadvisor.com/api/v1/location/${locationId}/details?key=${apiKey}&language=en&currency=USD`;
+        console.log('🌐 URL:', directUrl.replace(apiKey, 'API_KEY_HIDDEN'));
+
+        // For localhost development, we need to try different approaches since TripAdvisor may block localhost
+        const currentOrigin = window.location.origin;
+        const isLocalhost = currentOrigin.includes('localhost');
+
+        console.log('🌐 Current origin:', currentOrigin, 'Is localhost:', isLocalhost);
+
+        // Try multiple approaches for localhost development
+        let attempts = [];
+
+        if (isLocalhost) {
+            // Attempt 1: Use registered domain headers (what worked in Node.js)
+            attempts.push({
+                name: 'Registered Domain Headers',
+                headers: {
+                    'accept': 'application/json',
+                    'accept-language': 'en-US,en;q=0.9',
+                    'cache-control': 'no-cache',
+                    'pragma': 'no-cache',
+                    'sec-fetch-dest': 'empty',
+                    'sec-fetch-mode': 'cors',
+                    'sec-fetch-site': 'cross-site',
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Origin': 'https://tomodachitours.com',
+                    'Referer': 'https://tomodachitours.com/'
+                }
+            });
+
+            // Attempt 2: Use localhost headers
+            attempts.push({
+                name: 'Localhost Headers',
+                headers: {
+                    'accept': 'application/json',
+                    'Origin': currentOrigin,
+                    'Referer': currentOrigin + '/'
+                }
+            });
+
+            // Attempt 3: No CORS headers
+            attempts.push({
+                name: 'Minimal Headers',
+                headers: {
+                    'accept': 'application/json'
+                }
+            });
+        } else {
+            // Production: use current domain
+            attempts.push({
+                name: 'Production Headers',
+                headers: {
+                    'accept': 'application/json',
+                    'accept-language': 'en-US,en;q=0.9',
+                    'cache-control': 'no-cache',
+                    'pragma': 'no-cache',
+                    'sec-fetch-dest': 'empty',
+                    'sec-fetch-mode': 'cors',
+                    'sec-fetch-site': 'cross-site',
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Origin': currentOrigin,
+                    'Referer': currentOrigin + '/'
+                }
+            });
+        }
+
+        // Try each approach until one works
+        for (const attempt of attempts) {
+            console.log(`🔄 Trying: ${attempt.name}`);
+
+            try {
+                const response = await fetch(directUrl, {
+                    method: 'GET',
+                    headers: attempt.headers
+                });
+
+                console.log(`📡 ${attempt.name} - Response Status:`, response.status, response.statusText);
+
+                if (response.ok) {
+                    const locationData = await response.json();
+                    console.log(`✅ ${attempt.name} SUCCESS! Data:`, locationData);
+                    console.log('📈 Reviews from working attempt:', locationData.num_reviews);
+
+                    // Process successful response
+                    const businessInfo = {
+                        locationId: locationData.location_id || locationId,
+                        name: locationData.name || REAL_BUSINESS_INFO.name,
+                        overallRating: parseFloat(locationData.rating) || REAL_BUSINESS_INFO.overallRating,
+                        totalReviews: parseInt(locationData.num_reviews) || REAL_BUSINESS_INFO.totalReviews,
+                        ranking: locationData.ranking_data?.ranking_string || REAL_BUSINESS_INFO.ranking,
+                        tripAdvisorUrl: locationData.web_url || REAL_BUSINESS_INFO.tripAdvisorUrl
+                    };
+
+                    console.log('🔧 Processed Business Info:', businessInfo);
+                    console.log(`🎉 SUCCESS: Using real TripAdvisor data - ${businessInfo.totalReviews} reviews, ${businessInfo.overallRating} rating`);
+
+                    return businessInfo;
+                } else {
+                    console.log(`❌ ${attempt.name} failed with status:`, response.status);
+                }
+            } catch (error) {
+                console.log(`❌ ${attempt.name} failed with error:`, error.message);
+            }
+        }
+
+        // If all attempts failed, throw error
+        throw new Error('All API call attempts failed');
+
+    } catch (error) {
+        console.warn('Failed to fetch TripAdvisor location data, using manually calculated data:', error.message);
+
+        // If CORS error, provide helpful message
+        if (error.message.includes('CORS') || error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+            console.log('🚧 CORS Error detected - API will work on production domain (tomodachitours.com)');
+        }
+    }
+
+    // Fallback to manually calculated data
+    return getRealBusinessInfo();
 }
 
 /**

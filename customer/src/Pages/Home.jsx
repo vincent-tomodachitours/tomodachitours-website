@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import TripAdvisorReviews from '../Components/TripAdvisorReviews'
+import TripAdvisorDebug from '../Components/TripAdvisorDebug'
+import ApiTest from '../Components/ApiTest'
 import { Link } from 'react-router-dom'
 import SEO from '../components/SEO'
 import StructuredData from '../components/StructuredData'
@@ -266,6 +268,8 @@ const Home = () => {
             </section>
 
             <Footer />
+            <TripAdvisorDebug />
+            <ApiTest />
         </div>
     )
 }
