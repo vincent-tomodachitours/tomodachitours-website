@@ -13,9 +13,6 @@ const Thankyou = () => {
     const { trackPurchase, trackPageView } = useAnalytics();
 
     useEffect(() => {
-        // Track page view
-        trackPageView(window.location.pathname, 'Booking Confirmation - Thank You');
-
         // Get booking data from URL parameters or session storage
         const urlParams = new URLSearchParams(window.location.search);
         const sessionBookingData = sessionStorage.getItem('completedBooking');
@@ -50,9 +47,22 @@ const Thankyou = () => {
             }
         }
 
-        // Track purchase conversion if we have booking data
+        // Track enhanced page view with purchase data for conversion tracking
         if (bookingData) {
-            console.log('Tracking purchase conversion:', bookingData);
+            console.log('Tracking enhanced page view with purchase data:', bookingData);
+
+            // Track page view with purchase parameters for GA4 custom event
+            window.gtag('event', 'page_view', {
+                page_title: 'Booking Confirmation - Thank You',
+                page_location: window.location.href,
+                value: bookingData.price * (bookingData.quantity || 1),
+                currency: 'JPY',
+                transaction_id: bookingData.transactionId,
+                tour_id: bookingData.tourId,
+                tour_name: bookingData.tourName
+            });
+
+            // Also track the standard purchase event
             trackPurchase({
                 transactionId: bookingData.transactionId,
                 tourId: bookingData.tourId,
@@ -63,6 +73,9 @@ const Thankyou = () => {
                 customerEmail: bookingData.customerEmail
             });
         } else {
+            // Track basic page view
+            trackPageView(window.location.pathname, 'Booking Confirmation - Thank You');
+
             // Track a generic purchase event if no specific data available
             console.log('Tracking generic purchase conversion');
             trackPurchase({
