@@ -25,7 +25,7 @@ const Header1 = () => {
             <div className='max-w-7xl h-full mx-auto flex items-center justify-between lg:justify-center relative'>
                 <div className='hidden lg:flex gap-6 absolute left-4 font-ubuntu text-sm'>
                     <Link to="/" className='text-gray-700 hover:text-blue-600 transition-colors relative group'>
-                        Home
+                        Tours
                         <span className='absolute inset-x-0 bottom-0 h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left'></span>
                     </Link>
                     <Link to="/about" className='text-gray-700 hover:text-blue-600 transition-colors relative group'>
@@ -75,7 +75,7 @@ const Header1 = () => {
                                                 to="/"
                                                 className='block px-8 py-5 text-xl font-bold text-blue-700 bg-white/20 backdrop-blur-xl border border-white/30 hover:bg-white/25 hover:border-white/40 rounded-full shadow-2xl hover:shadow-3xl hover:scale-105 active:scale-95 transition-all duration-300 text-center font-ubuntu transform hover:-translate-y-1 relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none'
                                             >
-                                                Home
+                                                Tours
                                             </Link>
                                         </li>
                                         <li onClick={() => setMenuOpen(false)}>

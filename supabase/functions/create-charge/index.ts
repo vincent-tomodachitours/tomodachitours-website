@@ -116,7 +116,7 @@ async function sendBookingEmails(supabase: any, booking: any) {
         adults: booking.adults,
         children: booking.children || 0,
         infants: booking.infants || 0,
-        totalAmount: booking.amount?.toLocaleString() || '0',
+        totalAmount: (booking.paid_amount || booking.amount || 0).toLocaleString(),
         meetingPoint: meetingPoint
       }
     });
@@ -146,7 +146,7 @@ async function sendBookingEmails(supabase: any, booking: any) {
       infants: booking.infants || 0,
       createdDate: now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }),
       createdTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      totalAmount: booking.amount?.toLocaleString() || '0',
+      totalAmount: (booking.paid_amount || booking.amount || 0).toLocaleString(),
       meetingPoint: meetingPoint
     };
 
@@ -356,7 +356,8 @@ const handler = async (req: Request): Promise<Response> => {
     if (primaryProvider === 'payjp') {
       updateData.charge_id = paymentResult.id
     } else if (primaryProvider === 'stripe') {
-      updateData.stripe_payment_intent_id = paymentResult.id
+      updateData.charge_id = paymentResult.id // Store Stripe payment intent ID in charge_id for compatibility
+      updateData.stripe_payment_intent_id = paymentResult.id // Also store in specific Stripe field for future use
     }
 
     const { error: bookingError } = await supabase
