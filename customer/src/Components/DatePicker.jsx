@@ -218,11 +218,13 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             'MORNING_TOUR': 'MORNING_TOUR',
             'UJI_TOUR': 'UJI_TOUR',
             'GION_TOUR': 'GION_TOUR',
+            'MUSIC_TOUR': 'MUSIC_TOUR',
             // Keep backwards compatibility
             'Night tour': 'NIGHT_TOUR',
             'Morning tour': 'MORNING_TOUR',
             'Uji tour': 'UJI_TOUR',
-            'Gion tour': 'GION_TOUR'
+            'Gion tour': 'GION_TOUR',
+            'Music tour': 'MUSIC_TOUR'
         };
         const tourType = tourTypeMap[sheetId];
 

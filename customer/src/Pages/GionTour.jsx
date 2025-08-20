@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 //Import tour services
-import { getTour } from '../services/toursService';
+import { getTour, clearToursCache } from '../services/toursService';
 
 //SVG
 import { ReactComponent as Location } from '../SVG/Location.svg'
@@ -58,9 +58,12 @@ const GionTour = () => {
         const loadTourData = async () => {
             try {
                 setLoading(true);
+                // Clear cache to ensure we get fresh data
+                clearToursCache();
                 const data = await getTour('gion-tour');
                 setTourData(data);
                 console.log('✅ Gion tour data loaded:', data);
+                console.log('🗺️ Meeting point data:', data['meeting-point']);
 
                 // Track tour page view with attribution
                 trackTourView({
@@ -357,9 +360,12 @@ const GionTour = () => {
                                         <div className='flex flex-col gap-6 basis-11/12 font-roboto'>
                                             <div className='relative overflow-visible'>
                                                 <h4 className='font-bold'>You'll start at</h4>
-                                                <p>Statue of Izumo-no-Okuni on the east side of the Shijo bridge in the Gion district</p>
+                                                <p>{tourData['meeting-point']?.location || 'Statue of Izumo-no-Okuni'}</p>
+                                                {tourData['meeting-point']?.additional_info && (
+                                                    <p className='text-sm text-gray-600 mt-1'>{tourData['meeting-point'].additional_info}</p>
+                                                )}
                                                 <a
-                                                    href='https://maps.app.goo.gl/ZErESUEc65kkLbx16' target='_blank' rel="noopener noreferrer"
+                                                    href={tourData['meeting-point']?.google_maps_url || 'https://maps.app.goo.gl/NzbvEwt3GUjKoXFz9'} target='_blank' rel="noopener noreferrer"
                                                     className='font-semibold underline'
                                                 >Open Google Maps</a>
                                                 <Location className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
@@ -396,6 +402,7 @@ const GionTour = () => {
                                             </div>
                                             <div className='relative overflow-visible font-bold'>
                                                 <h4>You'll return to the starting point</h4>
+                                                <p className='font-normal text-sm text-gray-600'>{tourData['meeting-point']?.location || 'Statue of Izumo-no-Okuni'}</p>
                                                 <Location className='absolute -top-0 -left-10 w-8 h-8 bg-white' />
                                             </div>
                                         </div>
@@ -404,10 +411,13 @@ const GionTour = () => {
                                 {activeContent === 4 &&
                                     <div className='font-roboto mt-8'>
                                         <div className="px-4 space-y-4">
-                                            <p>Statue of Izumo-no-Okuni</p>
+                                            <p className="font-semibold text-lg">{tourData['meeting-point']?.location || 'Statue of Izumo-no-Okuni'}</p>
+                                            {tourData['meeting-point']?.additional_info && (
+                                                <p className='text-gray-600'>{tourData['meeting-point'].additional_info}</p>
+                                            )}
                                             <a
-                                                href='https://maps.app.goo.gl/ZErESUEc65kkLbx16' target='_blank' rel="noopener noreferrer"
-                                                className='font-semibold underline'
+                                                href={tourData['meeting-point']?.google_maps_url || 'https://maps.app.goo.gl/NzbvEwt3GUjKoXFz9'} target='_blank' rel="noopener noreferrer"
+                                                className='font-semibold underline text-blue-600 hover:text-blue-800'
                                             >Open Google Maps</a>
                                         </div>
                                     </div>

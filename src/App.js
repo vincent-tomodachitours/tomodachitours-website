@@ -92,7 +92,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         {/* <Route path="/tours" element={<Tours />} /> */}
-        {/* Tour Routes - Current 4 Tours */}
+        {/* Tour Routes - Current 5 Tours */}
         <Route path="/tours/kyoto-fushimi-inari-night-walking-tour" element={<NightTour />} />
         <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
         <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
@@ -109,6 +109,7 @@ function App() {
         <Route path="/commercial-disclosure" element={<CommercialDisclosure />} />
         <Route path="/thankyou" element={<Thankyou />} />
         <Route path="/login" element={<Login />} />
+
       </Routes>
     </Router>
   );

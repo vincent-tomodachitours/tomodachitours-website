@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import NightTour from './Pages/NightTour';
+
 import Home from './Pages/Home';
 import CancellationPolicy from './Pages/CancellationPolicy';
 import PrivacyPolicy from './Pages/PrivacyPolicy';
@@ -33,6 +34,7 @@ function App() {
         <Route path="/" element={<Home />} />
         {/* <Route path="/tours" element={<Tours />} /> */}
         <Route path="/tours/kyoto-fushimi-inari-night-walking-tour" element={<NightTour />} />
+
         <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
         <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
         <Route path="/tours/kyoto-gion-early-morning-walking-tour" element={<GionTour />} />
