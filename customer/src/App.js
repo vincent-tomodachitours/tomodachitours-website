@@ -19,6 +19,7 @@ import PerformanceOptimizer from './components/PerformanceOptimizer';
 import Login from './components/Login';
 import Jobs from './Pages/Jobs';
 import { initializeAnalytics } from './services/analytics';
+import MusicTour from './Pages/MusicTour';
 
 function App() {
   // Initialize Google Analytics 4
@@ -34,7 +35,7 @@ function App() {
         <Route path="/" element={<Home />} />
         {/* <Route path="/tours" element={<Tours />} /> */}
         <Route path="/tours/kyoto-fushimi-inari-night-walking-tour" element={<NightTour />} />
-
+        <Route path="/tours/kyoto-music-culture-walking-tour" element={<MusicTour />} />
         <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
         <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
         <Route path="/tours/kyoto-gion-early-morning-walking-tour" element={<GionTour />} />
