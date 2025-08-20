@@ -85,11 +85,6 @@ async function getTourName(supabase: any, tourType: string): Promise<{ name: str
 }
 
 async function sendBookingEmails(supabase: any, booking: any) {
-  if (!SENDGRID_API_KEY) {
-    console.log('SendGrid API key not found, skipping email notifications');
-    return;
-  }
-
   try {
     // Format date and time
     const bookingDate = new Date(booking.booking_date);
@@ -103,64 +98,120 @@ async function sendBookingEmails(supabase: any, booking: any) {
     // Get proper tour name and meeting point from database
     const { name: tourName, meetingPoint } = await getTourName(supabase, booking.tour_type);
 
-    // Send customer confirmation email
-    await sgMail.send({
-      to: booking.customer_email,
-      from: SENDGRID_FROM,
-      templateId: SENDGRID_TEMPLATES.BOOKING_CONFIRMATION,
-      dynamicTemplateData: {
-        bookingId: booking.id,
-        tourName: tourName,
-        tourDate: formattedDate,
-        tourTime: booking.booking_time,
-        adults: booking.adults,
-        children: booking.children || 0,
-        infants: booking.infants || 0,
-        totalAmount: (booking.paid_amount || booking.amount || 0).toLocaleString(),
-        meetingPoint: meetingPoint
+    // Try SendGrid first, then fallback to simple email if it fails
+    let emailSent = false;
+
+    if (SENDGRID_API_KEY) {
+      try {
+        // Send customer confirmation email
+        await sgMail.send({
+          to: booking.customer_email,
+          from: SENDGRID_FROM,
+          templateId: SENDGRID_TEMPLATES.BOOKING_CONFIRMATION,
+          dynamicTemplateData: {
+            bookingId: booking.id,
+            tourName: tourName,
+            tourDate: formattedDate,
+            tourTime: booking.booking_time,
+            adults: booking.adults,
+            children: booking.children || 0,
+            infants: booking.infants || 0,
+            totalAmount: (booking.paid_amount || 0).toLocaleString(),
+            meetingPoint: meetingPoint
+          }
+        });
+
+        // Send company notification emails to all three addresses
+        const now = new Date();
+        const companyEmails = [
+          'spirivincent03@gmail.com',
+          'contact@tomodachitours.com',
+          'yutaka.m@tomodachitours.com'
+        ];
+
+        const notificationData = {
+          bookingId: booking.id,
+          productBookingRef: '',
+          extBookingRef: '',
+          productId: booking.tour_type,
+          tourName: tourName,
+          customerName: booking.customer_name,
+          customerEmail: booking.customer_email,
+          customerPhone: booking.customer_phone || '',
+          tourDate: formattedDate,
+          tourTime: booking.booking_time,
+          adults: booking.adults,
+          adultPlural: booking.adults > 1,
+          children: booking.children || 0,
+          infants: booking.infants || 0,
+          createdDate: now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }),
+          createdTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          totalAmount: (booking.paid_amount || 0).toLocaleString(),
+          meetingPoint: meetingPoint
+        };
+
+        // Send notification to each company email
+        for (const email of companyEmails) {
+          await sgMail.send({
+            to: email,
+            from: SENDGRID_FROM,
+            templateId: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
+            dynamicTemplateData: notificationData
+          });
+        }
+
+        emailSent = true;
+        console.log('Booking confirmation emails sent successfully via SendGrid');
+      } catch (sendgridError) {
+        console.error('SendGrid failed:', sendgridError);
+
+        // Check if it's a credits exceeded error
+        if (sendgridError.response?.body?.errors?.[0]?.message?.includes('Maximum credits exceeded')) {
+          console.error('SendGrid credits exceeded - need to upgrade plan or add credits');
+        }
+
+        // Continue to fallback method
       }
-    });
-
-    // Send company notification emails to all three addresses
-    const now = new Date();
-    const companyEmails = [
-      'spirivincent03@gmail.com',
-      'contact@tomodachitours.com',
-      'yutaka.m@tomodachitours.com'
-    ];
-
-    const notificationData = {
-      bookingId: booking.id,
-      productBookingRef: '',
-      extBookingRef: '',
-      productId: booking.tour_type,
-      tourName: tourName,
-      customerName: booking.customer_name,
-      customerEmail: booking.customer_email,
-      customerPhone: booking.customer_phone || '',
-      tourDate: formattedDate,
-      tourTime: booking.booking_time,
-      adults: booking.adults,
-      adultPlural: booking.adults > 1,
-      children: booking.children || 0,
-      infants: booking.infants || 0,
-      createdDate: now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }),
-      createdTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      totalAmount: (booking.paid_amount || booking.amount || 0).toLocaleString(),
-      meetingPoint: meetingPoint
-    };
-
-    // Send notification to each company email
-    for (const email of companyEmails) {
-      await sgMail.send({
-        to: email,
-        from: SENDGRID_FROM,
-        templateId: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
-        dynamicTemplateData: notificationData
-      });
     }
 
-    console.log('Booking confirmation emails sent successfully');
+    // If SendGrid failed or isn't configured, log the booking details for manual follow-up
+    if (!emailSent) {
+      console.log('EMAIL SERVICE UNAVAILABLE - MANUAL FOLLOW-UP REQUIRED');
+      console.log('Booking Details for Manual Email:');
+      console.log(`- Booking ID: ${booking.id}`);
+      console.log(`- Customer: ${booking.customer_name} (${booking.customer_email})`);
+      console.log(`- Tour: ${tourName}`);
+      console.log(`- Date: ${formattedDate} at ${booking.booking_time}`);
+      console.log(`- Participants: ${booking.adults} adults, ${booking.children || 0} children`);
+      console.log(`- Amount: ¥${(booking.paid_amount || 0).toLocaleString()}`);
+      console.log('- Meeting Point:', meetingPoint.location);
+
+      // Store failed email attempt in database for follow-up
+      try {
+        await supabase
+          .from('email_failures')
+          .insert({
+            booking_id: booking.id,
+            customer_email: booking.customer_email,
+            email_type: 'booking_confirmation',
+            failure_reason: 'SendGrid credits exceeded',
+            booking_details: {
+              tourName,
+              tourDate: formattedDate,
+              tourTime: booking.booking_time,
+              adults: booking.adults,
+              children: booking.children || 0,
+              totalAmount: (booking.paid_amount || 0).toLocaleString(),
+              meetingPoint
+            },
+            created_at: new Date().toISOString()
+          });
+        console.log('Email failure logged for manual follow-up');
+      } catch (logError) {
+        console.error('Failed to log email failure:', logError);
+      }
+    }
+
   } catch (error) {
     console.error('Failed to send booking emails:', error);
     // Don't throw error as payment was successful
