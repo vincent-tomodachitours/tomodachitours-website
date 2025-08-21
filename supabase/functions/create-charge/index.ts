@@ -103,21 +103,25 @@ async function sendBookingEmails(supabase: any, booking: any) {
 
     if (SENDGRID_API_KEY) {
       try {
-        // Send customer confirmation email
+        // Send customer confirmation email with escaped data
         await sgMail.send({
           to: booking.customer_email,
           from: SENDGRID_FROM,
           templateId: SENDGRID_TEMPLATES.BOOKING_CONFIRMATION,
           dynamicTemplateData: {
             bookingId: booking.id,
-            tourName: tourName,
-            tourDate: formattedDate,
-            tourTime: booking.booking_time,
+            tourName: escapeHandlebars(tourName),
+            tourDate: escapeHandlebars(formattedDate),
+            tourTime: escapeHandlebars(booking.booking_time),
             adults: booking.adults,
             children: booking.children || 0,
             infants: booking.infants || 0,
-            totalAmount: (booking.paid_amount || 0).toLocaleString(),
-            meetingPoint: meetingPoint
+            totalAmount: escapeHandlebars((booking.paid_amount || 0).toLocaleString()),
+            meetingPoint: {
+              location: escapeHandlebars(meetingPoint.location),
+              google_maps_url: meetingPoint.google_maps_url,
+              additional_info: escapeHandlebars(meetingPoint.additional_info || '')
+            }
           }
         });
 
@@ -126,38 +130,64 @@ async function sendBookingEmails(supabase: any, booking: any) {
         const companyEmails = [
           'spirivincent03@gmail.com',
           'contact@tomodachitours.com',
-          'yutaka.m@tomodachitours.com'
+          'yutaka.m@tomodachitours.com',
+          'hiro7956s@gmail.com'
         ];
+
+        // Helper function to escape special characters for Handlebars
+        const escapeHandlebars = (str: string) => {
+          if (!str) return str;
+          return str.toString()
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        };
 
         const notificationData = {
           bookingId: booking.id,
           productBookingRef: '',
           extBookingRef: '',
           productId: booking.tour_type,
-          tourName: tourName,
-          customerName: booking.customer_name,
-          customerEmail: booking.customer_email,
-          customerPhone: booking.customer_phone || '',
-          tourDate: formattedDate,
-          tourTime: booking.booking_time,
+          tourName: escapeHandlebars(tourName),
+          customerName: escapeHandlebars(booking.customer_name),
+          customerEmail: escapeHandlebars(booking.customer_email),
+          customerPhone: escapeHandlebars(booking.customer_phone || ''),
+          tourDate: escapeHandlebars(formattedDate),
+          tourTime: escapeHandlebars(booking.booking_time),
           adults: booking.adults,
           adultPlural: booking.adults > 1,
           children: booking.children || 0,
           infants: booking.infants || 0,
-          createdDate: now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' }),
-          createdTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          totalAmount: (booking.paid_amount || 0).toLocaleString(),
-          meetingPoint: meetingPoint
+          createdDate: escapeHandlebars(now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' })),
+          createdTime: escapeHandlebars(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })),
+          totalAmount: escapeHandlebars((booking.paid_amount || 0).toLocaleString()),
+          meetingPoint: {
+            location: escapeHandlebars(meetingPoint.location),
+            google_maps_url: meetingPoint.google_maps_url, // URLs don't need escaping
+            additional_info: escapeHandlebars(meetingPoint.additional_info || '')
+          }
         };
 
-        // Send notification to each company email
+        // Send notification to each company email with detailed error handling
         for (const email of companyEmails) {
-          await sgMail.send({
-            to: email,
-            from: SENDGRID_FROM,
-            templateId: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
-            dynamicTemplateData: notificationData
-          });
+          try {
+            console.log(`Attempting to send notification to: ${email}`);
+            await sgMail.send({
+              to: email,
+              from: SENDGRID_FROM,
+              templateId: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
+              dynamicTemplateData: notificationData
+            });
+            console.log(`✅ Successfully sent notification to: ${email}`);
+          } catch (emailError) {
+            console.error(`❌ Failed to send notification to ${email}:`, emailError);
+            if (emailError.response) {
+              console.error(`Response body for ${email}:`, emailError.response.body);
+            }
+            // Continue with other emails even if one fails
+          }
         }
 
         emailSent = true;

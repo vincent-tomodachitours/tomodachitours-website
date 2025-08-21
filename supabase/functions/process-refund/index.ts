@@ -243,23 +243,27 @@ const handler = async (req: Request): Promise<Response> => {
       const companyEmails = [
         'spirivincent03@gmail.com',
         'contact@tomodachitours.com',
-        'yutaka.m@tomodachitours.com'
+        'yutaka.m@tomodachitours.com',
+        'hiro7956s@gmail.com'
       ];
 
-      for (const email of companyEmails) {
-        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            to: email,
-            templateId: 'd-827197c8d2b34edc8c706c00dff6cf87', // CANCELLATION_NOTIFICATION template
-            templateData: templateData
-          })
+      // Send cancellation notifications using proper SendGrid personalizations
+      const personalizations = companyEmails.map(email => ({
+        to: [{ email: email }],
+        dynamic_template_data: templateData
+      }));
+
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-notification`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          templateId: 'd-827197c8d2b34edc8c706c00dff6cf87', // CANCELLATION_NOTIFICATION template
+          personalizations: personalizations
         })
-      }
+      })
 
       console.log('Cancellation emails sent successfully')
     } catch (emailError) {

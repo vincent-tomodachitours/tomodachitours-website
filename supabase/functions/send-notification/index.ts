@@ -66,15 +66,29 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email using SendGrid
     try {
-      await sgMail.send({
-        to: data.to,
-        from: {
-          email: 'contact@tomodachitours.com',
-          name: 'Tomodachi Tours'
-        },
-        templateId: data.templateId,
-        dynamicTemplateData: data.templateData
-      })
+      // Handle both old format (single recipient) and new format (multiple personalizations)
+      if (data.personalizations) {
+        // New format with multiple personalizations
+        await sgMail.send({
+          from: {
+            email: 'contact@tomodachitours.com',
+            name: 'Tomodachi Tours'
+          },
+          template_id: data.templateId,
+          personalizations: data.personalizations
+        })
+      } else {
+        // Old format for backward compatibility
+        await sgMail.send({
+          to: data.to,
+          from: {
+            email: 'contact@tomodachitours.com',
+            name: 'Tomodachi Tours'
+          },
+          templateId: data.templateId,
+          dynamicTemplateData: data.templateData
+        })
+      }
 
       return new Response(
         JSON.stringify({
