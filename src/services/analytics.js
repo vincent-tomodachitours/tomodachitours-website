@@ -4,20 +4,9 @@ class AnalyticsService {
         this.isEnabled = process.env.REACT_APP_ENABLE_ANALYTICS === 'true';
         this.measurementId = process.env.REACT_APP_GA_MEASUREMENT_ID;
         this.googleAdsId = process.env.REACT_APP_GOOGLE_ADS_CONVERSION_ID;
-        this.conversionLabels = this.parseConversionLabels(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS);
-        this.tourLabels = this.parseConversionLabels(process.env.REACT_APP_TOUR_SPECIFIC_CONVERSION_LABELS);
 
         // Initialize conversion linker
         this.initializeConversionLinker();
-    }
-
-    parseConversionLabels(labelsString) {
-        try {
-            return labelsString ? JSON.parse(labelsString) : {};
-        } catch (error) {
-            console.warn('Failed to parse conversion labels:', error);
-            return {};
-        }
     }
 
     // Initialize Google Ads Conversion Linker
@@ -66,51 +55,33 @@ class AnalyticsService {
         console.log('Analytics Event:', eventName, parameters);
     }
 
-    // Track Google Ads conversion
-    trackConversion(conversionLabel, value = null, currency = 'JPY', transactionId = null) {
-        if (!this.isEnabled || !this.isGtagAvailable() || !this.googleAdsId) {
-            console.warn('❌ Google Ads conversion tracking not available:', {
-                enabled: this.isEnabled,
-                gtag: this.isGtagAvailable(),
-                adsId: this.googleAdsId
-            });
-            return;
-        }
+    // Track events to both GA4 and Google Ads
+    trackEventToAll(eventName, parameters = {}) {
+        if (!this.isEnabled || !this.isGtagAvailable()) return;
 
-        if (!conversionLabel || conversionLabel.includes('XXXXXXXXX')) {
-            console.warn('❌ Invalid conversion label:', conversionLabel);
-            return;
-        }
-
-        const conversionData = {
-            send_to: `${this.googleAdsId}/${conversionLabel}`
-        };
-
-        if (value) {
-            conversionData.value = value;
-            conversionData.currency = currency;
-        }
-
-        if (transactionId) {
-            conversionData.transaction_id = transactionId;
-        }
-
-        console.log('🎯 Firing Google Ads Conversion:', {
-            label: conversionLabel,
-            fullSendTo: conversionData.send_to,
-            data: conversionData
+        // Send to GA4
+        window.gtag('event', eventName, {
+            ...parameters,
+            send_to: this.measurementId
         });
 
-        window.gtag('event', 'conversion', conversionData);
-        console.log('✅ Google Ads Conversion fired successfully');
+        // Also send to Google Ads (for conversion import)
+        if (this.googleAdsId) {
+            window.gtag('event', eventName, {
+                ...parameters,
+                send_to: this.googleAdsId
+            });
+        }
+
+        console.log('📊 Event sent to GA4 and Google Ads:', eventName, parameters);
     }
 
     // 1. Track tour page views
     trackTourView(tourData) {
         const { tourId, tourName, price, currency = 'JPY' } = tourData;
 
-        // GA4 Enhanced Ecommerce
-        this.trackEvent('view_item', {
+        // Send view_item event to both GA4 and Google Ads
+        this.trackEventToAll('view_item', {
             currency: currency,
             value: price,
             items: [{
@@ -121,25 +92,14 @@ class AnalyticsService {
                 quantity: 1
             }]
         });
-
-        // Google Ads Conversion
-        if (this.conversionLabels.view_item) {
-            this.trackConversion(this.conversionLabels.view_item, price, currency);
-        }
-
-        // Tour-specific tracking
-        const tourSpecificLabel = this.getTourSpecificLabel(tourId, 'view');
-        if (tourSpecificLabel) {
-            this.trackConversion(tourSpecificLabel, price, currency);
-        }
     }
 
     // 2. Track when user adds tour to cart/selects tour
     trackAddToCart(tourData) {
         const { tourId, tourName, price, currency = 'JPY', quantity = 1 } = tourData;
 
-        // GA4 Enhanced Ecommerce
-        this.trackEvent('add_to_cart', {
+        // Send add_to_cart event to both GA4 and Google Ads
+        this.trackEventToAll('add_to_cart', {
             currency: currency,
             value: price * quantity,
             items: [{
@@ -150,25 +110,14 @@ class AnalyticsService {
                 quantity: quantity
             }]
         });
-
-        // Google Ads Conversion
-        if (this.conversionLabels.add_to_cart) {
-            this.trackConversion(this.conversionLabels.add_to_cart, price * quantity, currency);
-        }
-
-        // Tour-specific tracking
-        const tourSpecificLabel = this.getTourSpecificLabel(tourId, 'cart');
-        if (tourSpecificLabel) {
-            this.trackConversion(tourSpecificLabel, price * quantity, currency);
-        }
     }
 
     // 3. Track when user begins checkout
     trackBeginCheckout(checkoutData) {
         const { tourId, tourName, price, currency = 'JPY', quantity = 1 } = checkoutData;
 
-        // GA4 Enhanced Ecommerce
-        this.trackEvent('begin_checkout', {
+        // Send begin_checkout event to both GA4 and Google Ads
+        this.trackEventToAll('begin_checkout', {
             currency: currency,
             value: price * quantity,
             items: [{
@@ -179,17 +128,6 @@ class AnalyticsService {
                 quantity: quantity
             }]
         });
-
-        // Google Ads Conversion
-        if (this.conversionLabels.begin_checkout) {
-            this.trackConversion(this.conversionLabels.begin_checkout, price * quantity, currency);
-        }
-
-        // Tour-specific tracking
-        const tourSpecificLabel = this.getTourSpecificLabel(tourId, 'checkout');
-        if (tourSpecificLabel) {
-            this.trackConversion(tourSpecificLabel, price * quantity, currency);
-        }
     }
 
     // 4. Track successful purchase
@@ -206,7 +144,7 @@ class AnalyticsService {
 
         const totalValue = price * quantity;
 
-        console.log('🎯 Tracking Purchase Conversion:', {
+        console.log('🎯 Tracking Purchase:', {
             transactionId,
             tourId,
             tourName,
@@ -214,93 +152,78 @@ class AnalyticsService {
             currency
         });
 
-        // 1. GA4 Enhanced Ecommerce Purchase Event
-        this.trackEvent('purchase', {
+        // Send purchase event to GA4 with all required parameters
+        window.gtag('event', 'purchase', {
+            send_to: this.measurementId,
             transaction_id: transactionId,
             currency: currency,
             value: totalValue,
+            affiliation: 'Tomodachi Tours',
+            coupon: '',
+            shipping: 0,
+            tax: 0,
             items: [{
                 item_id: tourId,
                 item_name: tourName,
-                category: 'Tour',
+                item_category: 'Tour',
+                item_brand: 'Tomodachi Tours',
                 price: price,
                 quantity: quantity
             }]
         });
 
-        // 2. Google Ads Conversion Event (Primary conversion for ads)
-        if (this.isGtagAvailable() && this.googleAdsId) {
-            // Fire the main Google Ads conversion event
+        // Also send to Google Ads
+        if (this.googleAdsId) {
+            window.gtag('event', 'purchase', {
+                send_to: this.googleAdsId,
+                transaction_id: transactionId,
+                currency: currency,
+                value: totalValue,
+                items: [{
+                    item_id: tourId,
+                    item_name: tourName,
+                    item_category: 'Tour',
+                    price: price,
+                    quantity: quantity
+                }]
+            });
+        }
+
+        // Also send a direct conversion event to Google Ads
+        if (this.googleAdsId) {
             window.gtag('event', 'conversion', {
                 send_to: this.googleAdsId,
                 value: totalValue,
                 currency: currency,
                 transaction_id: transactionId
             });
-
-            console.log('✅ Google Ads main conversion fired:', {
-                send_to: this.googleAdsId,
-                value: totalValue,
-                currency: currency,
-                transaction_id: transactionId
-            });
+            console.log('🎯 Direct Google Ads conversion sent');
         }
 
-        // 3. Specific conversion labels (if configured)
-        if (this.conversionLabels.purchase) {
-            this.trackConversion(this.conversionLabels.purchase, totalValue, currency, transactionId);
-        }
-
-        // 4. Tour-specific tracking
-        const tourSpecificLabel = this.getTourSpecificLabel(tourId, 'purchase');
-        if (tourSpecificLabel) {
-            this.trackConversion(tourSpecificLabel, totalValue, currency, transactionId);
-        }
-
-        // 5. Enhanced conversions with customer data (if available)
-        if (customerEmail) {
+        // Enhanced conversions with customer data (if available)
+        if (customerEmail && this.googleAdsId) {
             this.trackEnhancedConversion(customerEmail, totalValue, currency, transactionId);
         }
     }
 
-    // Get tour-specific conversion label
-    getTourSpecificLabel(tourId, action) {
-        const tourMap = {
-            'night_tour': 'night',
-            'morning_tour': 'morning',
-            'uji_tour': 'uji',
-            'gion_tour': 'gion'
-        };
 
-        const tourPrefix = tourMap[tourId] || tourId.toLowerCase();
-        const labelKey = `${tourPrefix}_${action}`;
-
-        return this.tourLabels[labelKey];
-    }
 
     // Enhanced conversions for better attribution
     trackEnhancedConversion(email, value = null, currency = 'JPY', transactionId = null) {
         if (!this.isEnabled || !this.isGtagAvailable() || !this.googleAdsId) return;
 
-        const conversionData = {
+        // Send enhanced conversion data to Google Ads
+        window.gtag('event', 'purchase', {
             send_to: this.googleAdsId,
+            value: value,
+            currency: currency,
+            transaction_id: transactionId,
             user_data: {
                 email_address: email
             }
-        };
+        });
 
-        if (value) {
-            conversionData.value = value;
-            conversionData.currency = currency;
-        }
-
-        if (transactionId) {
-            conversionData.transaction_id = transactionId;
-        }
-
-        window.gtag('event', 'conversion', conversionData);
-
-        console.log('✅ Enhanced conversion with user data fired:', conversionData);
+        console.log('✅ Enhanced conversion with user data sent to Google Ads');
     }
 
     // Track custom events

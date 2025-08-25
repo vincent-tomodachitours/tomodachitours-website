@@ -243,8 +243,7 @@ const handler = async (req: Request): Promise<Response> => {
       const companyEmails = [
         'spirivincent03@gmail.com',
         'contact@tomodachitours.com',
-        'yutaka.m@tomodachitours.com',
-        'hiro7956s@gmail.com'
+        'yutaka.m@tomodachitours.com'
       ];
 
       // Send cancellation notifications using proper SendGrid personalizations

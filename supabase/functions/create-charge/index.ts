@@ -130,8 +130,7 @@ async function sendBookingEmails(supabase: any, booking: any) {
         const companyEmails = [
           'spirivincent03@gmail.com',
           'contact@tomodachitours.com',
-          'yutaka.m@tomodachitours.com',
-          'hiro7956s@gmail.com'
+          'yutaka.m@tomodachitours.com'
         ];
 
         // Helper function to escape special characters for Handlebars
