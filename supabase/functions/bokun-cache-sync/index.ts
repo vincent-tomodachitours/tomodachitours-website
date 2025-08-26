@@ -13,6 +13,19 @@ interface BokunBooking {
     fields: {
         startTimeStr: string;
         totalParticipants: number;
+        priceCategoryBookings?: Array<{
+            pricingCategoryId: number;
+            pricingCategory: {
+                id: number;
+                title: string;
+                ticketCategory: 'ADULT' | 'CHILD' | 'INFANT';
+                minAge?: number;
+                maxAge?: number;
+                fullTitle?: string;
+            };
+            quantity: number;
+            bookedTitle: string;
+        }>;
     };
     customer: {
         firstName: string;
@@ -168,6 +181,38 @@ serve(async (req) => {
                     return null;
                 }
 
+                // Extract participant breakdown from Bokun booking
+                // Bokun stores participant data in fields.priceCategoryBookings array
+                const priceCategoryBookings = booking.fields?.priceCategoryBookings || [];
+
+                let adults = 0;
+                let children = 0;
+                let infants = 0;
+
+                // Count participants by category
+                priceCategoryBookings.forEach((bookingCategory: any) => {
+                    const ticketCategory = bookingCategory.pricingCategory?.ticketCategory;
+                    const quantity = bookingCategory.quantity || 1;
+
+                    switch (ticketCategory) {
+                        case 'ADULT':
+                            adults += quantity;
+                            break;
+                        case 'CHILD':
+                            children += quantity;
+                            break;
+                        case 'INFANT':
+                            infants += quantity;
+                            break;
+                        default:
+                            // If category is unknown, assume adult
+                            console.warn('Unknown ticket category:', ticketCategory, 'treating as adult');
+                            adults += quantity;
+                    }
+                });
+
+                const totalParticipants = adults + children + infants || booking.fields?.totalParticipants || 1;
+
                 return {
                     bokun_booking_id: booking.id,
                     product_id: bokunProductId || productId,
@@ -177,10 +222,10 @@ serve(async (req) => {
                     customer_name: `${booking.customer?.firstName || 'External'} ${booking.customer?.lastName || 'Booking'}`,
                     customer_email: booking.customer?.email || 'external@bokun.com',
                     customer_phone: booking.customer?.phoneNumber,
-                    adults: booking.fields?.totalParticipants || 1,
-                    children: 0,
-                    infants: 0,
-                    total_participants: booking.fields?.totalParticipants || 1,
+                    adults: adults,
+                    children: children,
+                    infants: infants,
+                    total_participants: totalParticipants,
                     tour_type: correctTourType,
                     tour_name: correctTourType,
                     total_amount: 0,

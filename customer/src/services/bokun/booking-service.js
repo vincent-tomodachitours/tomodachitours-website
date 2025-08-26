@@ -182,8 +182,12 @@ export class BokunBookingService {
         // Extract time from fields.startTimeStr
         const bookingTime = bokunBooking.fields?.startTimeStr || '18:00';
 
-        // Extract participant count
-        const totalParticipants = bokunBooking.fields?.totalParticipants || 1;
+        // Extract participant breakdown from Bokun booking
+        const participants = bokunBooking.participants || {};
+        const adults = participants.adults || 0;
+        const children = participants.children || 0;
+        const infants = participants.infants || 0;
+        const totalParticipants = adults + children + infants || bokunBooking.fields?.totalParticipants || 1;
 
         return {
             id: `bokun_${bokunBooking.id}`,
@@ -193,9 +197,9 @@ export class BokunBookingService {
             customer_name: `${bokunBooking.customer?.firstName || 'External'} ${bokunBooking.customer?.lastName || 'Booking'}`,
             customer_email: bokunBooking.customer?.email || 'external@bokun.com',
             customer_phone: bokunBooking.customer?.phoneNumber || bokunBooking.customer?.phone,
-            adults: totalParticipants, // Bokun doesn't separate adults/children, so put all in adults
-            children: 0,
-            infants: 0,
+            adults: adults,
+            children: children,
+            infants: infants,
             total_participants: totalParticipants,
             status: 'CONFIRMED', // All Bokun bookings we fetch should be confirmed
             external_source: 'bokun',
