@@ -1,397 +1,216 @@
 {
-    "containerConfig": {
-        "containerId": "GTM-XXXXXXX",
-        "dataLayerName": "dataLayer",
-        "enablePreview": false,
-        "enableDebug": false
+    "container": {
+        "name": "Tomodachi Tours - Customer Site",
+        "description": "Google Tag Manager container for Tomodachi Tours customer-facing website with GA4 and Google Ads conversion tracking",
+        "usage": "web"
+    },
+    "workspace": {
+        "name": "Production Workspace",
+        "description": "Main workspace for production GTM container"
+    },
+    "accounts": {
+        "ga4": {
+            "measurementId": "G-5GVJBRE1SY",
+            "name": "Tomodachi Tours GA4"
+        },
+        "googleAds": {
+            "conversionId": "AW-17482092392",
+            "name": "Tomodachi Tours Google Ads"
+        }
     },
     "tags": [
         {
-            "name": "Google Analytics 4 Configuration",
+            "name": "GA4 Configuration",
             "type": "gaawe",
-            "tagId": "GA4_CONFIG",
+            "firingTriggers": [
+                "Initialization - All Pages"
+            ],
             "parameters": {
-                "measurementId": "G-5GVJBRE1SY",
-                "enableEnhancedEcommerce": true,
-                "enableUserProperties": true,
-                "enableCustomDimensions": true,
-                "cookieFlags": "SameSite=None;Secure",
-                "anonymizeIp": true,
-                "respectDoNotTrack": true
-            },
-            "triggers": [
-                "All Pages"
-            ]
+                "measurementId": "{{GA4 Measurement ID}}",
+                "enableEcommerce": true,
+                "enhancedEcommerce": true
+            }
         },
         {
-            "name": "Google Ads Conversion Tracking",
-            "type": "awct",
-            "tagId": "GOOGLE_ADS_CONVERSION",
-            "parameters": {
-                "conversionId": "AW-123456789",
-                "conversionLabel": "{{Conversion Label}}",
-                "conversionValue": "{{Transaction Value}}",
-                "conversionCurrency": "JPY",
-                "transactionId": "{{Transaction ID}}",
-                "customParameters": {
-                    "tour_id": "{{Tour ID}}",
-                    "tour_name": "{{Tour Name}}",
-                    "tour_category": "{{Tour Category}}",
-                    "attribution_source": "{{Attribution Source}}",
-                    "attribution_medium": "{{Attribution Medium}}",
-                    "attribution_campaign": "{{Attribution Campaign}}"
-                }
-            },
-            "triggers": [
-                "Purchase Conversion",
-                "Begin Checkout Conversion",
-                "View Item Conversion",
-                "Add to Cart Conversion"
-            ]
-        },
-        {
-            "name": "Google Ads Remarketing",
-            "type": "sp",
-            "tagId": "GOOGLE_ADS_REMARKETING",
-            "parameters": {
-                "conversionId": "AW-123456789",
-                "customParameters": {
-                    "ecomm_prodid": "{{Tour ID}}",
-                    "ecomm_pagetype": "{{Page Type}}",
-                    "ecomm_totalvalue": "{{Tour Price}}",
-                    "tour_category": "{{Tour Category}}",
-                    "tour_location": "{{Tour Location}}",
-                    "user_engagement_level": "{{User Engagement Level}}"
-                }
-            },
-            "triggers": [
-                "All Pages",
-                "Tour Page Views",
-                "Checkout Pages"
-            ]
-        },
-        {
-            "name": "Enhanced Ecommerce - Purchase",
+            "name": "GA4 - Purchase Event",
             "type": "gaawe",
-            "tagId": "GA4_PURCHASE",
+            "firingTriggers": [
+                "Purchase Event"
+            ],
             "parameters": {
                 "eventName": "purchase",
-                "measurementId": "G-5GVJBRE1SY",
-                "eventParameters": {
-                    "transaction_id": "{{Transaction ID}}",
-                    "value": "{{Transaction Value}}",
-                    "currency": "JPY",
-                    "items": "{{Ecommerce Items}}"
-                }
-            },
-            "triggers": [
-                "Purchase Conversion"
-            ]
+                "measurementId": "{{GA4 Measurement ID}}"
+            }
         },
         {
-            "name": "Enhanced Ecommerce - Begin Checkout",
+            "name": "Google Ads - Purchase Conversion",
+            "type": "awct",
+            "firingTriggers": [
+                "Purchase Event"
+            ],
+            "parameters": {
+                "conversionId": "{{Google Ads Conversion ID}}",
+                "conversionLabel": "{{Purchase Conversion Label}}",
+                "conversionValue": "{{Transaction Value}}",
+                "currencyCode": "JPY"
+            }
+        },
+        {
+            "name": "GA4 - Begin Checkout Event",
             "type": "gaawe",
-            "tagId": "GA4_BEGIN_CHECKOUT",
+            "firingTriggers": [
+                "Begin Checkout Event"
+            ],
             "parameters": {
                 "eventName": "begin_checkout",
-                "measurementId": "G-5GVJBRE1SY",
-                "eventParameters": {
-                    "currency": "JPY",
-                    "value": "{{Tour Price}}",
-                    "items": "{{Checkout Items}}"
-                }
-            },
-            "triggers": [
-                "Begin Checkout Conversion"
-            ]
+                "measurementId": "{{GA4 Measurement ID}}"
+            }
         },
         {
-            "name": "Enhanced Ecommerce - View Item",
+            "name": "Google Ads - Begin Checkout Conversion",
+            "type": "awct",
+            "firingTriggers": [
+                "Begin Checkout Event"
+            ],
+            "parameters": {
+                "conversionId": "{{Google Ads Conversion ID}}",
+                "conversionLabel": "{{Begin Checkout Conversion Label}}",
+                "conversionValue": "{{Checkout Value}}",
+                "currencyCode": "JPY"
+            }
+        },
+        {
+            "name": "GA4 - View Item Event",
             "type": "gaawe",
-            "tagId": "GA4_VIEW_ITEM",
+            "firingTriggers": [
+                "View Item Event"
+            ],
             "parameters": {
                 "eventName": "view_item",
-                "measurementId": "G-5GVJBRE1SY",
-                "eventParameters": {
-                    "currency": "JPY",
-                    "value": "{{Tour Price}}",
-                    "items": "{{Tour Item}}"
-                }
-            },
-            "triggers": [
-                "View Item Conversion"
-            ]
+                "measurementId": "{{GA4 Measurement ID}}"
+            }
         },
         {
-            "name": "Enhanced Ecommerce - Add to Cart",
-            "type": "gaawe",
-            "tagId": "GA4_ADD_TO_CART",
+            "name": "Google Ads - View Item Conversion",
+            "type": "awct",
+            "firingTriggers": [
+                "View Item Event"
+            ],
             "parameters": {
-                "eventName": "add_to_cart",
-                "measurementId": "G-5GVJBRE1SY",
-                "eventParameters": {
-                    "currency": "JPY",
-                    "value": "{{Tour Price}}",
-                    "items": "{{Cart Items}}"
-                }
-            },
-            "triggers": [
-                "Add to Cart Conversion"
-            ]
+                "conversionId": "{{Google Ads Conversion ID}}",
+                "conversionLabel": "{{View Item Conversion Label}}",
+                "conversionValue": "{{Item Value}}",
+                "currencyCode": "JPY"
+            }
         }
     ],
     "triggers": [
         {
-            "name": "All Pages",
-            "type": "pageview",
-            "filters": []
+            "name": "Initialization - All Pages",
+            "type": "init"
         },
         {
-            "name": "Purchase Conversion",
+            "name": "Purchase Event",
             "type": "customEvent",
-            "eventName": "purchase_conversion",
-            "filters": []
+            "customEventFilter": {
+                "eventName": "purchase"
+            }
         },
         {
-            "name": "Begin Checkout Conversion",
+            "name": "Begin Checkout Event",
             "type": "customEvent",
-            "eventName": "begin_checkout_conversion",
-            "filters": []
+            "customEventFilter": {
+                "eventName": "begin_checkout"
+            }
         },
         {
-            "name": "View Item Conversion",
+            "name": "View Item Event",
             "type": "customEvent",
-            "eventName": "view_item_conversion",
-            "filters": []
+            "customEventFilter": {
+                "eventName": "view_item"
+            }
         },
         {
-            "name": "Add to Cart Conversion",
+            "name": "Add Payment Info Event",
             "type": "customEvent",
-            "eventName": "add_to_cart_conversion",
-            "filters": []
-        },
-        {
-            "name": "Tour Page Views",
-            "type": "pageview",
-            "filters": [
-                {
-                    "type": "urlPath",
-                    "operator": "contains",
-                    "value": "/tours/"
-                }
-            ]
-        },
-        {
-            "name": "Checkout Pages",
-            "type": "pageview",
-            "filters": [
-                {
-                    "type": "urlPath",
-                    "operator": "contains",
-                    "value": "/checkout"
-                }
-            ]
+            "customEventFilter": {
+                "eventName": "add_payment_info"
+            }
         }
     ],
     "variables": [
         {
-            "name": "Transaction ID",
-            "type": "dataLayerVariable",
-            "dataLayerName": "transaction_id"
+            "name": "GA4 Measurement ID",
+            "type": "c",
+            "value": "G-5GVJBRE1SY"
+        },
+        {
+            "name": "Google Ads Conversion ID",
+            "type": "c",
+            "value": "AW-17482092392"
+        },
+        {
+            "name": "Purchase Conversion Label",
+            "type": "c",
+            "value": "AbC-D_efGhIjKlMnOp"
+        },
+        {
+            "name": "Begin Checkout Conversion Label",
+            "type": "c",
+            "value": "XyZ-A_bcDeFgHiJkLm"
+        },
+        {
+            "name": "View Item Conversion Label",
+            "type": "c",
+            "value": "QrS-T_uvWxYzAbCdEf"
         },
         {
             "name": "Transaction Value",
-            "type": "dataLayerVariable",
-            "dataLayerName": "value"
+            "type": "v",
+            "dataLayerVariable": "value"
         },
         {
-            "name": "Tour ID",
-            "type": "dataLayerVariable",
-            "dataLayerName": "tour_id"
+            "name": "Checkout Value",
+            "type": "v",
+            "dataLayerVariable": "value"
         },
         {
-            "name": "Tour Name",
-            "type": "dataLayerVariable",
-            "dataLayerName": "tour_name"
+            "name": "Item Value",
+            "type": "v",
+            "dataLayerVariable": "value"
         },
         {
-            "name": "Tour Category",
-            "type": "dataLayerVariable",
-            "dataLayerName": "tour_category"
+            "name": "Transaction ID",
+            "type": "v",
+            "dataLayerVariable": "transaction_id"
         },
         {
-            "name": "Tour Price",
-            "type": "dataLayerVariable",
-            "dataLayerName": "tour_price"
+            "name": "Currency Code",
+            "type": "v",
+            "dataLayerVariable": "currency"
         },
         {
-            "name": "Tour Location",
-            "type": "dataLayerVariable",
-            "dataLayerName": "tour_location"
-        },
-        {
-            "name": "Attribution Source",
-            "type": "dataLayerVariable",
-            "dataLayerName": "attribution_source"
-        },
-        {
-            "name": "Attribution Medium",
-            "type": "dataLayerVariable",
-            "dataLayerName": "attribution_medium"
-        },
-        {
-            "name": "Attribution Campaign",
-            "type": "dataLayerVariable",
-            "dataLayerName": "attribution_campaign"
-        },
-        {
-            "name": "Conversion Label",
-            "type": "dataLayerVariable",
-            "dataLayerName": "conversion_label"
-        },
-        {
-            "name": "Page Type",
-            "type": "dataLayerVariable",
-            "dataLayerName": "page_type"
-        },
-        {
-            "name": "User Engagement Level",
-            "type": "dataLayerVariable",
-            "dataLayerName": "user_engagement_level"
-        },
-        {
-            "name": "Ecommerce Items",
-            "type": "dataLayerVariable",
-            "dataLayerName": "items"
-        },
-        {
-            "name": "Checkout Items",
-            "type": "dataLayerVariable",
-            "dataLayerName": "checkout_items"
-        },
-        {
-            "name": "Tour Item",
-            "type": "dataLayerVariable",
-            "dataLayerName": "tour_item"
-        },
-        {
-            "name": "Cart Items",
-            "type": "dataLayerVariable",
-            "dataLayerName": "cart_items"
+            "name": "Items Array",
+            "type": "v",
+            "dataLayerVariable": "items"
         }
     ],
-    "audiences": [
-        {
-            "name": "All Website Visitors",
-            "description": "All users who visit the website",
-            "membershipDuration": 30,
-            "conditions": [
-                {
-                    "type": "pageview",
-                    "operator": "any"
-                }
-            ]
-        },
-        {
-            "name": "Tour Page Visitors",
-            "description": "Users who viewed tour pages",
-            "membershipDuration": 30,
-            "conditions": [
-                {
-                    "type": "pageview",
-                    "operator": "contains",
-                    "value": "/tours/"
-                }
-            ]
-        },
-        {
-            "name": "Checkout Abandoners",
-            "description": "Users who started checkout but didn't complete",
-            "membershipDuration": 7,
-            "conditions": [
-                {
-                    "type": "event",
-                    "eventName": "begin_checkout"
-                }
-            ],
-            "exclusions": [
-                {
-                    "type": "event",
-                    "eventName": "purchase"
-                }
-            ]
-        },
-        {
-            "name": "Tour Purchasers",
-            "description": "Users who completed a tour booking",
-            "membershipDuration": 365,
-            "conditions": [
-                {
-                    "type": "event",
-                    "eventName": "purchase"
-                }
-            ]
-        },
-        {
-            "name": "High-Value Prospects",
-            "description": "Users who viewed multiple tours or spent significant time",
-            "membershipDuration": 30,
-            "conditions": [
-                {
-                    "type": "event",
-                    "eventName": "view_item",
-                    "operator": "greaterThan",
-                    "value": 2
-                }
-            ]
-        },
-        {
-            "name": "Gion Tour Interest",
-            "description": "Users interested in Gion tours",
-            "membershipDuration": 30,
-            "conditions": [
-                {
-                    "type": "pageview",
-                    "operator": "contains",
-                    "value": "/gion-tour"
-                }
-            ]
-        },
-        {
-            "name": "Morning Tour Interest",
-            "description": "Users interested in morning tours",
-            "membershipDuration": 30,
-            "conditions": [
-                {
-                    "type": "pageview",
-                    "operator": "contains",
-                    "value": "/morning-tour"
-                }
-            ]
-        },
-        {
-            "name": "Night Tour Interest",
-            "description": "Users interested in night tours",
-            "membershipDuration": 30,
-            "conditions": [
-                {
-                    "type": "pageview",
-                    "operator": "contains",
-                    "value": "/night-tour"
-                }
-            ]
-        },
-        {
-            "name": "Uji Tour Interest",
-            "description": "Users interested in Uji tours",
-            "membershipDuration": 30,
-            "conditions": [
-                {
-                    "type": "pageview",
-                    "operator": "contains",
-                    "value": "/uji-tour"
-                }
-            ]
-        }
-    ]
+    "enhancedConversions": {
+        "enabled": true,
+        "customerDataFields": [
+            "email",
+            "phone_number",
+            "first_name",
+            "last_name",
+            "street",
+            "city",
+            "region",
+            "postal_code",
+            "country"
+        ]
+    },
+    "debugMode": {
+        "enabled": true,
+        "previewUrl": "https://tomodachitours.com"
+    }
 }

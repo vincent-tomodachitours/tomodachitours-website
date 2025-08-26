@@ -43,17 +43,54 @@
   <link rel="dns-prefetch" href="https://www.google-analytics.com" />
   <link rel="dns-prefetch" href="https://www.googleadservices.com" />
   <link rel="dns-prefetch" href="https://googleads.g.doubleclick.net" />
+  <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
-  <!-- Google Analytics 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5GVJBRE1SY"></script>
+  <!-- Google Tag Manager -->
   <script>
+    // Initialize dataLayer before GTM loads
     window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-5GVJBRE1SY', {
-      page_title: document.title,
-      page_location: window.location.href,
-      send_page_view: true
+
+    // GTM initialization function
+    (function (w, d, s, l, i) {
+      w[l] = w[l] || []; w[l].push({
+        'gtm.start':
+          new Date().getTime(), event: 'gtm.js'
+      }); var f = d.getElementsByTagName(s)[0],
+        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', '%REACT_APP_GTM_CONTAINER_ID%');
+
+    // GTM loading timeout and fallback
+    window.gtmLoadTimeout = setTimeout(function () {
+      if (typeof window.google_tag_manager === 'undefined') {
+        console.warn('GTM failed to load within 5 seconds, initializing fallback tracking');
+        window.gtmFallbackMode = true;
+
+        // Initialize fallback gtag for direct GA4 tracking
+        if (!window.gtag) {
+          var script = document.createElement('script');
+          script.async = true;
+          script.src = 'https://www.googletagmanager.com/gtag/js?id=G-5GVJBRE1SY';
+          document.head.appendChild(script);
+
+          script.onload = function () {
+            window.gtag = function () { dataLayer.push(arguments); };
+            gtag('js', new Date());
+            gtag('config', 'G-5GVJBRE1SY', {
+              page_title: document.title,
+              page_location: window.location.href,
+              send_page_view: true
+            });
+            console.log('Fallback GA4 tracking initialized');
+          };
+        }
+      }
+    }, 5000);
+
+    // Clear timeout if GTM loads successfully
+    window.addEventListener('gtm.load', function () {
+      clearTimeout(window.gtmLoadTimeout);
+      console.log('GTM loaded successfully');
     });
   </script>
 
@@ -67,107 +104,140 @@
       }
     };
 
-    // Analytics Testing Functions - Available immediately
+    // GTM and Analytics Testing Functions - Available immediately
     window.testAnalytics = {
       testSetup: function () {
-        console.log('🧪 Testing Analytics Setup...');
-        console.log('- gtag available:', typeof window.gtag);
+        console.log('🧪 Testing GTM and Analytics Setup...');
         console.log('- dataLayer available:', typeof window.dataLayer);
+        console.log('- GTM loaded:', typeof window.google_tag_manager !== 'undefined');
+        console.log('- GTM fallback mode:', window.gtmFallbackMode || false);
         console.log('- GA4 should be loaded with ID: G-5GVJBRE1SY');
 
-        if (typeof window.gtag === 'function') {
-          console.log('✅ Google Analytics is properly loaded');
+        if (typeof window.dataLayer !== 'undefined') {
+          console.log('✅ DataLayer is available for GTM events');
           return true;
         } else {
-          console.log('❌ Google Analytics is NOT loaded');
+          console.log('❌ DataLayer is NOT available');
           return false;
         }
       },
 
       testTourView: function () {
-        console.log('🧪 Testing Tour View Event...');
-        if (typeof window.gtag === 'function') {
-          window.gtag('event', 'view_item', {
+        console.log('🧪 Testing Tour View Event via GTM DataLayer...');
+        if (typeof window.dataLayer !== 'undefined') {
+          window.dataLayer.push({
+            event: 'view_item',
+            event_category: 'ecommerce',
+            event_label: 'test_tour_view',
             currency: 'JPY',
             value: 5000,
             items: [{
               item_id: 'test_night_tour',
               item_name: 'Test Night Tour View',
-              category: 'Tour',
+              item_category: 'Tour',
               price: 5000,
               quantity: 1
             }]
           });
-          console.log('✅ Tour view event sent to GA4');
+          console.log('✅ Tour view event pushed to dataLayer');
         } else {
-          console.log('❌ Cannot send event - gtag not available');
-        }
-      },
-
-      testAddToCart: function () {
-        console.log('🧪 Testing Add to Cart Event...');
-        if (typeof window.gtag === 'function') {
-          window.gtag('event', 'add_to_cart', {
-            currency: 'JPY',
-            value: 10000,
-            items: [{
-              item_id: 'test_night_tour',
-              item_name: 'Test Night Tour - Add to Cart',
-              category: 'Tour',
-              price: 5000,
-              quantity: 2
-            }]
-          });
-          console.log('✅ Add to cart event sent to GA4');
-        } else {
-          console.log('❌ Cannot send event - gtag not available');
+          console.log('❌ Cannot send event - dataLayer not available');
         }
       },
 
       testBeginCheckout: function () {
-        console.log('🧪 Testing Begin Checkout Event...');
-        if (typeof window.gtag === 'function') {
-          window.gtag('event', 'begin_checkout', {
+        console.log('🧪 Testing Begin Checkout Event via GTM DataLayer...');
+        if (typeof window.dataLayer !== 'undefined') {
+          window.dataLayer.push({
+            event: 'begin_checkout',
+            event_category: 'ecommerce',
+            event_label: 'test_begin_checkout',
             currency: 'JPY',
             value: 10000,
             items: [{
               item_id: 'test_night_tour',
               item_name: 'Test Night Tour - Begin Checkout',
-              category: 'Tour',
+              item_category: 'Tour',
               price: 5000,
               quantity: 2
             }]
           });
-          console.log('✅ Begin checkout event sent to GA4');
+          console.log('✅ Begin checkout event pushed to dataLayer');
         } else {
-          console.log('❌ Cannot send event - gtag not available');
+          console.log('❌ Cannot send event - dataLayer not available');
+        }
+      },
+
+      testAddPaymentInfo: function () {
+        console.log('🧪 Testing Add Payment Info Event via GTM DataLayer...');
+        if (typeof window.dataLayer !== 'undefined') {
+          window.dataLayer.push({
+            event: 'add_payment_info',
+            event_category: 'ecommerce',
+            event_label: 'test_add_payment_info',
+            currency: 'JPY',
+            value: 10000,
+            payment_type: 'credit_card',
+            items: [{
+              item_id: 'test_night_tour',
+              item_name: 'Test Night Tour - Add Payment Info',
+              item_category: 'Tour',
+              price: 5000,
+              quantity: 2
+            }]
+          });
+          console.log('✅ Add payment info event pushed to dataLayer');
+        } else {
+          console.log('❌ Cannot send event - dataLayer not available');
         }
       },
 
       testPurchase: function () {
-        console.log('🧪 Testing Purchase Event...');
-        if (typeof window.gtag === 'function') {
+        console.log('🧪 Testing Purchase Event via GTM DataLayer...');
+        if (typeof window.dataLayer !== 'undefined') {
           const transactionId = 'test_' + Date.now();
-          window.gtag('event', 'purchase', {
+          window.dataLayer.push({
+            event: 'purchase',
+            event_category: 'ecommerce',
+            event_label: 'test_purchase',
             transaction_id: transactionId,
             currency: 'JPY',
             value: 10000,
             items: [{
               item_id: 'test_night_tour',
               item_name: 'Test Night Tour - Purchase',
-              category: 'Tour',
+              item_category: 'Tour',
               price: 5000,
               quantity: 2
-            }]
+            }],
+            // Enhanced conversion test data (hashed in real implementation)
+            user_data: {
+              email_hash: 'test_email_hash',
+              phone_hash: 'test_phone_hash'
+            }
           });
-          console.log('✅ Purchase event sent to GA4 with transaction ID:', transactionId);
+          console.log('✅ Purchase event pushed to dataLayer with transaction ID:', transactionId);
         } else {
-          console.log('❌ Cannot send event - gtag not available');
+          console.log('❌ Cannot send event - dataLayer not available');
+        }
+      },
+
+      testGTMDebug: function () {
+        console.log('🧪 Testing GTM Debug Information...');
+        console.log('- GTM Container ID should be: %REACT_APP_GTM_CONTAINER_ID%');
+        console.log('- Current dataLayer contents:', window.dataLayer);
+        console.log('- GTM object available:', typeof window.google_tag_manager);
+
+        if (typeof window.google_tag_manager !== 'undefined') {
+          console.log('✅ GTM is loaded and available');
+          console.log('📊 Use GTM Preview Mode to debug tag firing');
+        } else {
+          console.log('⚠️ GTM may not be loaded yet or fallback mode is active');
         }
       },
 
       runAllTests: function () {
-        console.log('🚀 Running All Analytics Tests...');
+        console.log('🚀 Running All GTM Analytics Tests...');
         console.log('================================================');
 
         if (!window.testAnalytics.testSetup()) {
@@ -175,17 +245,22 @@
           return;
         }
 
+        console.log('Running GTM debug check...');
+        window.testAnalytics.testGTMDebug();
+
         console.log('Running events with 1 second delays...');
         setTimeout(() => window.testAnalytics.testTourView(), 1000);
-        setTimeout(() => window.testAnalytics.testAddToCart(), 2000);
-        setTimeout(() => window.testAnalytics.testBeginCheckout(), 3000);
+        setTimeout(() => window.testAnalytics.testBeginCheckout(), 2000);
+        setTimeout(() => window.testAnalytics.testAddPaymentInfo(), 3000);
         setTimeout(() => window.testAnalytics.testPurchase(), 4000);
 
         setTimeout(() => {
           console.log('================================================');
-          console.log('✅ All tests completed!');
+          console.log('✅ All GTM tests completed!');
           console.log('📊 Check Google Analytics 4 Realtime reports to see the events');
           console.log('🔗 GA4 Realtime: https://analytics.google.com/analytics/web/#/p' + '/realtime');
+          console.log('🏷️ Use GTM Preview Mode to debug tag firing');
+          console.log('🔗 GTM Preview: https://tagmanager.google.com/');
         }, 5000);
       }
     };
@@ -335,6 +410,13 @@
 </head>
 
 <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=%REACT_APP_GTM_CONTAINER_ID%" height="0" width="0"
+      style="display:none;visibility:hidden"></iframe>
+  </noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
 </body>
