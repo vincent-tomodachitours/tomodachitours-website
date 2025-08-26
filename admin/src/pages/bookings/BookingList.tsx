@@ -104,16 +104,7 @@ const BookingList: React.FC = () => {
         }
     });
 
-    // API inspection mutation
-    const inspectApiMutation = useMutation({
-        mutationFn: () => BokunBookingService.inspectBokunApiResponse(),
-        onSuccess: (result) => {
-            console.log('✅ API inspection completed. Check console for detailed logs.');
-        },
-        onError: (error) => {
-            console.error('❌ API inspection failed:', error);
-        }
-    });
+
 
     // Apply search filtering client-side for better performance
     const bookings = useMemo(() => {
