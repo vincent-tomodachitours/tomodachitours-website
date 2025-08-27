@@ -7,19 +7,14 @@ import Checkout from './Checkout'
 import { supabase } from '../lib/supabase';
 import { bokunAvailabilityService } from '../services/bokun/availability-service-production';
 import { bokunBookingService } from '../services/bokun/booking-service.js';
-import { trackBeginCheckout } from '../services/analytics';
+
 
 function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime }) {
     const [checkout, setCheckout] = useState(false);
     const handleOpenCheckout = () => {
         setCheckout(true);
-
-        // Track begin checkout event for Google Ads conversion tracking
-        trackBeginCheckout({
-            tourId: tourName.toLowerCase().replace(/\s+/g, '-'),
-            tourName: tourName,
-            price: totalPrice
-        });
+        // Note: begin_checkout tracking is now handled in the Checkout component
+        // to ensure accurate timing and customer data collection
     };
     const handleCloseCheckout = () => {
         const payjp3DS = sessionStorage.getItem('payjp_3ds_in_progress') === 'true' ||

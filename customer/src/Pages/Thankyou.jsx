@@ -232,6 +232,35 @@ const Thankyou = () => {
                         conversion_value: transactionData.value
                     });
 
+                    // DIRECT GOOGLE ADS CONVERSION TRACKING FOR THANK YOU PAGE
+                    // This ensures the conversion fires even if GTM tags aren't properly configured
+                    try {
+                        console.log('🎯 Firing direct Google Ads conversion for thank you page visit');
+
+                        // Method 1: Direct dataLayer push for the specific conversion action
+                        window.dataLayer.push({
+                            event: 'conversion',
+                            send_to: 'AW-17482092392/rkbrCK6I14bEOiejpBB', // Your exact conversion label
+                            value: transactionData.value || 7000,
+                            currency: 'JPY',
+                            transaction_id: transactionData.transactionId
+                        });
+
+                        // Method 2: Direct gtag call as backup
+                        if (typeof window.gtag !== 'undefined') {
+                            window.gtag('event', 'conversion', {
+                                send_to: 'AW-17482092392/rkbrCK6I14bEOiejpBB',
+                                value: transactionData.value || 7000,
+                                currency: 'JPY',
+                                transaction_id: transactionData.transactionId
+                            });
+                        }
+
+                        console.log('✅ Direct Google Ads conversion fired for thank you page');
+                    } catch (conversionError) {
+                        console.error('❌ Direct conversion tracking failed:', conversionError);
+                    }
+
                     console.log('🎯 Comprehensive purchase conversion tracking completed');
                 } else {
                     console.error('❌ Purchase conversion tracking failed:', purchaseResult.reason);
