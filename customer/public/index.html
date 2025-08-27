@@ -408,18 +408,63 @@
   <script src="https://js.pay.jp/v2/pay.js"></script>
   <title>Tomodachi Tours - Kyoto English Walking Tours</title>
 
-  <!-- Google Ads Conversion Tracking (Direct) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17482092392"></script>
+  <!-- Google Ads Direct Tracking (alongside GTM) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5GVJBRE1SY"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
+
+    // Configure GA4
+    gtag('config', 'G-5GVJBRE1SY');
+
+    // Configure Google Ads
     gtag('config', 'AW-17482092392');
-    
+
     // Store gtag function globally for conversion tracking
     window.gtagConversion = gtag;
-    
-    console.log('Google Ads direct tracking initialized');
+
+    // Override dataLayer.push to mirror GTM events to direct gtag
+    const originalPush = window.dataLayer.push;
+    window.dataLayer.push = function (obj) {
+      // Call original push first
+      const result = originalPush.call(this, obj);
+
+      // Mirror purchase events to direct gtag
+      if (obj.event === 'purchase' && obj.ecommerce) {
+        gtag('event', 'conversion', {
+          'send_to': 'AW-17482092392/hKuFCPOD5Y0bEOiejpBB',
+          'value': obj.ecommerce.value || 0,
+          'currency': obj.ecommerce.currency || 'JPY',
+          'transaction_id': obj.ecommerce.transaction_id || ''
+        });
+        console.log('🎯 Direct gtag purchase conversion fired:', obj.ecommerce.transaction_id);
+      }
+
+      // Mirror begin_checkout events to direct gtag
+      if (obj.event === 'begin_checkout' && obj.ecommerce) {
+        gtag('event', 'conversion', {
+          'send_to': 'AW-17482092392/mEaUCKmY8Y0bEOiejpBB',
+          'value': obj.ecommerce.value || 0,
+          'currency': obj.ecommerce.currency || 'JPY'
+        });
+        console.log('🎯 Direct gtag begin_checkout conversion fired:', obj.ecommerce.value);
+      }
+
+      // Mirror view_item events to direct gtag
+      if (obj.event === 'view_item' && obj.ecommerce) {
+        gtag('event', 'conversion', {
+          'send_to': 'AW-17482092392/6cIkCMn9540bEOiejpBB',
+          'value': obj.ecommerce.value || 0,
+          'currency': obj.ecommerce.currency || 'JPY'
+        });
+        console.log('🎯 Direct gtag view_item conversion fired:', obj.ecommerce.value);
+      }
+
+      return result;
+    };
+
+    console.log('✅ Google Ads direct tracking with GTM mirroring initialized');
   </script>
 </head>
 

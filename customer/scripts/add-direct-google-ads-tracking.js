@@ -1,248 +1,254 @@
 #!/usr/bin/env node
 
 /**
- * Add Direct Google Ads Conversion Tracking
+ * Add Direct Google Ads Tracking for Verification
  * 
- * This script adds direct Google Ads conversion tracking code to ensure
- * Google Ads can verify the conversion tags properly.
+ * This script adds direct Google Ads gtag tracking alongside GTM
+ * to ensure conversion verification works properly.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔧 ADDING DIRECT GOOGLE ADS CONVERSION TRACKING');
-console.log('===============================================');
+console.log('🎯 ADDING DIRECT GOOGLE ADS TRACKING');
+console.log('====================================');
 console.log('');
 
-// Read current HTML file
-const htmlPath = path.join(__dirname, '..', 'public', 'index.html');
-let htmlContent = fs.readFileSync(htmlPath, 'utf8');
-
-// Check if Google Ads gtag is already present
-if (htmlContent.includes('googletagmanager.com/gtag/js?id=AW-')) {
-    console.log('✅ Direct Google Ads tracking already present in HTML');
-} else {
-    console.log('📝 Adding direct Google Ads tracking to HTML...');
-
-    // Add Google Ads gtag script
-    const googleAdsScript = `
-  <!-- Google Ads Conversion Tracking (Direct) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17482092392"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'AW-17482092392');
-    
-    // Store gtag function globally for conversion tracking
-    window.gtagConversion = gtag;
-    
-    console.log('Google Ads direct tracking initialized');
-  </script>`;
-
-    // Insert before closing </head> tag
-    htmlContent = htmlContent.replace('</head>', `${googleAdsScript}\n</head>`);
-
-    // Write updated HTML
-    fs.writeFileSync(htmlPath, htmlContent);
-    console.log('✅ Direct Google Ads tracking added to index.html');
-}
-
-console.log('');
-console.log('🔧 UPDATING CONVERSION TRACKING SERVICE...');
-
-// Update the GTM service to include direct Google Ads fallback
-const gtmServicePath = path.join(__dirname, '..', 'src', 'services', 'gtmService.js');
-let gtmServiceContent = fs.readFileSync(gtmServicePath, 'utf8');
-
-// Add direct Google Ads conversion tracking method
-const directTrackingMethod = `
-    /**
-     * Track Google Ads conversion directly (fallback for GTM verification issues)
-     * @param {string} conversionLabel - Conversion label from Google Ads
-     * @param {Object} conversionData - Conversion data
-     */
-    trackDirectGoogleAdsConversion(conversionLabel, conversionData = {}) {
-        try {
-            // Use direct gtag if available
-            if (window.gtagConversion && conversionLabel) {
-                const conversionConfig = {
-                    send_to: \`AW-17482092392/\${conversionLabel}\`,
-                    value: conversionData.value || 0,
-                    currency: conversionData.currency || 'JPY',
-                    transaction_id: conversionData.transaction_id || ''
-                };
-
-                // Add enhanced conversion data if available
-                if (conversionData.user_data) {
-                    conversionConfig.user_data = conversionData.user_data;
-                }
-
-                window.gtagConversion('event', 'conversion', conversionConfig);
-
-                if (this.debugMode) {
-                    console.log('Direct Google Ads conversion tracked:', conversionConfig);
-                }
-
-                return true;
-            } else {
-                console.warn('Direct Google Ads tracking not available');
-                return false;
-            }
-        } catch (error) {
-            console.error('Direct Google Ads conversion tracking failed:', error);
-            return false;
-        }
+// Configuration from environment
+const config = {
+    gtagId: 'G-5GVJBRE1SY',
+    conversionId: 'AW-17482092392',
+    conversionLabels: {
+        purchase: 'hKuFCPOD5Y0bEOiejpBB',
+        begin_checkout: 'mEaUCKmY8Y0bEOiejpBB',
+        view_item: '6cIkCMn9540bEOiejpBB'
     }
+};
 
-    /**
-     * Track conversion with both GTM and direct Google Ads (for verification)
-     * @param {string} conversionType - Type of conversion
-     * @param {Object} eventData - Event data
-     * @param {Object} customerData - Customer data for enhanced conversions
-     * @param {Object} pricingContext - Pricing context
-     */
-    trackConversionWithFallback(conversionType, eventData = {}, customerData = null, pricingContext = {}) {
-        // Track via GTM (primary method)
-        const gtmSuccess = this.trackConversion(conversionType, eventData, customerData, pricingContext);
-
-        // Also track directly for Google Ads verification
-        const conversionLabels = {
-            'purchase': process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS ? 
-                JSON.parse(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS).purchase : null,
-            'begin_checkout': process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS ? 
-                JSON.parse(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS).begin_checkout : null,
-            'view_item': process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS ? 
-                JSON.parse(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS).view_item : null,
-            'add_payment_info': process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS ? 
-                JSON.parse(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS).add_payment_info : null
-        };
-
-        const conversionLabel = conversionLabels[conversionType];
-        let directSuccess = false;
-
-        if (conversionLabel) {
-            const directConversionData = {
-                value: eventData.value,
-                currency: eventData.currency,
-                transaction_id: eventData.transaction_id,
-                user_data: customerData
-            };
-
-            directSuccess = this.trackDirectGoogleAdsConversion(conversionLabel, directConversionData);
-        }
-
-        if (this.debugMode) {
-            console.log(\`Conversion tracking results - GTM: \${gtmSuccess}, Direct: \${directSuccess}\`);
-        }
-
-        return gtmSuccess || directSuccess;
-    }`;
-
-// Check if the method already exists
-if (!gtmServiceContent.includes('trackDirectGoogleAdsConversion')) {
-    // Add the method before the last closing brace
-    const lastBraceIndex = gtmServiceContent.lastIndexOf('}');
-    gtmServiceContent = gtmServiceContent.slice(0, lastBraceIndex) + directTrackingMethod + '\n' + gtmServiceContent.slice(lastBraceIndex);
-
-    fs.writeFileSync(gtmServicePath, gtmServiceContent);
-    console.log('✅ Direct Google Ads tracking methods added to GTM service');
-} else {
-    console.log('✅ Direct Google Ads tracking methods already present');
-}
-
+console.log('📋 CONFIGURATION:');
+console.log(`• GA4 Measurement ID: ${config.gtagId}`);
+console.log(`• Google Ads Conversion ID: ${config.conversionId}`);
+console.log(`• Begin Checkout Label: ${config.conversionLabels.begin_checkout}`);
 console.log('');
-console.log('🧪 CREATING VERIFICATION TEST SCRIPT...');
 
-// Create a verification test script
-const verificationTestScript = `#!/usr/bin/env node
+// Generate the direct Google Ads tracking code
+const directTrackingCode = `
+<!-- Google Ads Direct Tracking (for verification) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${config.gtagId}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
+  // Configure GA4
+  gtag('config', '${config.gtagId}');
+  
+  // Configure Google Ads
+  gtag('config', '${config.conversionId}');
+
+  // Store gtag reference for conversion tracking
+  window.gtagConversion = gtag;
+  
+  // Enhanced conversions setup
+  gtag('config', '${config.conversionId}', {
+    'allow_enhanced_conversions': true
+  });
+
+  console.log('Direct Google Ads tracking initialized');
+</script>`;
+
+console.log('🔧 GENERATED TRACKING CODE:');
+console.log('============================');
+console.log(directTrackingCode);
+console.log('');
+
+// Generate conversion tracking functions
+const conversionTrackingCode = `
 /**
- * Google Ads Conversion Verification Test
- * 
- * This script helps test and verify Google Ads conversion tracking
+ * Direct Google Ads Conversion Tracking Functions
+ * These work alongside GTM for verification purposes
  */
 
-console.log('🧪 GOOGLE ADS CONVERSION VERIFICATION TEST');
-console.log('==========================================');
-console.log('');
+// Track purchase conversion directly
+window.trackDirectPurchaseConversion = function(transactionData) {
+  if (window.gtagConversion) {
+    window.gtagConversion('event', 'conversion', {
+      'send_to': '${config.conversionId}/${config.conversionLabels.purchase}',
+      'value': transactionData.value || 0,
+      'currency': transactionData.currency || 'JPY',
+      'transaction_id': transactionData.transaction_id || ''
+    });
+    console.log('Direct purchase conversion tracked:', transactionData);
+  }
+};
 
-console.log('📋 MANUAL VERIFICATION STEPS:');
-console.log('');
+// Track begin checkout conversion directly
+window.trackDirectBeginCheckoutConversion = function(checkoutData) {
+  if (window.gtagConversion) {
+    window.gtagConversion('event', 'conversion', {
+      'send_to': '${config.conversionId}/${config.conversionLabels.begin_checkout}',
+      'value': checkoutData.value || 0,
+      'currency': checkoutData.currency || 'JPY',
+      'transaction_id': checkoutData.transaction_id || ''
+    });
+    console.log('Direct begin checkout conversion tracked:', checkoutData);
+  }
+};
 
-console.log('STEP 1: VERIFY DIRECT GOOGLE ADS TRACKING');
-console.log('=========================================');
-console.log('1. Open your website: https://tomodachitours.com');
-console.log('2. Open browser developer tools (F12)');
-console.log('3. In Console tab, run: typeof window.gtagConversion');
-console.log('4. Should return: "function"');
-console.log('');
+// Track view item conversion directly
+window.trackDirectViewItemConversion = function(itemData) {
+  if (window.gtagConversion) {
+    window.gtagConversion('event', 'conversion', {
+      'send_to': '${config.conversionId}/${config.conversionLabels.view_item}',
+      'value': itemData.value || 0,
+      'currency': itemData.currency || 'JPY'
+    });
+    console.log('Direct view item conversion tracked:', itemData);
+  }
+};
 
-console.log('STEP 2: TEST CONVERSION FIRING');
-console.log('==============================');
-console.log('1. Navigate to a tour page');
-console.log('2. In Console, run this test:');
-console.log('');
-console.log('   window.gtagConversion("event", "conversion", {');
-console.log('     send_to: "AW-17482092392/YOUR_CONVERSION_LABEL",');
-console.log('     value: 5000,');
-console.log('     currency: "JPY"');
-console.log('   });');
-console.log('');
-console.log('3. Check Network tab for gtag requests');
-console.log('');
+// Enhanced conversion tracking with customer data
+window.trackDirectEnhancedConversion = function(conversionType, eventData, customerData) {
+  if (window.gtagConversion && config.conversionLabels[conversionType]) {
+    const conversionConfig = {
+      'send_to': \`${config.conversionId}/\${config.conversionLabels[conversionType]}\`,
+      'value': eventData.value || 0,
+      'currency': eventData.currency || 'JPY',
+      'transaction_id': eventData.transaction_id || ''
+    };
 
-console.log('STEP 3: GOOGLE ADS VERIFICATION');
-console.log('===============================');
-console.log('1. Go to Google Ads: https://ads.google.com/');
-console.log('2. Navigate: Tools & Settings > Measurement > Conversions');
-console.log('3. Click on your conversion action');
-console.log('4. Click "Check tag" or "Verify tag"');
-console.log('5. Enter: https://tomodachitours.com');
-console.log('6. Google should now detect the conversion tag');
-console.log('');
+    // Add enhanced conversion data if available
+    if (customerData) {
+      conversionConfig.user_data = customerData;
+    }
 
-console.log('STEP 4: REAL CONVERSION TEST');
-console.log('============================');
-console.log('1. Complete a real booking flow');
-console.log('2. Check Google Ads for conversion data (24-48 hour delay)');
-console.log('3. Verify conversion appears in reports');
-console.log('');
-
-console.log('✅ EXPECTED RESULTS:');
-console.log('• Google Ads shows "Tag verified" status');
-console.log('• Conversions appear in Google Ads reports');
-console.log('• No "tag not verified" warnings');
-console.log('');
-
-console.log('🚨 TROUBLESHOOTING:');
-console.log('If verification still fails:');
-console.log('1. Check conversion labels match exactly');
-console.log('2. Ensure website is publicly accessible');
-console.log('3. Wait 24-48 hours for Google to re-scan');
-console.log('4. Try using Google Tag Assistant browser extension');
+    window.gtagConversion('event', 'conversion', conversionConfig);
+    console.log(\`Direct \${conversionType} enhanced conversion tracked:\`, conversionConfig);
+  }
+};
 `;
 
-const verificationTestPath = path.join(__dirname, 'verify-google-ads-conversion.js');
-fs.writeFileSync(verificationTestPath, verificationTestScript);
-console.log('✅ Verification test script created');
-
-console.log('');
-console.log('🎯 NEXT STEPS:');
-console.log('==============');
-console.log('1. Rebuild your application: npm run build');
-console.log('2. Deploy the updated code to production');
-console.log('3. Run the verification test: node scripts/verify-google-ads-conversion.js');
-console.log('4. In Google Ads, click "Check tag" to re-verify');
-console.log('5. Wait 24-48 hours for full verification');
+console.log('🔧 GENERATED CONVERSION FUNCTIONS:');
+console.log('===================================');
+console.log(conversionTrackingCode);
 console.log('');
 
-console.log('💡 IMPORTANT NOTES:');
-console.log('• Direct Google Ads tracking is now added as backup');
-console.log('• GTM will still be the primary tracking method');
-console.log('• This ensures Google Ads can verify the conversion tags');
-console.log('• Both methods will work together without conflicts');
+// Instructions for implementation
+console.log('📋 IMPLEMENTATION INSTRUCTIONS:');
+console.log('===============================');
+console.log('');
+
+console.log('STEP 1: Add Direct Tracking to Your HTML');
+console.log('1. Add the tracking code to your public/index.html file');
+console.log('2. Place it in the <head> section, BEFORE your GTM code');
+console.log('3. This ensures both tracking methods are available');
+console.log('');
+
+console.log('STEP 2: Add Conversion Functions to Your App');
+console.log('1. Add the conversion tracking functions to a global script');
+console.log('2. Or include them in your main JavaScript bundle');
+console.log('3. These functions will work alongside your GTM tracking');
+console.log('');
+
+console.log('STEP 3: Update Your Checkout Component');
+console.log('1. Modify your checkout process to call both GTM and direct tracking');
+console.log('2. Example for begin_checkout:');
+console.log('');
+console.log(`// In your checkout component
+const handleBeginCheckout = (checkoutData) => {
+  // Existing GTM tracking
+  gtmService.trackBeginCheckoutConversion(checkoutData);
+  
+  // Add direct tracking for verification
+  if (window.trackDirectBeginCheckoutConversion) {
+    window.trackDirectBeginCheckoutConversion(checkoutData);
+  }
+};`);
+console.log('');
+
+console.log('STEP 4: Test Both Tracking Methods');
+console.log('1. Use browser dev tools to verify both methods fire');
+console.log('2. Check GTM Preview mode for GTM events');
+console.log('3. Check Network tab for direct gtag calls');
+console.log('4. Verify Google Ads receives conversions from both sources');
+console.log('');
+
+// Generate test script
+const testScript = `
+// Test script for direct Google Ads tracking
+// Run this in browser console after implementing the tracking code
+
+console.log('Testing direct Google Ads tracking...');
+
+// Test begin checkout conversion
+const testCheckoutData = {
+  value: 15000,
+  currency: 'JPY',
+  transaction_id: 'test_' + Date.now(),
+  items: [{
+    item_id: 'test_tour',
+    item_name: 'Test Tour',
+    category: 'Tours',
+    quantity: 1,
+    price: 15000
+  }]
+};
+
+// Test direct tracking
+if (window.trackDirectBeginCheckoutConversion) {
+  window.trackDirectBeginCheckoutConversion(testCheckoutData);
+  console.log('✅ Direct begin checkout conversion test fired');
+} else {
+  console.log('❌ Direct tracking functions not available');
+}
+
+// Test GTM tracking
+if (window.dataLayer) {
+  window.dataLayer.push({
+    event: 'begin_checkout',
+    ecommerce: testCheckoutData
+  });
+  console.log('✅ GTM begin checkout event test fired');
+} else {
+  console.log('❌ GTM dataLayer not available');
+}
+
+console.log('Test complete. Check Network tab for gtag calls.');
+`;
+
+console.log('🧪 TEST SCRIPT:');
+console.log('===============');
+console.log(testScript);
+console.log('');
+
+console.log('🎯 EXPECTED RESULTS:');
+console.log('====================');
+console.log('');
+console.log('After implementation:');
+console.log('✅ Google Ads will detect the direct gtag implementation');
+console.log('✅ Conversion verification will pass');
+console.log('✅ You\'ll have dual tracking for reliability');
+console.log('✅ Enhanced conversions will work with both methods');
+console.log('✅ No data loss during the verification process');
+console.log('');
+
+console.log('🔍 VERIFICATION STEPS:');
+console.log('======================');
+console.log('');
+console.log('1. Check Google Ads conversion actions:');
+console.log('   • Status should change to "Receiving conversions"');
+console.log('   • Verification warning should disappear');
+console.log('');
+console.log('2. Monitor both tracking methods:');
+console.log('   • GTM Preview mode shows GTM events');
+console.log('   • Network tab shows direct gtag calls');
+console.log('   • Google Ads receives data from both sources');
+console.log('');
+console.log('3. Test conversion attribution:');
+console.log('   • Run test transactions');
+console.log('   • Verify conversions appear in Google Ads');
+console.log('   • Check attribution data is accurate');
 console.log('');
 
 console.log('✅ DIRECT GOOGLE ADS TRACKING SETUP COMPLETE!');
-console.log('Google Ads should now be able to verify your conversion tags.');
+console.log('Implement the generated code to fix your conversion verification issue.');

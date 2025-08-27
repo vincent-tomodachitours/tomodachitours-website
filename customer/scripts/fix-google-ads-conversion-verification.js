@@ -3,107 +3,152 @@
 /**
  * Fix Google Ads Conversion Verification Issue
  * 
- * This script helps resolve the "tag is not yet verified" issue in Google Ads
- * when using Google Tag Manager for conversion tracking.
+ * This script addresses the mismatch between GTM container ID and 
+ * Google Ads conversion verification requirements.
  */
 
-console.log('🔧 FIXING GOOGLE ADS CONVERSION VERIFICATION ISSUE');
-console.log('==================================================');
+console.log('🔧 FIXING GOOGLE ADS CONVERSION VERIFICATION');
+console.log('============================================');
 console.log('');
 
-console.log('📋 ISSUE DESCRIPTION:');
-console.log('Google Ads shows: "A conversion action has been created, but the tag is not yet verified"');
-console.log('This happens when using GTM instead of direct Google Ads tags.');
+console.log('📋 CURRENT ISSUE ANALYSIS:');
+console.log('• Your GTM Container: GTM-5S2H4C9V (from .env)');
+console.log('• Screenshot shows: GTM-552H4CGV (different container)');
+console.log('• Google Ads expects: G-5GVJBRE1SY (GA4 tag, not GTM)');
+console.log('• Your GA4 Measurement ID: G-5GVJBRE1SY');
+console.log('• Google Ads Conversion ID: AW-17482092392');
 console.log('');
 
-console.log('🛠️  SOLUTION STEPS:');
+console.log('🎯 ROOT CAUSE:');
+console.log('Google Ads is configured to look for direct GA4 gtag implementation');
+console.log('instead of GTM-managed conversion tracking. This causes verification');
+console.log('to fail even though your begin_checkout events are firing correctly.');
 console.log('');
 
-console.log('STEP 1: VERIFY GTM TAG CONFIGURATION');
-console.log('=====================================');
+console.log('🔧 SOLUTION OPTIONS:');
+console.log('====================');
+console.log('');
+
+console.log('OPTION 1: Configure Google Ads to Use GTM (RECOMMENDED)');
+console.log('--------------------------------------------------------');
+console.log('1. Go to Google Ads: https://ads.google.com/');
+console.log('2. Navigate to Tools & Settings > Conversions');
+console.log('3. Find your "Begin Checkout" conversion action');
+console.log('4. Click "Edit settings"');
+console.log('5. In "Tag setup" section, change from "Install tag yourself" to "Use Google Tag Manager"');
+console.log('6. Select your GTM container: GTM-5S2H4C9V');
+console.log('7. Save the changes');
+console.log('');
+
+console.log('OPTION 2: Add Direct Google Ads Tag to GTM');
+console.log('-------------------------------------------');
 console.log('1. Go to Google Tag Manager: https://tagmanager.google.com/');
-console.log('2. Open your container: GTM-5S2H4C9V');
-console.log('3. Check that your Google Ads Conversion tags are configured correctly:');
-console.log('');
-console.log('   Required Tag Configuration:');
+console.log('2. Open container: GTM-5S2H4C9V');
+console.log('3. Create a new tag:');
 console.log('   • Tag Type: Google Ads Conversion Tracking');
 console.log('   • Conversion ID: AW-17482092392');
-console.log('   • Conversion Label: [Your actual conversion label from Google Ads]');
-console.log('   • Trigger: Custom event (e.g., begin_checkout)');
+console.log('   • Conversion Label: mEaUCKmY8Y0bEOiejpBB (for begin_checkout)');
+console.log('   • Trigger: Custom Event - begin_checkout');
+console.log('4. Publish the container');
 console.log('');
 
-console.log('STEP 2: GET ACTUAL CONVERSION LABELS FROM GOOGLE ADS');
-console.log('===================================================');
-console.log('1. Go to Google Ads: https://ads.google.com/');
-console.log('2. Navigate: Tools & Settings > Measurement > Conversions');
-console.log('3. Click on your "Begin Checkout" conversion action');
-console.log('4. Look for the "Tag setup" section');
-console.log('5. Copy the EXACT conversion label (format: AbCdEfGh/1234567890)');
+console.log('OPTION 3: Add Both GTM and Direct gtag (DUAL TRACKING)');
+console.log('-------------------------------------------------------');
+console.log('This ensures maximum compatibility and verification.');
 console.log('');
 
-console.log('STEP 3: UPDATE GTM VARIABLES WITH ACTUAL LABELS');
-console.log('===============================================');
-console.log('In GTM, update these variables with your ACTUAL conversion labels:');
-console.log('');
-console.log('• Begin Checkout Conversion Label: [Replace with actual label]');
-console.log('• Purchase Conversion Label: [Replace with actual label]');
-console.log('• View Item Conversion Label: [Replace with actual label]');
-console.log('• Add Payment Info Conversion Label: [Replace with actual label]');
+console.log('🚀 IMMEDIATE ACTION STEPS:');
+console.log('==========================');
 console.log('');
 
-console.log('STEP 4: ALTERNATIVE - USE GOOGLE ADS TAG INSTEAD OF GTM');
-console.log('========================================================');
-console.log('If GTM verification continues to fail, you can use direct Google Ads tags:');
-console.log('');
-console.log('1. In Google Ads conversion setup, choose "Install the tag yourself"');
-console.log('2. Copy the provided JavaScript code');
-console.log('3. Add it to your website HTML (we can help with this)');
+console.log('STEP 1: Verify Your Current GTM Container');
+console.log('1. Check which GTM container is actually loaded on your site');
+console.log('2. Ensure it matches GTM-5S2H4C9V from your environment variables');
+console.log('3. If different, update your .env file or GTM implementation');
 console.log('');
 
-console.log('STEP 5: FORCE GOOGLE ADS TO RE-VERIFY');
-console.log('=====================================');
-console.log('1. In Google Ads, go to your conversion action');
-console.log('2. Click "Check tag" or "Verify tag"');
-console.log('3. Enter your website URL: https://tomodachitours.com');
-console.log('4. Google will scan your site for the conversion tag');
+console.log('STEP 2: Update Google Ads Conversion Action');
+console.log('1. In Google Ads, edit your Begin Checkout conversion action');
+console.log('2. Change tag setup method to "Use Google Tag Manager"');
+console.log('3. Link to container GTM-5S2H4C9V');
+console.log('4. Copy the new conversion label provided');
 console.log('');
 
-console.log('STEP 6: TEST CONVERSION FIRING');
+console.log('STEP 3: Update GTM Configuration');
+console.log('1. In GTM, ensure you have a Google Ads conversion tag');
+console.log('2. Use the conversion label from Step 2');
+console.log('3. Set trigger to fire on begin_checkout events');
+console.log('4. Test in Preview mode');
+console.log('5. Publish the container');
+console.log('');
+
+console.log('STEP 4: Verify the Fix');
+console.log('1. Use GTM Preview mode');
+console.log('2. Trigger a begin_checkout event on your site');
+console.log('3. Verify the Google Ads conversion tag fires');
+console.log('4. Check Google Ads for "Receiving conversions" status');
+console.log('');
+
+console.log('🔍 DEBUGGING COMMANDS:');
+console.log('======================');
+console.log('');
+
+console.log('Check current GTM container in browser console:');
+console.log('console.log(window.google_tag_manager);');
+console.log('');
+
+console.log('Check dataLayer events:');
+console.log('console.log(window.dataLayer);');
+console.log('');
+
+console.log('Manually trigger begin_checkout for testing:');
+console.log(`window.dataLayer.push({
+  event: 'begin_checkout',
+  ecommerce: {
+    currency: 'JPY',
+    value: 15000,
+    items: [{
+      item_id: 'test_tour',
+      item_name: 'Test Tour',
+      category: 'Tours',
+      quantity: 1,
+      price: 15000
+    }]
+  }
+});`);
+console.log('');
+
+console.log('🎯 EXPECTED RESULTS AFTER FIX:');
 console.log('==============================');
-console.log('1. Use GTM Preview Mode');
-console.log('2. Navigate to your site and trigger the begin_checkout event');
-console.log('3. Verify the Google Ads Conversion tag fires');
-console.log('4. Check that the conversion appears in Google Ads (may take 24-48 hours)');
+console.log('');
+console.log('✅ Google Ads will show "Receiving conversions" status');
+console.log('✅ Conversion verification warning will disappear');
+console.log('✅ Begin checkout events will be properly attributed');
+console.log('✅ Enhanced conversions will work correctly');
+console.log('✅ Automated bidding will have accurate conversion data');
 console.log('');
 
-console.log('🚨 COMMON ISSUES AND SOLUTIONS:');
+console.log('🚨 COMMON MISTAKES TO AVOID:');
+console.log('============================');
 console.log('');
-console.log('Issue: "Conversion label mismatch"');
-console.log('Solution: Ensure GTM uses EXACT labels from Google Ads (case-sensitive)');
-console.log('');
-console.log('Issue: "Tag not firing"');
-console.log('Solution: Check GTM trigger configuration and event names');
-console.log('');
-console.log('Issue: "Multiple tags firing"');
-console.log('Solution: Ensure only one conversion tag per event');
+console.log('❌ Using wrong container ID (GTM-552H4CGV vs GTM-5S2H4C9V)');
+console.log('❌ Mixing up GA4 measurement ID with GTM container ID');
+console.log('❌ Not updating conversion labels after changing setup method');
+console.log('❌ Forgetting to publish GTM container after changes');
+console.log('❌ Not testing in GTM Preview mode before going live');
 console.log('');
 
-console.log('🔍 DEBUGGING CHECKLIST:');
+console.log('📞 SUPPORT CHECKLIST:');
+console.log('=====================');
 console.log('');
-console.log('✅ GTM container is published');
-console.log('✅ Conversion labels match exactly between GTM and Google Ads');
-console.log('✅ GTM tags are firing in Preview Mode');
-console.log('✅ Website has GTM container script in <head>');
-console.log('✅ No JavaScript errors in browser console');
-console.log('✅ Events are being pushed to dataLayer correctly');
-console.log('');
-
-console.log('📞 NEXT STEPS:');
-console.log('1. Check your actual conversion labels in Google Ads');
-console.log('2. Update GTM variables with correct labels');
-console.log('3. Republish GTM container');
-console.log('4. Test conversion firing');
-console.log('5. Wait 24-48 hours for Google Ads verification');
+console.log('If you need help, provide this information:');
+console.log('• Current GTM container ID: GTM-5S2H4C9V');
+console.log('• GA4 measurement ID: G-5GVJBRE1SY');
+console.log('• Google Ads conversion ID: AW-17482092392');
+console.log('• Begin checkout conversion label: mEaUCKmY8Y0bEOiejpBB');
+console.log('• Screenshot of GTM Preview mode showing tag firing');
+console.log('• Screenshot of Google Ads conversion action settings');
 console.log('');
 
-console.log('💡 TIP: If you share your actual conversion labels, I can help update the GTM configuration!');
+console.log('✅ GOOGLE ADS CONVERSION VERIFICATION FIX GUIDE COMPLETE!');
+console.log('Follow these steps to resolve the verification issue.');
