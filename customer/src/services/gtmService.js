@@ -628,6 +628,88 @@ class GTMService {
             console.error('GTM: Fallback event tracking failed:', error);
         }
     }
+
+    /**
+     * Track Google Ads conversion directly (fallback for GTM verification issues)
+     * @param {string} conversionLabel - Conversion label from Google Ads
+     * @param {Object} conversionData - Conversion data
+     */
+    trackDirectGoogleAdsConversion(conversionLabel, conversionData = {}) {
+        try {
+            // Use direct gtag if available
+            if (window.gtagConversion && conversionLabel) {
+                const conversionConfig = {
+                    send_to: `AW-17482092392/${conversionLabel}`,
+                    value: conversionData.value || 0,
+                    currency: conversionData.currency || 'JPY',
+                    transaction_id: conversionData.transaction_id || ''
+                };
+
+                // Add enhanced conversion data if available
+                if (conversionData.user_data) {
+                    conversionConfig.user_data = conversionData.user_data;
+                }
+
+                window.gtagConversion('event', 'conversion', conversionConfig);
+
+                if (this.debugMode) {
+                    console.log('Direct Google Ads conversion tracked:', conversionConfig);
+                }
+
+                return true;
+            } else {
+                console.warn('Direct Google Ads tracking not available');
+                return false;
+            }
+        } catch (error) {
+            console.error('Direct Google Ads conversion tracking failed:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Track conversion with both GTM and direct Google Ads (for verification)
+     * @param {string} conversionType - Type of conversion
+     * @param {Object} eventData - Event data
+     * @param {Object} customerData - Customer data for enhanced conversions
+     * @param {Object} pricingContext - Pricing context
+     */
+    trackConversionWithFallback(conversionType, eventData = {}, customerData = null, pricingContext = {}) {
+        // Track via GTM (primary method)
+        const gtmSuccess = this.trackConversion(conversionType, eventData, customerData, pricingContext);
+
+        // Also track directly for Google Ads verification
+        const conversionLabels = {
+            'purchase': process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS ? 
+                JSON.parse(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS).purchase : null,
+            'begin_checkout': process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS ? 
+                JSON.parse(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS).begin_checkout : null,
+            'view_item': process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS ? 
+                JSON.parse(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS).view_item : null,
+            'add_payment_info': process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS ? 
+                JSON.parse(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS).add_payment_info : null
+        };
+
+        const conversionLabel = conversionLabels[conversionType];
+        let directSuccess = false;
+
+        if (conversionLabel) {
+            const directConversionData = {
+                value: eventData.value,
+                currency: eventData.currency,
+                transaction_id: eventData.transaction_id,
+                user_data: customerData
+            };
+
+            directSuccess = this.trackDirectGoogleAdsConversion(conversionLabel, directConversionData);
+        }
+
+        if (this.debugMode) {
+            console.log(`Conversion tracking results - GTM: ${gtmSuccess}, Direct: ${directSuccess}`);
+        }
+
+        return gtmSuccess || directSuccess;
+    }
 }
 
 // Create singleton instance
