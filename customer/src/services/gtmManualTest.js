@@ -1,305 +1,208 @@
 /**
- * Manual Testing Script for GTM Conversion Configuration
- * This script can be run in the browser console to test GTM conversion tracking
+ * GTM Manual Testing Script
+ * Use this in the browser console to test GTM conversion tracking
  */
 
-import gtmService from './gtmService.js';
-import gtmTestingUtils from './gtmTestingUtils.js';
+import gtmService from './gtmService';
+import bookingFlowManager from './bookingFlowManager';
+import gtmTestingUtils from './gtmTestingUtils';
 
-class GTMManualTester {
-    constructor() {
-        this.testResults = [];
-    }
+// Test GTM conversion tracking manually
+window.testGTMConversions = async () => {
+    console.log('🧪 Starting GTM Conversion Testing...');
 
-    /**
-     * Initialize GTM and run comprehensive tests
-     */
-    async runFullTest() {
-        console.log('🚀 Starting GTM Conversion Tracking Tests...');
+    try {
+        // 1. Initialize GTM service
+        console.log('1. Initializing GTM service...');
+        const gtmInitialized = await gtmService.initialize();
+        console.log('GTM initialized:', gtmInitialized);
 
-        try {
-            // Initialize GTM service
-            console.log('📋 Initializing GTM Service...');
-            await gtmService.initialize();
+        // 2. Enable debug mode
+        gtmService.enableDebugMode(true);
+        console.log('GTM debug mode enabled');
 
-            // Enable debug mode
-            gtmService.enableDebugMode(true);
+        // 3. Test booking flow manager
+        console.log('2. Testing booking flow manager...');
 
-            // Test 1: Purchase Conversion
-            console.log('💰 Testing Purchase Conversion...');
-            const purchaseResult = this.testPurchaseConversion();
-            this.testResults.push({ test: 'Purchase Conversion', result: purchaseResult });
-
-            // Test 2: Begin Checkout Conversion
-            console.log('🛒 Testing Begin Checkout Conversion...');
-            const checkoutResult = this.testBeginCheckoutConversion();
-            this.testResults.push({ test: 'Begin Checkout Conversion', result: checkoutResult });
-
-            // Test 3: View Item Conversion
-            console.log('👀 Testing View Item Conversion...');
-            const viewItemResult = this.testViewItemConversion();
-            this.testResults.push({ test: 'View Item Conversion', result: viewItemResult });
-
-            // Test 4: Add Payment Info Conversion
-            console.log('💳 Testing Add Payment Info Conversion...');
-            const paymentResult = this.testAddPaymentInfoConversion();
-            this.testResults.push({ test: 'Add Payment Info Conversion', result: paymentResult });
-
-            // Test 5: GTM Container Validation
-            console.log('🔍 Validating GTM Container...');
-            const containerValidation = gtmTestingUtils.validateGTMLoading(process.env.REACT_APP_GTM_CONTAINER_ID);
-            this.testResults.push({ test: 'GTM Container Validation', result: containerValidation });
-
-            // Test 6: Generate Diagnostic Report
-            console.log('📊 Generating Diagnostic Report...');
-            const diagnosticReport = gtmTestingUtils.generateDiagnosticReport();
-            this.testResults.push({ test: 'Diagnostic Report', result: diagnosticReport });
-
-            // Display Results
-            this.displayResults();
-
-            return this.testResults;
-
-        } catch (error) {
-            console.error('❌ GTM Test Failed:', error);
-            return { error: error.message };
-        }
-    }
-
-    /**
-     * Test purchase conversion tracking
-     */
-    testPurchaseConversion() {
-        const transactionData = {
-            value: 15000,
-            currency: 'JPY',
-            transaction_id: `manual_test_${Date.now()}`,
-            items: [{
-                item_id: 'morning_tour',
-                item_name: 'Morning Arashiyama Tour',
-                item_category: 'tour',
-                price: 15000,
-                quantity: 1
-            }],
-            tour_id: 'morning_tour',
-            tour_name: 'Morning Arashiyama Tour',
-            booking_date: '2025-01-15',
-            payment_provider: 'stripe'
+        const tourData = {
+            tourId: 'morning_tour',
+            tourName: 'Morning Arashiyama Tour',
+            price: 15000,
+            date: '2025-01-15',
+            time: '10:00',
+            location: 'Kyoto',
+            category: 'tour'
         };
 
-        const customerData = {
-            email: 'test_email_hash',
-            phone_number: 'test_phone_hash'
-        };
+        const bookingId = bookingFlowManager.initializeBooking(tourData);
+        console.log('Booking initialized:', bookingId);
 
-        const result = gtmService.trackPurchaseConversion(transactionData, customerData);
+        // 4. Test view_item conversion
+        console.log('3. Testing view_item conversion...');
+        const viewItemResult = bookingFlowManager.trackViewItem();
+        console.log('View item tracked:', viewItemResult);
 
-        return {
-            success: result,
-            transactionData,
-            customerData,
-            dataLayerEvents: window.dataLayer.slice(-2) // Last 2 events
-        };
-    }
-
-    /**
-     * Test begin checkout conversion tracking
-     */
-    testBeginCheckoutConversion() {
+        // 5. Test begin_checkout conversion
+        console.log('4. Testing begin_checkout conversion...');
         const checkoutData = {
-            value: 15000,
-            currency: 'JPY',
-            items: [{
-                item_id: 'night_tour',
-                item_name: 'Night Gion Tour',
-                item_category: 'tour',
-                price: 15000,
-                quantity: 1
-            }],
-            tour_id: 'night_tour',
-            tour_name: 'Night Gion Tour'
-        };
-
-        const result = gtmService.trackBeginCheckoutConversion(checkoutData);
-
-        return {
-            success: result,
-            checkoutData,
-            dataLayerEvents: window.dataLayer.slice(-2)
-        };
-    }
-
-    /**
-     * Test view item conversion tracking
-     */
-    testViewItemConversion() {
-        const itemData = {
-            value: 15000,
-            currency: 'JPY',
-            items: [{
-                item_id: 'uji_tour',
-                item_name: 'Uji Tea Tour',
-                item_category: 'tour',
-                price: 15000,
-                quantity: 1
-            }],
-            tour_id: 'uji_tour',
-            tour_name: 'Uji Tea Tour',
-            item_category: 'tour'
-        };
-
-        const result = gtmService.trackViewItemConversion(itemData);
-
-        return {
-            success: result,
-            itemData,
-            dataLayerEvents: window.dataLayer.slice(-2)
-        };
-    }
-
-    /**
-     * Test add payment info conversion tracking
-     */
-    testAddPaymentInfoConversion() {
-        const paymentData = {
-            value: 15000,
-            currency: 'JPY',
-            payment_provider: 'payjp',
-            tour_id: 'gion_tour'
-        };
-
-        const customerData = {
-            email: 'test_email_hash_2',
-            phone_number: 'test_phone_hash_2'
-        };
-
-        const result = gtmService.trackAddPaymentInfoConversion(paymentData, customerData);
-
-        return {
-            success: result,
-            paymentData,
-            customerData,
-            dataLayerEvents: window.dataLayer.slice(-2)
-        };
-    }
-
-    /**
-     * Display test results in a formatted way
-     */
-    displayResults() {
-        console.log('\n📋 GTM Conversion Tracking Test Results:');
-        console.log('='.repeat(50));
-
-        this.testResults.forEach((test, index) => {
-            const status = test.result.success !== false ? '✅' : '❌';
-            console.log(`${index + 1}. ${status} ${test.test}`);
-
-            if (test.result.success === false) {
-                console.log(`   Error: ${test.result.error || 'Test failed'}`);
+            customerData: {
+                email: 'test@example.com',
+                phone: '+1234567890',
+                name: 'Test User',
+                firstName: 'Test',
+                lastName: 'User'
             }
-        });
+        };
 
-        console.log('='.repeat(50));
-        console.log(`Total Tests: ${this.testResults.length}`);
-        console.log(`Passed: ${this.testResults.filter(t => t.result.success !== false).length}`);
-        console.log(`Failed: ${this.testResults.filter(t => t.result.success === false).length}`);
+        const beginCheckoutResult = bookingFlowManager.trackBeginCheckout(checkoutData);
+        console.log('Begin checkout tracked:', beginCheckoutResult);
 
-        // Display GTM Service Status
-        console.log('\n🔧 GTM Service Status:');
-        const status = gtmService.getStatus();
-        console.table(status);
+        // 6. Test add_payment_info conversion
+        console.log('5. Testing add_payment_info conversion...');
+        const paymentData = {
+            provider: 'stripe',
+            amount: 15000,
+            currency: 'JPY',
+            paymentMethod: 'card'
+        };
 
-        // Display DataLayer Summary
-        console.log('\n📊 DataLayer Summary:');
-        console.log(`Total Events: ${window.dataLayer.length}`);
-        console.log('Recent Events:', window.dataLayer.slice(-5));
+        const addPaymentInfoResult = bookingFlowManager.trackAddPaymentInfo(paymentData);
+        console.log('Add payment info tracked:', addPaymentInfoResult);
+
+        // 7. Test purchase conversion
+        console.log('6. Testing purchase conversion...');
+        const transactionData = {
+            transactionId: `test_txn_${Date.now()}`,
+            finalAmount: 15000,
+            paymentProvider: 'stripe'
+        };
+
+        const purchaseResult = bookingFlowManager.trackPurchase(transactionData);
+        console.log('Purchase tracked:', purchaseResult);
+
+        // 8. Validate GTM status
+        console.log('7. Validating GTM status...');
+        const gtmStatus = gtmService.getStatus();
+        console.log('GTM Status:', gtmStatus);
+
+        // 9. Generate diagnostic report
+        console.log('8. Generating diagnostic report...');
+        const diagnosticReport = gtmTestingUtils.generateDiagnosticReport();
+        console.log('Diagnostic Report:', diagnosticReport);
+
+        console.log('✅ GTM Conversion Testing completed successfully!');
+        console.log('Check the GTM debug console and dataLayer for fired events.');
+
+        return {
+            success: true,
+            bookingId,
+            results: {
+                viewItem: viewItemResult,
+                beginCheckout: beginCheckoutResult,
+                addPaymentInfo: addPaymentInfoResult,
+                purchase: purchaseResult
+            },
+            gtmStatus,
+            diagnosticReport
+        };
+
+    } catch (error) {
+        console.error('❌ GTM Conversion Testing failed:', error);
+        return {
+            success: false,
+            error: error.message
+        };
     }
+};
 
-    /**
-     * Test specific conversion type
-     */
-    testSingleConversion(conversionType, testData = {}) {
-        console.log(`🧪 Testing ${conversionType} conversion...`);
+// Test individual conversion types
+window.testAddPaymentInfoConversion = () => {
+    console.log('🧪 Testing add_payment_info conversion...');
 
-        let result;
-        switch (conversionType) {
-            case 'purchase':
-                result = this.testPurchaseConversion();
-                break;
-            case 'begin_checkout':
-                result = this.testBeginCheckoutConversion();
-                break;
-            case 'view_item':
-                result = this.testViewItemConversion();
-                break;
-            case 'add_payment_info':
-                result = this.testAddPaymentInfoConversion();
-                break;
-            default:
-                console.error(`Unknown conversion type: ${conversionType}`);
-                return false;
+    const testData = {
+        value: 15000,
+        currency: 'JPY',
+        custom_parameters: {
+            payment_provider: 'stripe',
+            tour_id: 'morning_tour'
         }
+    };
 
-        console.log(`Result:`, result);
-        return result;
-    }
+    const customerData = {
+        email_hash: 'hashed_email_example',
+        phone_hash: 'hashed_phone_example'
+    };
 
-    /**
-     * Monitor dataLayer events in real-time
-     */
-    startDataLayerMonitoring(duration = 30000) {
-        console.log(`🔍 Starting DataLayer monitoring for ${duration}ms...`);
-        return gtmTestingUtils.monitorDataLayerEvents(duration);
-    }
+    gtmService.trackAddPaymentInfoConversion(testData, customerData);
+    console.log('✅ Add payment info conversion test fired');
+};
 
-    /**
-     * Enable GTM preview mode for debugging
-     */
-    enablePreviewMode(previewToken) {
-        const containerId = process.env.REACT_APP_GTM_CONTAINER_ID;
-        console.log(`🔧 Enabling GTM preview mode for container ${containerId}...`);
+window.testPurchaseConversion = () => {
+    console.log('🧪 Testing purchase conversion...');
 
-        const result = gtmTestingUtils.enablePreviewMode(containerId, previewToken);
-
-        if (result) {
-            console.log('✅ Preview mode enabled successfully');
-            console.log('💡 Open GTM preview console to see tag firing in real-time');
-        } else {
-            console.log('❌ Failed to enable preview mode');
+    const testData = {
+        value: 15000,
+        currency: 'JPY',
+        transaction_id: `test_purchase_${Date.now()}`,
+        items: [{
+            item_id: 'morning_tour',
+            item_name: 'Morning Arashiyama Tour',
+            item_category: 'tour',
+            price: 15000,
+            quantity: 1
+        }],
+        custom_parameters: {
+            payment_provider: 'stripe',
+            tour_id: 'morning_tour'
         }
+    };
 
-        return result;
+    const customerData = {
+        email_hash: 'hashed_email_example',
+        phone_hash: 'hashed_phone_example'
+    };
+
+    gtmService.trackPurchaseConversion(testData, customerData);
+    console.log('✅ Purchase conversion test fired');
+};
+
+// Test GTM container validation
+window.validateGTMSetup = () => {
+    console.log('🧪 Validating GTM setup...');
+
+    const containerId = process.env.REACT_APP_GTM_CONTAINER_ID;
+    const validation = gtmTestingUtils.validateGTMLoading(containerId);
+
+    console.log('GTM Container Validation:', validation);
+
+    if (validation.containerLoaded && validation.dataLayerExists) {
+        console.log('✅ GTM setup is valid');
+    } else {
+        console.log('❌ GTM setup has issues');
     }
-}
 
-// Create global instance for easy access in browser console
-window.gtmTester = new GTMManualTester();
+    return validation;
+};
 
-// Export for module usage
-export default GTMManualTester;
+// Monitor dataLayer events
+window.monitorDataLayerEvents = (duration = 30000) => {
+    console.log(`🧪 Monitoring dataLayer events for ${duration}ms...`);
+    return gtmTestingUtils.monitorDataLayerEvents(duration);
+};
 
-// Usage instructions
-console.log(`
-🎯 GTM Manual Testing Instructions:
+// Test all conversion types with sample data
+window.testAllConversions = () => {
+    console.log('🧪 Testing all conversion types...');
+    return gtmTestingUtils.testAllConversions();
+};
 
-1. Run full test suite:
-   gtmTester.runFullTest()
-
-2. Test specific conversion:
-   gtmTester.testSingleConversion('purchase')
-   gtmTester.testSingleConversion('begin_checkout')
-   gtmTester.testSingleConversion('view_item')
-   gtmTester.testSingleConversion('add_payment_info')
-
-3. Monitor dataLayer events:
-   gtmTester.startDataLayerMonitoring(30000)
-
-4. Enable GTM preview mode:
-   gtmTester.enablePreviewMode('your-preview-token')
-
-5. Check GTM service status:
-   gtmService.getStatus()
-
-6. Generate diagnostic report:
-   gtmTestingUtils.generateDiagnosticReport()
-`);
+console.log('🧪 GTM Manual Testing Functions Available:');
+console.log('- testGTMConversions() - Complete conversion flow test');
+console.log('- testAddPaymentInfoConversion() - Test add payment info');
+console.log('- testPurchaseConversion() - Test purchase conversion');
+console.log('- validateGTMSetup() - Validate GTM container setup');
+console.log('- monitorDataLayerEvents(duration) - Monitor dataLayer events');
+console.log('- testAllConversions() - Test all conversion types');
+console.log('');
+console.log('💡 Open GTM debug console to see tag firing in real-time');
+console.log('💡 Check browser Network tab for Google Ads conversion requests');

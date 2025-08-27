@@ -2,9 +2,13 @@
  * Google Tag Manager Service
  * Provides centralized GTM integration and dataLayer management
  * Replaces direct gtag calls with GTM-managed tags
+ * Integrated with migration system for gradual rollout
  */
 
 import GTMConversionConfig from './gtmConversionConfig.js';
+import gtmGA4Config from './gtmGA4Config.js';
+import conversionValueOptimizer from './conversionValueOptimizer.js';
+import migrationFeatureFlags from './migrationFeatureFlags.js';
 
 class GTMService {
     constructor() {
@@ -13,12 +17,25 @@ class GTMService {
         this.fallbackToGtag = false;
         this.initializationTimeout = 5000; // 5 seconds timeout
         this.debugMode = false;
+        this.migrationMode = true; // Enable migration-aware behavior
 
         // Initialize conversion configuration
         this.conversionConfig = new GTMConversionConfig();
 
+        // Initialize GA4 configuration
+        this.ga4Config = gtmGA4Config;
+
         // Initialize dataLayer if not exists
         window.dataLayer = window.dataLayer || [];
+
+        // Check if GTM should be initialized based on migration flags
+        if (this.shouldInitializeGTM()) {
+            // Auto-initialize if container ID is available and migration allows it
+            const containerId = process.env.REACT_APP_GTM_CONTAINER_ID;
+            if (containerId) {
+                this.initialize(containerId);
+            }
+        }
 
         // Bind methods to preserve context
         this.initialize = this.initialize.bind(this);
@@ -27,6 +44,17 @@ class GTMService {
         this.enableDebugMode = this.enableDebugMode.bind(this);
         this.validateTagFiring = this.validateTagFiring.bind(this);
         this.trackConversion = this.trackConversion.bind(this);
+    }
+
+    /**
+     * Check if GTM should be initialized based on migration flags
+     */
+    shouldInitializeGTM() {
+        if (!this.migrationMode) {
+            return true; // Always initialize if not in migration mode
+        }
+
+        return migrationFeatureFlags.shouldUseGTM();
     }
 
     /**
@@ -67,6 +95,9 @@ class GTMService {
                 // Push initial configuration
                 this._pushInitialConfiguration();
 
+                // Initialize GA4 configuration
+                await this.ga4Config.initialize();
+
                 return true;
             } else {
                 console.warn('GTM: Initialization timeout, falling back to gtag');
@@ -95,6 +126,14 @@ class GTMService {
             return;
         }
 
+        // Check if GTM should be used based on migration flags
+        if (this.migrationMode && !migrationFeatureFlags.shouldUseGTM()) {
+            if (this.debugMode) {
+                console.log('GTM: Event skipped due to migration flags:', eventName);
+            }
+            return;
+        }
+
         try {
             const dataLayerEvent = {
                 event: eventName,
@@ -103,12 +142,22 @@ class GTMService {
                 _timestamp: Date.now()
             };
 
+            // Add migration information if in migration mode
+            if (this.migrationMode) {
+                dataLayerEvent._migration = {
+                    phase: migrationFeatureFlags.migrationPhase,
+                    sessionId: migrationFeatureFlags.getOrCreateSessionId(),
+                    rolloutPercentage: migrationFeatureFlags.rolloutPercentage
+                };
+            }
+
             // Add debug information if in debug mode
             if (this.debugMode) {
                 dataLayerEvent._debug = {
                     source: 'gtmService',
                     containerId: this.containerId,
-                    fallbackMode: this.fallbackToGtag
+                    fallbackMode: this.fallbackToGtag,
+                    migrationMode: this.migrationMode
                 };
             }
 
@@ -119,6 +168,15 @@ class GTMService {
                 console.log('GTM: Event pushed to dataLayer:', dataLayerEvent);
             }
 
+            // Track migration event
+            if (this.migrationMode) {
+                migrationFeatureFlags.trackMigrationEvent('gtm_event_pushed', {
+                    eventName,
+                    containerId: this.containerId,
+                    fallbackMode: this.fallbackToGtag
+                });
+            }
+
             // If GTM failed to load, use fallback gtag
             if (this.fallbackToGtag) {
                 this._fallbackEventTracking(eventName, eventData);
@@ -126,6 +184,14 @@ class GTMService {
 
         } catch (error) {
             console.error('GTM: Failed to push event:', error);
+
+            // Track migration error
+            if (this.migrationMode) {
+                migrationFeatureFlags.trackMigrationEvent('gtm_event_push_failed', {
+                    eventName,
+                    error: error.message
+                });
+            }
 
             // Fallback to gtag if available
             if (this.fallbackToGtag) {
@@ -225,15 +291,85 @@ class GTMService {
     }
 
     /**
-     * Track Google Ads conversion with proper configuration
+     * Track Google Ads conversion with proper configuration and dynamic pricing
      * @param {string} conversionType - Type of conversion (purchase, begin_checkout, view_item, add_payment_info)
      * @param {Object} eventData - Event data including value, currency, items, etc.
      * @param {Object} customerData - Customer data for enhanced conversions (optional)
+     * @param {Object} pricingContext - Additional pricing context for value optimization
      */
-    trackConversion(conversionType, eventData = {}, customerData = null) {
+    trackConversion(conversionType, eventData = {}, customerData = null, pricingContext = {}) {
         try {
+            // Optimize conversion value with dynamic pricing
+            let optimizedEventData = { ...eventData };
+
+            if (eventData.value && (eventData.originalPrice || pricingContext.originalPrice)) {
+                const priceData = {
+                    basePrice: pricingContext.basePrice || eventData.originalPrice || eventData.value,
+                    quantity: pricingContext.quantity || 1,
+                    currency: eventData.currency || 'JPY'
+                };
+
+                const discountData = pricingContext.discount || eventData.discount || null;
+
+                const optimizationResult = conversionValueOptimizer.calculateDynamicPrice(
+                    priceData,
+                    discountData,
+                    pricingContext.options || {}
+                );
+
+                if (optimizationResult.success) {
+                    // Use optimized pricing data
+                    optimizedEventData.value = optimizationResult.pricing.finalPrice;
+                    optimizedEventData.original_value = optimizationResult.pricing.originalTotal;
+                    optimizedEventData.discount_amount = optimizationResult.pricing.discountAmount;
+                    optimizedEventData.discount_percentage = optimizationResult.pricing.discountPercentage;
+
+                    // Add Target ROAS optimization data
+                    const roasData = conversionValueOptimizer.getTargetROASData(
+                        { conversionValue: optimizedEventData.value, ...pricingContext },
+                        optimizationResult.pricing
+                    );
+
+                    if (roasData) {
+                        optimizedEventData.roas_data = roasData;
+                    }
+
+                    // Track revenue attribution if this is a purchase
+                    if (conversionType === 'purchase') {
+                        const attributionResult = conversionValueOptimizer.trackRevenueAttribution(
+                            {
+                                conversionId: eventData.transaction_id,
+                                campaign: pricingContext.campaign,
+                                adGroup: pricingContext.adGroup,
+                                keyword: pricingContext.keyword,
+                                gclid: pricingContext.gclid,
+                                productId: eventData.items?.[0]?.item_id,
+                                productName: eventData.items?.[0]?.item_name,
+                                productCategory: eventData.items?.[0]?.item_category,
+                                conversionValue: optimizedEventData.value
+                            },
+                            optimizationResult.pricing
+                        );
+
+                        if (attributionResult.success) {
+                            optimizedEventData.attribution_id = attributionResult.attributionId;
+                        }
+                    }
+
+                    if (this.debugMode) {
+                        console.log('GTM: Conversion value optimized:', {
+                            original: eventData.value,
+                            optimized: optimizedEventData.value,
+                            validation: optimizationResult.validation
+                        });
+                    }
+                } else {
+                    console.warn('GTM: Conversion value optimization failed:', optimizationResult.error);
+                }
+            }
+
             // Validate conversion event data
-            if (!this.conversionConfig.validateConversionEvent(conversionType, eventData)) {
+            if (!this.conversionConfig.validateConversionEvent(conversionType, optimizedEventData)) {
                 console.warn(`GTM: Invalid conversion event data for ${conversionType}`);
                 return false;
             }
@@ -242,16 +378,16 @@ class GTMService {
             let conversionConfig;
             switch (conversionType) {
                 case 'purchase':
-                    conversionConfig = this.conversionConfig.getPurchaseConversionConfig(eventData);
+                    conversionConfig = this.conversionConfig.getPurchaseConversionConfig(optimizedEventData);
                     break;
                 case 'begin_checkout':
-                    conversionConfig = this.conversionConfig.getBeginCheckoutConversionConfig(eventData);
+                    conversionConfig = this.conversionConfig.getBeginCheckoutConversionConfig(optimizedEventData);
                     break;
                 case 'view_item':
-                    conversionConfig = this.conversionConfig.getViewItemConversionConfig(eventData);
+                    conversionConfig = this.conversionConfig.getViewItemConversionConfig(optimizedEventData);
                     break;
                 case 'add_payment_info':
-                    conversionConfig = this.conversionConfig.getAddPaymentInfoConversionConfig(eventData);
+                    conversionConfig = this.conversionConfig.getAddPaymentInfoConversionConfig(optimizedEventData);
                     break;
                 default:
                     console.error(`GTM: Unknown conversion type: ${conversionType}`);
@@ -260,7 +396,7 @@ class GTMService {
 
             // Prepare event data with customer data if provided
             const enhancedEventData = {
-                ...eventData,
+                ...optimizedEventData,
                 ...(customerData && { user_data: customerData })
             };
 
@@ -290,21 +426,35 @@ class GTMService {
     }
 
     /**
-     * Track purchase conversion with enhanced data
+     * Track purchase conversion with enhanced data and dynamic pricing
      * @param {Object} transactionData - Transaction data
      * @param {Object} customerData - Customer data for enhanced conversions
+     * @param {Object} pricingContext - Pricing context for value optimization
      */
-    trackPurchaseConversion(transactionData, customerData = null) {
-        return this.trackConversion('purchase', transactionData, customerData);
+    trackPurchaseConversion(transactionData, customerData = null, pricingContext = {}) {
+        // Track Google Ads conversion with pricing optimization
+        const conversionSuccess = this.trackConversion('purchase', transactionData, customerData, pricingContext);
+
+        // Track GA4 ecommerce event
+        const ga4Success = this.ga4Config.trackGA4Purchase(transactionData, transactionData.tourData);
+
+        return conversionSuccess && ga4Success;
     }
 
     /**
-     * Track begin checkout conversion
+     * Track begin checkout conversion with dynamic pricing
      * @param {Object} checkoutData - Checkout data
      * @param {Object} customerData - Customer data for enhanced conversions
+     * @param {Object} pricingContext - Pricing context for value optimization
      */
-    trackBeginCheckoutConversion(checkoutData, customerData = null) {
-        return this.trackConversion('begin_checkout', checkoutData, customerData);
+    trackBeginCheckoutConversion(checkoutData, customerData = null, pricingContext = {}) {
+        // Track Google Ads conversion with pricing optimization
+        const conversionSuccess = this.trackConversion('begin_checkout', checkoutData, customerData, pricingContext);
+
+        // Track GA4 ecommerce event
+        const ga4Success = this.ga4Config.trackGA4BeginCheckout(checkoutData, checkoutData.tourData);
+
+        return conversionSuccess && ga4Success;
     }
 
     /**
@@ -312,7 +462,13 @@ class GTMService {
      * @param {Object} itemData - Item data
      */
     trackViewItemConversion(itemData) {
-        return this.trackConversion('view_item', itemData);
+        // Track Google Ads conversion
+        const conversionSuccess = this.trackConversion('view_item', itemData);
+
+        // Track GA4 ecommerce event
+        const ga4Success = this.ga4Config.trackGA4ViewItem(itemData, itemData.tourData);
+
+        return conversionSuccess && ga4Success;
     }
 
     /**
@@ -321,7 +477,13 @@ class GTMService {
      * @param {Object} customerData - Customer data for enhanced conversions
      */
     trackAddPaymentInfoConversion(paymentData, customerData = null) {
-        return this.trackConversion('add_payment_info', paymentData, customerData);
+        // Track Google Ads conversion
+        const conversionSuccess = this.trackConversion('add_payment_info', paymentData, customerData);
+
+        // Track GA4 ecommerce event
+        const ga4Success = this.ga4Config.trackGA4AddPaymentInfo(paymentData, paymentData.tourData);
+
+        return conversionSuccess && ga4Success;
     }
 
     /**
@@ -335,7 +497,8 @@ class GTMService {
             fallbackMode: this.fallbackToGtag,
             debugMode: this.debugMode,
             dataLayerLength: window.dataLayer ? window.dataLayer.length : 0,
-            conversionConfig: this.conversionConfig.getDebugInfo()
+            conversionConfig: this.conversionConfig.getDebugInfo(),
+            ga4Config: this.ga4Config.getStatus()
         };
     }
 

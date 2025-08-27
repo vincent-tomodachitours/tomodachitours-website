@@ -6,8 +6,26 @@ import StripePaymentForm from './StripePaymentForm';
 import { trackPurchase } from '../services/analytics';
 import attributionService from '../services/attributionService';
 import remarketingManager from '../services/remarketingManager';
+import bookingFlowManager from '../services/bookingFlowManager';
+import gtmService from '../services/gtmService';
 // COMMENTED OUT: PayJP import - uncomment to restore PayJP functionality
 // import PayjpPaymentForm from './PayjpPaymentForm';
+
+// Hash customer data for enhanced conversions
+const hashCustomerData = async (data) => {
+    if (!data) return null;
+
+    try {
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(data.toLowerCase().trim());
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (error) {
+        console.warn('Failed to hash customer data:', error);
+        return null;
+    }
+};
 
 const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formRef, tourName, sheetId, setPaymentProcessing }, ref) => {
     // eslint-disable-next-line no-unused-vars
@@ -96,11 +114,41 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
         }
     };
 
-    const handlePaymentSuccess = (data) => {
-        // Track enhanced purchase conversion with comprehensive data
+    const handlePaymentSuccess = async (data) => {
+        // Track purchase conversion using bookingFlowManager and GTM
         try {
-            const transactionData = {
-                transactionId: data.transaction_id || data.charge_id || `booking_${Date.now()}`,
+            const transactionId = data.transaction_id || data.charge_id || `booking_${Date.now()}`;
+
+            // Track purchase through bookingFlowManager
+            const currentBookingState = bookingFlowManager.getCurrentBookingState();
+            if (currentBookingState && !bookingFlowManager.isConversionTracked('purchase')) {
+                const transactionData = {
+                    transactionId: transactionId,
+                    finalAmount: totalPrice,
+                    paymentProvider: data.provider_used || 'stripe'
+                };
+
+                const trackingResult = bookingFlowManager.trackPurchase(transactionData);
+
+                if (trackingResult.success) {
+                    // Hash customer data for enhanced conversions
+                    const customerData = currentBookingState.customerData ? {
+                        email_hash: await hashCustomerData(currentBookingState.customerData.email),
+                        phone_hash: currentBookingState.customerData.phone ?
+                            await hashCustomerData(currentBookingState.customerData.phone) : null
+                    } : null;
+
+                    // Fire GTM purchase conversion
+                    gtmService.trackPurchaseConversion(trackingResult.data, customerData);
+                    console.log('✅ Purchase conversion tracked via GTM and bookingFlowManager');
+                } else {
+                    console.warn('Failed to track purchase via bookingFlowManager:', trackingResult.reason);
+                }
+            }
+
+            // Prepare comprehensive transaction data for legacy analytics and session storage
+            const legacyTransactionData = {
+                transactionId: transactionId,
                 tourId: sheetId,
                 tourName: tourName,
                 value: totalPrice,
@@ -128,41 +176,41 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
                 attribution: attributionService.getAttributionForAnalytics()
             };
 
-            // Track with existing analytics service (includes GA4 and Google Ads)
-            trackPurchase(transactionData);
+            // Keep legacy analytics tracking for backward compatibility
+            trackPurchase(legacyTransactionData);
 
             // Store comprehensive transaction data for thank you page
             try {
-                sessionStorage.setItem('booking_transaction_id', transactionData.transactionId);
-                sessionStorage.setItem('booking_tour_name', transactionData.tourName);
-                sessionStorage.setItem('booking_tour_id', transactionData.tourId);
-                sessionStorage.setItem('booking_value', transactionData.value.toString());
-                sessionStorage.setItem('booking_price', transactionData.price.toString());
-                sessionStorage.setItem('booking_quantity', transactionData.quantity.toString());
-                sessionStorage.setItem('booking_adults', transactionData.adults.toString());
-                sessionStorage.setItem('booking_children', transactionData.children.toString());
-                sessionStorage.setItem('booking_infants', transactionData.infants.toString());
-                sessionStorage.setItem('booking_original_price', transactionData.originalPrice.toString());
-                sessionStorage.setItem('booking_discount_applied', transactionData.discountApplied.toString());
-                sessionStorage.setItem('booking_discount_amount', transactionData.discountAmount.toString());
-                sessionStorage.setItem('booking_discount_code', transactionData.discountCode || '');
-                sessionStorage.setItem('booking_payment_provider', transactionData.paymentProvider);
-                sessionStorage.setItem('booking_date', transactionData.bookingDate || '');
-                sessionStorage.setItem('booking_time', transactionData.bookingTime || '');
-                sessionStorage.setItem('booking_customer_email', transactionData.customerEmail || '');
-                sessionStorage.setItem('booking_customer_name', transactionData.customerName || '');
+                sessionStorage.setItem('booking_transaction_id', legacyTransactionData.transactionId);
+                sessionStorage.setItem('booking_tour_name', legacyTransactionData.tourName);
+                sessionStorage.setItem('booking_tour_id', legacyTransactionData.tourId);
+                sessionStorage.setItem('booking_value', legacyTransactionData.value.toString());
+                sessionStorage.setItem('booking_price', legacyTransactionData.price.toString());
+                sessionStorage.setItem('booking_quantity', legacyTransactionData.quantity.toString());
+                sessionStorage.setItem('booking_adults', legacyTransactionData.adults.toString());
+                sessionStorage.setItem('booking_children', legacyTransactionData.children.toString());
+                sessionStorage.setItem('booking_infants', legacyTransactionData.infants.toString());
+                sessionStorage.setItem('booking_original_price', legacyTransactionData.originalPrice.toString());
+                sessionStorage.setItem('booking_discount_applied', legacyTransactionData.discountApplied.toString());
+                sessionStorage.setItem('booking_discount_amount', legacyTransactionData.discountAmount.toString());
+                sessionStorage.setItem('booking_discount_code', legacyTransactionData.discountCode || '');
+                sessionStorage.setItem('booking_payment_provider', legacyTransactionData.paymentProvider);
+                sessionStorage.setItem('booking_date', legacyTransactionData.bookingDate || '');
+                sessionStorage.setItem('booking_time', legacyTransactionData.bookingTime || '');
+                sessionStorage.setItem('booking_customer_email', legacyTransactionData.customerEmail || '');
+                sessionStorage.setItem('booking_customer_name', legacyTransactionData.customerName || '');
             } catch (error) {
                 console.warn('Failed to store transaction data for thank you page:', error);
             }
 
             // Process purchase completion for remarketing audience exclusion
             try {
-                remarketingManager.processPurchaseCompletion(transactionData);
+                remarketingManager.processPurchaseCompletion(legacyTransactionData);
             } catch (error) {
                 console.warn('Remarketing purchase processing failed:', error);
             }
 
-            console.log('🎯 Enhanced purchase conversion tracked:', transactionData);
+            console.log('🎯 Enhanced purchase conversion tracked via GTM and legacy systems:', legacyTransactionData);
         } catch (error) {
             console.error('Failed to track purchase conversion:', error);
         }

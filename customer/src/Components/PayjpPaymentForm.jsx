@@ -1,4 +1,22 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import bookingFlowManager from '../services/bookingFlowManager';
+import gtmService from '../services/gtmService';
+
+// Hash customer data for enhanced conversions
+const hashCustomerData = async (data) => {
+    if (!data) return null;
+
+    try {
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(data.toLowerCase().trim());
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (error) {
+        console.warn('Failed to hash customer data:', error);
+        return null;
+    }
+};
 
 // Initialize PayJP outside of component to ensure single initialization
 let payjp = null;
@@ -99,6 +117,37 @@ const PayjpPaymentForm = ({ totalPrice, originalPrice, appliedDiscount, onCreate
             return; // Prevent double submission
         }
 
+        // Track add_payment_info event before processing payment
+        try {
+            const currentBookingState = bookingFlowManager.getCurrentBookingState();
+            if (currentBookingState && !bookingFlowManager.isConversionTracked('add_payment_info')) {
+                const paymentData = {
+                    provider: 'payjp',
+                    amount: totalPrice,
+                    currency: 'JPY',
+                    paymentMethod: 'card'
+                };
+
+                const trackingResult = bookingFlowManager.trackAddPaymentInfo(paymentData);
+
+                if (trackingResult.success) {
+                    // Also fire GTM conversion tracking
+                    const customerData = currentBookingState.customerData ? {
+                        email_hash: await hashCustomerData(currentBookingState.customerData.email),
+                        phone_hash: currentBookingState.customerData.phone ?
+                            await hashCustomerData(currentBookingState.customerData.phone) : null
+                    } : null;
+
+                    gtmService.trackAddPaymentInfoConversion(trackingResult.data, customerData);
+                    console.log('✅ Add payment info conversion tracked via GTM');
+                } else if (trackingResult.reason !== 'already_tracked') {
+                    console.warn('Failed to track add payment info:', trackingResult.reason);
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to track add payment info conversion:', error);
+        }
+
         // Set 3D Secure flags IMMEDIATELY before any processing starts
         // Use both localStorage and sessionStorage for maximum persistence
         localStorage.setItem('payjp_3ds_in_progress', 'true');
@@ -142,7 +191,7 @@ const PayjpPaymentForm = ({ totalPrice, originalPrice, appliedDiscount, onCreate
             console.error('PayJP payment error:', error);
             onError(error.message);
         }
-    }, [isProcessing, onCreateBookingAndPayment, onError, onProcessing]);
+    }, [isProcessing, onCreateBookingAndPayment, onError, onProcessing, totalPrice]);
 
     // Expose submit function to window for external button
     useEffect(() => {

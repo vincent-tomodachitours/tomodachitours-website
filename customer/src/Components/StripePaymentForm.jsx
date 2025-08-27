@@ -6,11 +6,29 @@ import {
     useStripe,
     useElements
 } from '@stripe/react-stripe-js';
+import bookingFlowManager from '../services/bookingFlowManager';
+import gtmService from '../services/gtmService';
 
 // Load Stripe with environment variable
 const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
     ? loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY)
     : Promise.resolve(null);
+
+// Hash customer data for enhanced conversions
+const hashCustomerData = async (data) => {
+    if (!data) return null;
+
+    try {
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(data.toLowerCase().trim());
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (error) {
+        console.warn('Failed to hash customer data:', error);
+        return null;
+    }
+};
 
 const CARD_ELEMENT_OPTIONS = {
     style: {
@@ -50,6 +68,37 @@ const StripePaymentForm = ({ totalPrice, originalPrice, appliedDiscount, onCreat
             return;
         }
 
+        // Track add_payment_info event before processing payment
+        try {
+            const currentBookingState = bookingFlowManager.getCurrentBookingState();
+            if (currentBookingState && !bookingFlowManager.isConversionTracked('add_payment_info')) {
+                const paymentData = {
+                    provider: 'stripe',
+                    amount: totalPrice,
+                    currency: 'JPY',
+                    paymentMethod: 'card'
+                };
+
+                const trackingResult = bookingFlowManager.trackAddPaymentInfo(paymentData);
+
+                if (trackingResult.success) {
+                    // Also fire GTM conversion tracking
+                    const customerData = currentBookingState.customerData ? {
+                        email_hash: await hashCustomerData(currentBookingState.customerData.email),
+                        phone_hash: currentBookingState.customerData.phone ?
+                            await hashCustomerData(currentBookingState.customerData.phone) : null
+                    } : null;
+
+                    gtmService.trackAddPaymentInfoConversion(trackingResult.data, customerData);
+                    console.log('✅ Add payment info conversion tracked via GTM');
+                } else if (trackingResult.reason !== 'already_tracked') {
+                    console.warn('Failed to track add payment info:', trackingResult.reason);
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to track add payment info conversion:', error);
+        }
+
         onProcessing('Processing payment with Stripe...');
 
         const cardElement = elements.getElement(CardElement);
@@ -75,7 +124,7 @@ const StripePaymentForm = ({ totalPrice, originalPrice, appliedDiscount, onCreat
             console.error('Stripe payment error:', error);
             onError(error.message);
         }
-    }, [stripe, elements, isProcessing, onCreateBookingAndPayment, onError, onProcessing]);
+    }, [stripe, elements, isProcessing, onCreateBookingAndPayment, onError, onProcessing, totalPrice]);
 
     // Expose submit function to window for external button
     useEffect(() => {

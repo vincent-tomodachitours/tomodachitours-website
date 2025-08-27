@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 
 import CardForm from './CardForm';
 import { Link } from 'react-router-dom';
-import { trackBeginCheckout } from '../services/analytics';
+import bookingFlowManager from '../services/bookingFlowManager';
+import gtmService from '../services/gtmService';
 
 import 'react-phone-input-2/lib/style.css'
 import PhoneInput from 'react-phone-input-2';
@@ -28,6 +29,10 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
     const childRef = useRef();
     const handlePayNowButton = () => {
         setPaymentProcessing(true);
+
+        // Note: add_payment_info tracking is now handled in the payment form components
+        // This ensures accurate timing and payment provider information
+
         if (childRef.current) {
             childRef.current.handleCreateBooking?.();
         }
@@ -181,38 +186,250 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
     // Calculate final price with discount
     const finalPrice = appliedDiscount ? appliedDiscount.finalAmount : (adult + child) * tourPrice;
 
-    // Track enhanced begin checkout conversion when component mounts
+    // Booking flow state management
+    const [bookingId, setBookingId] = useState(null);
+    const [conversionRetryCount, setConversionRetryCount] = useState(0);
+    const [conversionValidated, setConversionValidated] = useState(false);
+    const maxRetries = 3;
+
+    // Initialize booking and track begin checkout when component mounts
     useEffect(() => {
-        // Track begin checkout with enhanced data
-        const tourData = {
-            tourId: sheetId,
-            tourName: tourName,
-            price: finalPrice,
-            originalPrice: (adult + child) * tourPrice,
-            quantity: adult + child,
-            adults: adult,
-            children: child,
-            infants: infant,
-            tourDate: tourDate,
-            tourTime: tourTime,
-            discountApplied: appliedDiscount ? true : false,
-            discountAmount: appliedDiscount ? (appliedDiscount.originalAmount - appliedDiscount.finalAmount) : 0
+        const initializeBookingFlow = async () => {
+            try {
+                // Calculate original price for pricing optimization
+                const originalPrice = (adult + child) * tourPrice;
+
+                // Initialize booking with tour data
+                const tourData = {
+                    tourId: sheetId,
+                    tourName: tourName,
+                    price: originalPrice, // Use original price as base
+                    date: tourDate,
+                    time: tourTime,
+                    location: 'Kyoto', // Default location for tours
+                    category: 'tour'
+                };
+
+                const newBookingId = bookingFlowManager.initializeBooking(tourData);
+                setBookingId(newBookingId);
+
+                // Prepare pricing context for conversion value optimization
+                const pricingContext = {
+                    basePrice: tourPrice,
+                    quantity: adult + child,
+                    originalPrice: originalPrice,
+                    discount: appliedDiscount ? {
+                        type: appliedDiscount.type,
+                        value: appliedDiscount.value,
+                        code: appliedDiscount.code,
+                        maxDiscountAmount: appliedDiscount.originalAmount - appliedDiscount.finalAmount
+                    } : null,
+                    options: {
+                        pricingRules: [
+                            { type: 'minimum', value: 1000 }, // Minimum price 1000 JPY
+                            { type: 'round', value: 100 } // Round to nearest 100 JPY
+                        ]
+                    }
+                };
+
+                // Track begin checkout with customer data and pricing context
+                const checkoutData = {
+                    value: finalPrice,
+                    currency: 'JPY',
+                    originalPrice: originalPrice,
+                    discount: pricingContext.discount,
+                    items: [{
+                        item_id: sheetId,
+                        item_name: tourName,
+                        item_category: 'tour',
+                        price: finalPrice,
+                        quantity: 1
+                    }],
+                    customerData: formData.email ? {
+                        email: formData.email,
+                        phone: formData.phone,
+                        name: `${formData.fname} ${formData.lname}`.trim(),
+                        firstName: formData.fname,
+                        lastName: formData.lname
+                    } : null
+                };
+
+                const trackingResult = bookingFlowManager.trackBeginCheckout(checkoutData);
+
+                if (trackingResult.success) {
+                    // Track with GTM service using pricing context
+                    gtmService.trackBeginCheckoutConversion(
+                        trackingResult.data,
+                        checkoutData.customerData,
+                        pricingContext
+                    );
+
+                    // Validate conversion firing
+                    await validateConversionFiring('begin_checkout', trackingResult.data);
+                } else {
+                    console.warn('Begin checkout tracking failed:', trackingResult.reason);
+                    // Retry if not already tracked
+                    if (trackingResult.reason !== 'already_tracked') {
+                        retryConversionTracking('begin_checkout', checkoutData, pricingContext);
+                    }
+                }
+
+                // Store checkout data for abandonment tracking with pricing optimization
+                try {
+                    sessionStorage.setItem('checkout_data', JSON.stringify({
+                        bookingId: newBookingId,
+                        tourData,
+                        checkoutStartTime: Date.now(),
+                        checkoutStep: 1,
+                        originalPrice: originalPrice,
+                        finalPrice: finalPrice,
+                        discountApplied: appliedDiscount ? true : false,
+                        discountAmount: appliedDiscount ? (appliedDiscount.originalAmount - appliedDiscount.finalAmount) : 0,
+                        pricingContext: pricingContext
+                    }));
+                } catch (error) {
+                    console.warn('Failed to store checkout data:', error);
+                }
+
+            } catch (error) {
+                console.error('Failed to initialize booking flow:', error);
+                // Fallback: use GTM service directly
+                fallbackBeginCheckoutTracking();
+            }
         };
 
-        // Track with existing analytics service (includes GA4 and Google Ads)
-        trackBeginCheckout(tourData);
+        initializeBookingFlow();
+    }, [sheetId, tourName, finalPrice, adult, child, infant, tourDate, tourTime, appliedDiscount, tourPrice, formData.email, formData.phone, formData.fname, formData.lname]);
 
-        // Store checkout data for potential abandonment tracking
-        try {
-            sessionStorage.setItem('checkout_data', JSON.stringify({
-                ...tourData,
-                checkoutStartTime: Date.now(),
-                checkoutStep: 1
-            }));
-        } catch (error) {
-            console.warn('Failed to store checkout data:', error);
+    // Update customer data when form changes
+    useEffect(() => {
+        if (bookingId && formData.email && bookingFlowManager.getCurrentBookingState()) {
+            try {
+                const customerData = {
+                    email: formData.email,
+                    phone: formData.phone,
+                    name: `${formData.fname} ${formData.lname}`.trim(),
+                    firstName: formData.fname,
+                    lastName: formData.lname
+                };
+
+                // Update booking state with customer data
+                const currentState = bookingFlowManager.getCurrentBookingState();
+                if (currentState && !currentState.customerData) {
+                    bookingFlowManager.trackBeginCheckout({ customerData });
+                }
+            } catch (error) {
+                console.warn('Failed to update customer data in booking flow:', error);
+            }
         }
-    }, [sheetId, tourName, finalPrice, adult, child, infant, tourDate, tourTime, appliedDiscount, tourPrice]);
+    }, [bookingId, formData.email, formData.phone, formData.fname, formData.lname]);
+
+    // Cleanup booking state when component unmounts
+    useEffect(() => {
+        return () => {
+            // Don't reset if payment is processing to avoid losing tracking data
+            if (!paymentProcessing && bookingId) {
+                try {
+                    // Store final state before cleanup
+                    const finalState = bookingFlowManager.getCurrentBookingState();
+                    if (finalState && !finalState.conversionTracking.purchaseTracked) {
+                        sessionStorage.setItem('incomplete_booking', JSON.stringify({
+                            ...finalState,
+                            abandonedAt: Date.now()
+                        }));
+                    }
+                } catch (error) {
+                    console.warn('Failed to store incomplete booking data:', error);
+                }
+            }
+        };
+    }, [bookingId, paymentProcessing]);
+
+    // Conversion validation and retry logic
+    const validateConversionFiring = async (conversionType, trackingData) => {
+        try {
+            // Wait a moment for GTM to process the event
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Validate tag firing through GTM service
+            const validationResult = await gtmService.validateTagFiring(`google_ads_${conversionType}`);
+
+            if (validationResult) {
+                setConversionValidated(true);
+                console.log(`Conversion ${conversionType} validated successfully`);
+            } else {
+                console.warn(`Conversion ${conversionType} validation failed`);
+                if (conversionRetryCount < maxRetries) {
+                    retryConversionTracking(conversionType, { customerData: trackingData.user_data });
+                }
+            }
+        } catch (error) {
+            console.error('Conversion validation failed:', error);
+        }
+    };
+
+    const retryConversionTracking = (conversionType, data, pricingContext = {}) => {
+        if (conversionRetryCount >= maxRetries) {
+            console.error(`Max retries reached for ${conversionType} conversion tracking`);
+            return;
+        }
+
+        setTimeout(() => {
+            try {
+                setConversionRetryCount(prev => prev + 1);
+
+                if (conversionType === 'begin_checkout') {
+                    const trackingResult = bookingFlowManager.trackBeginCheckout(data);
+                    if (trackingResult.success) {
+                        gtmService.trackBeginCheckoutConversion(
+                            trackingResult.data,
+                            data.customerData,
+                            pricingContext
+                        );
+                    }
+                } else if (conversionType === 'add_payment_info') {
+                    const trackingResult = bookingFlowManager.trackAddPaymentInfo(data.paymentData);
+                    if (trackingResult.success) {
+                        gtmService.trackAddPaymentInfoConversion(
+                            trackingResult.data,
+                            data.customerData,
+                            pricingContext
+                        );
+                    }
+                }
+
+                console.log(`Retrying ${conversionType} conversion tracking (attempt ${conversionRetryCount + 1})`);
+            } catch (error) {
+                console.error(`Retry ${conversionRetryCount + 1} failed for ${conversionType}:`, error);
+            }
+        }, 2000 * (conversionRetryCount + 1)); // Exponential backoff
+    };
+
+    const fallbackBeginCheckoutTracking = () => {
+        try {
+            // Direct GTM tracking as fallback
+            const fallbackData = {
+                currency: 'JPY',
+                value: finalPrice,
+                items: [{
+                    item_id: sheetId,
+                    item_name: tourName,
+                    item_category: 'Tour',
+                    quantity: 1,
+                    price: finalPrice
+                }],
+                tour_date: tourDate,
+                tour_time: tourTime,
+                checkout_step: 1,
+                checkout_timestamp: Date.now()
+            };
+
+            gtmService.trackBeginCheckoutConversion(fallbackData);
+            console.log('Fallback begin checkout tracking executed');
+        } catch (error) {
+            console.error('Fallback begin checkout tracking failed:', error);
+        }
+    };
 
     return (
         <div className='fixed inset-0 h-screen bg-black bg-opacity-60 backdrop-blur-sm flex justify-center items-center z-40 p-4'>
@@ -237,6 +454,24 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                 )}
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Debug Panel - only show in development */}
+                {process.env.NODE_ENV === 'development' && bookingId && (
+                    <div className='absolute top-4 right-4 bg-gray-900 text-white p-3 rounded-lg text-xs max-w-xs z-40'>
+                        <div className='font-semibold mb-2'>Booking Debug Info</div>
+                        <div>Booking ID: {bookingId}</div>
+                        <div>Conversion Validated: {conversionValidated ? '✅' : '❌'}</div>
+                        <div>Retry Count: {conversionRetryCount}/{maxRetries}</div>
+                        {bookingFlowManager.getCurrentBookingState() && (
+                            <div className='mt-2'>
+                                <div className='font-semibold'>Tracking Status:</div>
+                                <div>Begin Checkout: {bookingFlowManager.isConversionTracked('begin_checkout') ? '✅' : '❌'}</div>
+                                <div>Add Payment: {bookingFlowManager.isConversionTracked('add_payment_info') ? '✅' : '❌'}</div>
+                                <div>Purchase: {bookingFlowManager.isConversionTracked('purchase') ? '✅' : '❌'}</div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -418,6 +653,10 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                             formRef={formRef}
                                             sheetId={sheetId}
                                             setPaymentProcessing={setPaymentProcessing}
+                                            bookingFlowManager={bookingFlowManager}
+                                            bookingId={bookingId}
+                                            validateConversionFiring={validateConversionFiring}
+                                            retryConversionTracking={retryConversionTracking}
                                         />
                                     </div>
                                 </div>

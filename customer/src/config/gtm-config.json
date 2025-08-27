@@ -46,15 +46,20 @@
             "parameters": {
                 "eventName": "purchase",
                 "measurementId": "{{GA4 Measurement ID}}",
+                "enhancedEcommerce": true,
+                "sendTo": "{{GA4 Measurement ID}}",
                 "eventParameters": {
                     "transaction_id": "{{Transaction ID}}",
                     "value": "{{Transaction Value}}",
-                    "currency": "{{Currency Code}}",
+                    "currency": "JPY",
                     "items": "{{Items Array}}",
                     "tour_id": "{{Tour ID}}",
                     "tour_name": "{{Tour Name}}",
+                    "tour_category": "{{Tour Category}}",
+                    "tour_location": "{{Tour Location}}",
                     "booking_date": "{{Booking Date}}",
-                    "payment_provider": "{{Payment Provider}}"
+                    "payment_provider": "{{Payment Provider}}",
+                    "enhanced_ecommerce": true
                 }
             }
         },
@@ -94,12 +99,18 @@
             "parameters": {
                 "eventName": "begin_checkout",
                 "measurementId": "{{GA4 Measurement ID}}",
+                "enhancedEcommerce": true,
+                "sendTo": "{{GA4 Measurement ID}}",
                 "eventParameters": {
                     "value": "{{Checkout Value}}",
-                    "currency": "{{Currency Code}}",
+                    "currency": "JPY",
                     "items": "{{Items Array}}",
                     "tour_id": "{{Tour ID}}",
-                    "tour_name": "{{Tour Name}}"
+                    "tour_name": "{{Tour Name}}",
+                    "tour_category": "{{Tour Category}}",
+                    "checkout_step": 1,
+                    "checkout_option": "tour_booking",
+                    "enhanced_ecommerce": true
                 }
             }
         },
@@ -135,13 +146,19 @@
             "parameters": {
                 "eventName": "view_item",
                 "measurementId": "{{GA4 Measurement ID}}",
+                "enhancedEcommerce": true,
+                "sendTo": "{{GA4 Measurement ID}}",
                 "eventParameters": {
                     "value": "{{Item Value}}",
-                    "currency": "{{Currency Code}}",
+                    "currency": "JPY",
                     "items": "{{Items Array}}",
                     "tour_id": "{{Tour ID}}",
                     "tour_name": "{{Tour Name}}",
-                    "item_category": "tour"
+                    "tour_category": "{{Tour Category}}",
+                    "tour_location": "{{Tour Location}}",
+                    "item_category": "tour",
+                    "content_type": "product",
+                    "enhanced_ecommerce": true
                 }
             }
         },
@@ -172,11 +189,17 @@
             "parameters": {
                 "eventName": "add_payment_info",
                 "measurementId": "{{GA4 Measurement ID}}",
+                "enhancedEcommerce": true,
+                "sendTo": "{{GA4 Measurement ID}}",
                 "eventParameters": {
                     "value": "{{Payment Value}}",
-                    "currency": "{{Currency Code}}",
+                    "currency": "JPY",
                     "payment_type": "{{Payment Provider}}",
-                    "tour_id": "{{Tour ID}}"
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "checkout_step": 2,
+                    "checkout_option": "payment_info",
+                    "enhanced_ecommerce": true
                 }
             }
         },

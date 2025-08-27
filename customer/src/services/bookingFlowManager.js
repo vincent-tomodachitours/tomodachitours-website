@@ -3,7 +3,10 @@
  * 
  * Centralized booking state management for simplified conversion tracking.
  * Manages clear booking progression steps and conversion point tracking.
+ * Integrates with conversion value optimizer for dynamic pricing.
  */
+
+import conversionValueOptimizer from './conversionValueOptimizer.js';
 
 class BookingFlowManager {
     constructor() {
@@ -182,7 +185,7 @@ class BookingFlowManager {
     }
 
     /**
-     * Track purchase conversion point
+     * Track purchase conversion point with dynamic pricing optimization
      * @param {Object} transactionData - Transaction information
      * @returns {Object} tracking result
      */
@@ -199,8 +202,53 @@ class BookingFlowManager {
         // Update transaction data
         this.bookingState.transactionId = transactionData.transactionId || this.generateTransactionId();
 
-        if (transactionData.finalAmount) {
-            this.bookingState.paymentData.amount = transactionData.finalAmount;
+        // Handle dynamic pricing with discounts
+        let finalAmount = transactionData.finalAmount || this.bookingState.paymentData?.amount || this.bookingState.tourData.price;
+        let pricingOptimization = null;
+
+        if (transactionData.discount || transactionData.originalAmount) {
+            const priceData = {
+                basePrice: this.bookingState.tourData.price,
+                quantity: 1,
+                currency: this.bookingState.paymentData?.currency || 'JPY'
+            };
+
+            const discountData = transactionData.discount;
+
+            const optimizationResult = conversionValueOptimizer.calculateDynamicPrice(
+                priceData,
+                discountData,
+                {
+                    pricingRules: transactionData.pricingRules || []
+                }
+            );
+
+            if (optimizationResult.success) {
+                finalAmount = optimizationResult.pricing.finalPrice;
+                pricingOptimization = optimizationResult.pricing;
+
+                // Store pricing optimization data in booking state
+                this.bookingState.pricingOptimization = pricingOptimization;
+
+                console.log('Booking Flow: Applied dynamic pricing optimization:', {
+                    original: priceData.basePrice,
+                    final: finalAmount,
+                    discount: pricingOptimization.discountAmount
+                });
+            } else {
+                console.warn('Booking Flow: Pricing optimization failed:', optimizationResult.error);
+            }
+        }
+
+        // Update payment data with final amount
+        if (this.bookingState.paymentData) {
+            this.bookingState.paymentData.amount = finalAmount;
+        } else {
+            this.bookingState.paymentData = {
+                amount: finalAmount,
+                currency: 'JPY',
+                provider: transactionData.paymentProvider || 'unknown'
+            };
         }
 
         // Update current step
@@ -217,9 +265,20 @@ class BookingFlowManager {
         this.bookingState.updatedAt = new Date().toISOString();
 
         const trackingData = this.buildTrackingData('purchase');
+
+        // Add pricing optimization data to tracking
+        if (pricingOptimization) {
+            trackingData.pricing_optimization = {
+                original_value: pricingOptimization.originalTotal,
+                discount_amount: pricingOptimization.discountAmount,
+                discount_percentage: pricingOptimization.discountPercentage,
+                validation_passed: pricingOptimization.validationPassed
+            };
+        }
+
         this.notifyListeners('purchase_tracked', trackingData);
 
-        return { success: true, data: trackingData };
+        return { success: true, data: trackingData, pricingOptimization };
     }
 
     /**
