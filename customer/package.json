@@ -18,6 +18,7 @@
     "@upstash/redis": "^1.28.4",
     "autoprefixer": "^10.4.17",
     "classnames": "^2.5.1",
+    "crypto-js": "^4.2.0",
     "googleapis": "^133.0.0",
     "node-fetch": "^3.3.2",
     "nth-check": "^2.1.1",
@@ -85,6 +86,7 @@
     ]
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/express": "^4.17.23",
     "@types/yargs": "^17.0.32",
     "@upstash/ratelimit": "^2.0.5",

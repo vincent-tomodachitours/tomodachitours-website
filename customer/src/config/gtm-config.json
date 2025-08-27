@@ -28,7 +28,13 @@
             "parameters": {
                 "measurementId": "{{GA4 Measurement ID}}",
                 "enableEcommerce": true,
-                "enhancedEcommerce": true
+                "enhancedEcommerce": true,
+                "customParameters": {
+                    "custom_map.tour_id": "tour_id",
+                    "custom_map.tour_name": "tour_name",
+                    "custom_map.booking_date": "booking_date",
+                    "custom_map.payment_provider": "payment_provider"
+                }
             }
         },
         {
@@ -39,20 +45,44 @@
             ],
             "parameters": {
                 "eventName": "purchase",
-                "measurementId": "{{GA4 Measurement ID}}"
+                "measurementId": "{{GA4 Measurement ID}}",
+                "eventParameters": {
+                    "transaction_id": "{{Transaction ID}}",
+                    "value": "{{Transaction Value}}",
+                    "currency": "{{Currency Code}}",
+                    "items": "{{Items Array}}",
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "booking_date": "{{Booking Date}}",
+                    "payment_provider": "{{Payment Provider}}"
+                }
             }
         },
         {
             "name": "Google Ads - Purchase Conversion",
             "type": "awct",
             "firingTriggers": [
-                "Purchase Event"
+                "Google Ads Conversion - Purchase"
             ],
             "parameters": {
                 "conversionId": "{{Google Ads Conversion ID}}",
                 "conversionLabel": "{{Purchase Conversion Label}}",
-                "conversionValue": "{{Transaction Value}}",
-                "currencyCode": "JPY"
+                "conversionValue": "{{Conversion Value}}",
+                "currencyCode": "{{Currency Code}}",
+                "orderId": "{{Transaction ID}}",
+                "enableEnhancedConversions": true,
+                "enhancedConversionData": {
+                    "email": "{{Enhanced - Email Hash}}",
+                    "phone_number": "{{Enhanced - Phone Hash}}",
+                    "first_name": "{{Enhanced - First Name Hash}}",
+                    "last_name": "{{Enhanced - Last Name Hash}}"
+                },
+                "customParameters": {
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "booking_date": "{{Booking Date}}",
+                    "payment_provider": "{{Payment Provider}}"
+                }
             }
         },
         {
@@ -63,20 +93,37 @@
             ],
             "parameters": {
                 "eventName": "begin_checkout",
-                "measurementId": "{{GA4 Measurement ID}}"
+                "measurementId": "{{GA4 Measurement ID}}",
+                "eventParameters": {
+                    "value": "{{Checkout Value}}",
+                    "currency": "{{Currency Code}}",
+                    "items": "{{Items Array}}",
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}"
+                }
             }
         },
         {
             "name": "Google Ads - Begin Checkout Conversion",
             "type": "awct",
             "firingTriggers": [
-                "Begin Checkout Event"
+                "Google Ads Conversion - Begin Checkout"
             ],
             "parameters": {
                 "conversionId": "{{Google Ads Conversion ID}}",
                 "conversionLabel": "{{Begin Checkout Conversion Label}}",
-                "conversionValue": "{{Checkout Value}}",
-                "currencyCode": "JPY"
+                "conversionValue": "{{Conversion Value}}",
+                "currencyCode": "{{Currency Code}}",
+                "enableEnhancedConversions": true,
+                "enhancedConversionData": {
+                    "email": "{{Enhanced - Email Hash}}",
+                    "phone_number": "{{Enhanced - Phone Hash}}"
+                },
+                "customParameters": {
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "checkout_step": "begin_checkout"
+                }
             }
         },
         {
@@ -87,20 +134,72 @@
             ],
             "parameters": {
                 "eventName": "view_item",
-                "measurementId": "{{GA4 Measurement ID}}"
+                "measurementId": "{{GA4 Measurement ID}}",
+                "eventParameters": {
+                    "value": "{{Item Value}}",
+                    "currency": "{{Currency Code}}",
+                    "items": "{{Items Array}}",
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "item_category": "tour"
+                }
             }
         },
         {
             "name": "Google Ads - View Item Conversion",
             "type": "awct",
             "firingTriggers": [
-                "View Item Event"
+                "Google Ads Conversion - View Item"
             ],
             "parameters": {
                 "conversionId": "{{Google Ads Conversion ID}}",
                 "conversionLabel": "{{View Item Conversion Label}}",
-                "conversionValue": "{{Item Value}}",
-                "currencyCode": "JPY"
+                "conversionValue": "{{Conversion Value}}",
+                "currencyCode": "{{Currency Code}}",
+                "customParameters": {
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "item_category": "tour"
+                }
+            }
+        },
+        {
+            "name": "GA4 - Add Payment Info Event",
+            "type": "gaawe",
+            "firingTriggers": [
+                "Add Payment Info Event"
+            ],
+            "parameters": {
+                "eventName": "add_payment_info",
+                "measurementId": "{{GA4 Measurement ID}}",
+                "eventParameters": {
+                    "value": "{{Payment Value}}",
+                    "currency": "{{Currency Code}}",
+                    "payment_type": "{{Payment Provider}}",
+                    "tour_id": "{{Tour ID}}"
+                }
+            }
+        },
+        {
+            "name": "Google Ads - Add Payment Info Conversion",
+            "type": "awct",
+            "firingTriggers": [
+                "Google Ads Conversion - Add Payment Info"
+            ],
+            "parameters": {
+                "conversionId": "{{Google Ads Conversion ID}}",
+                "conversionLabel": "{{Add Payment Info Conversion Label}}",
+                "conversionValue": "{{Conversion Value}}",
+                "currencyCode": "{{Currency Code}}",
+                "enableEnhancedConversions": true,
+                "enhancedConversionData": {
+                    "email": "{{Enhanced - Email Hash}}",
+                    "phone_number": "{{Enhanced - Phone Hash}}"
+                },
+                "customParameters": {
+                    "payment_provider": "{{Payment Provider}}",
+                    "tour_id": "{{Tour ID}}"
+                }
             }
         }
     ],
@@ -136,6 +235,38 @@
             "customEventFilter": {
                 "eventName": "add_payment_info"
             }
+        },
+        {
+            "name": "Google Ads Conversion - Purchase",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "google_ads_conversion",
+                "eventLabel": "purchase"
+            }
+        },
+        {
+            "name": "Google Ads Conversion - Begin Checkout",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "google_ads_conversion",
+                "eventLabel": "begin_checkout"
+            }
+        },
+        {
+            "name": "Google Ads Conversion - View Item",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "google_ads_conversion",
+                "eventLabel": "view_item"
+            }
+        },
+        {
+            "name": "Google Ads Conversion - Add Payment Info",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "google_ads_conversion",
+                "eventLabel": "add_payment_info"
+            }
         }
     ],
     "variables": [
@@ -165,6 +296,11 @@
             "value": "QrS-T_uvWxYzAbCdEf"
         },
         {
+            "name": "Add Payment Info Conversion Label",
+            "type": "c",
+            "value": "MnO-P_qrStUvWxYzAb"
+        },
+        {
             "name": "Transaction Value",
             "type": "v",
             "dataLayerVariable": "value"
@@ -176,6 +312,16 @@
         },
         {
             "name": "Item Value",
+            "type": "v",
+            "dataLayerVariable": "value"
+        },
+        {
+            "name": "Payment Value",
+            "type": "v",
+            "dataLayerVariable": "value"
+        },
+        {
+            "name": "Conversion Value",
             "type": "v",
             "dataLayerVariable": "value"
         },
@@ -193,6 +339,46 @@
             "name": "Items Array",
             "type": "v",
             "dataLayerVariable": "items"
+        },
+        {
+            "name": "Tour ID",
+            "type": "v",
+            "dataLayerVariable": "custom_parameters.tour_id"
+        },
+        {
+            "name": "Tour Name",
+            "type": "v",
+            "dataLayerVariable": "custom_parameters.tour_name"
+        },
+        {
+            "name": "Booking Date",
+            "type": "v",
+            "dataLayerVariable": "custom_parameters.booking_date"
+        },
+        {
+            "name": "Payment Provider",
+            "type": "v",
+            "dataLayerVariable": "custom_parameters.payment_provider"
+        },
+        {
+            "name": "Enhanced - Email Hash",
+            "type": "v",
+            "dataLayerVariable": "enhanced_conversion_data.email"
+        },
+        {
+            "name": "Enhanced - Phone Hash",
+            "type": "v",
+            "dataLayerVariable": "enhanced_conversion_data.phone_number"
+        },
+        {
+            "name": "Enhanced - First Name Hash",
+            "type": "v",
+            "dataLayerVariable": "enhanced_conversion_data.first_name"
+        },
+        {
+            "name": "Enhanced - Last Name Hash",
+            "type": "v",
+            "dataLayerVariable": "enhanced_conversion_data.last_name"
         }
     ],
     "enhancedConversions": {

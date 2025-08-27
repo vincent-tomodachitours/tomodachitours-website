@@ -180,6 +180,24 @@
     });
   </script>
 
+  <!-- Google Ads Conversion Tracking Snippet -->
+  <script>
+    function gtag_report_conversion(url) {
+      var callback = function () {
+        if (typeof (url) != 'undefined') {
+          window.location = url;
+        }
+      };
+      gtag('event', 'conversion', {
+        'send_to': 'AW-17482092392/mEaUCKmY8Y0bEOiejpBB',
+        'value': 5000.0,
+        'currency': 'JPY',
+        'event_callback': callback
+      });
+      return false;
+    }
+  </script>
+
   <title>Tomodachi Tours - Kyoto English Walking Tours</title>
 </head>
 

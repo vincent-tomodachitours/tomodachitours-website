@@ -7,28 +7,28 @@
   - Create environment variables for GTM container ID and configuration
   - _Requirements: 2.1, 2.2, 10.1_
 
-- [ ] 2. Implement GTM service layer to replace direct gtag calls
+- [x] 2. Implement GTM service layer to replace direct gtag calls
   - Create customer/src/services/gtmService.js with dataLayer management functions
   - Implement pushEvent, setUserProperties, and initialization methods
   - Add GTM loading validation and fallback mechanisms for gtag
   - Write unit tests for GTM service functionality
   - _Requirements: 2.1, 2.4, 9.3_
 
-- [ ] 3. Create simplified booking flow state management
+- [x] 3. Create simplified booking flow state management
   - Create customer/src/services/bookingFlowManager.js for centralized booking state
   - Implement clear booking progression steps (view_item, begin_checkout, add_payment_info, purchase)
   - Add booking state validation and conversion point tracking
   - Write unit tests for booking flow state management
   - _Requirements: 6.1, 9.1, 9.2_
 
-- [ ] 4. Configure Google Ads conversion actions and labels in GTM
+- [x] 4. Configure Google Ads conversion actions and labels in GTM
   - Set up Google Ads conversion tracking tags in GTM container
   - Configure proper conversion labels for purchase, begin_checkout, and view_item events
   - Add conversion value and currency configuration with dynamic values
   - Test conversion tag firing using GTM preview mode
   - _Requirements: 1.1, 1.2, 10.1, 10.2_
 
-- [ ] 5. Implement enhanced conversions service with customer data hashing
+- [x] 5. Implement enhanced conversions service with customer data hashing
   - Create customer/src/services/enhancedConversionService.js for customer data processing
   - Implement SHA-256 hashing for email, phone, and name data
   - Add privacy compliance validation and GDPR consent checking
