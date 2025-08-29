@@ -27,7 +27,7 @@ const Jobs = () => {
                         <div className='flex flex-wrap gap-4 text-sm'>
                             <span className='bg-blue-100 text-blue-800 px-3 py-1 rounded-full'>Part-time</span>
                             <span className='bg-green-100 text-green-800 px-3 py-1 rounded-full'>Flexible Schedule</span>
-                            <span className='bg-purple-100 text-purple-800 px-3 py-1 rounded-full'>¥1,500 - ¥2,250/hour</span>
+                            <span className='bg-purple-100 text-purple-800 px-3 py-1 rounded-full'>¥1,650 - ¥2,250/hour</span>
                         </div>
                     </div>
 
@@ -208,7 +208,7 @@ const Jobs = () => {
                                     <div className='flex items-center gap-3'>
                                         <span className='bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm'>¥</span>
                                         <div>
-                                            <p className='font-semibold text-gray-800'>Hourly Pay: ¥1,500 – ¥2,250</p>
+                                            <p className='font-semibold text-gray-800'>Hourly Pay: ¥1,650 – ¥2,250</p>
                                             <p className='text-sm text-gray-600'>Freelance contract</p>
                                         </div>
                                     </div>

@@ -20,6 +20,7 @@ import Login from './components/Login';
 import Jobs from './Pages/Jobs';
 import { initializeAnalytics } from './services/analytics';
 import MusicTour from './Pages/MusicTour';
+import KyotoItinerary from './Pages/KyotoItinerary';
 
 function App() {
   // Initialize Google Analytics 4
@@ -39,6 +40,7 @@ function App() {
         <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
         <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
         <Route path="/tours/kyoto-gion-early-morning-walking-tour" element={<GionTour />} />
+        <Route path="/kyoto-itinerary" element={<KyotoItinerary />} />
         <Route path="/about" element={<About />} />
         <Route path="recommendations" element={<Recommendations />} />
         <Route path="/jobs" element={<Jobs />} />

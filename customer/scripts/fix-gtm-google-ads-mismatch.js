@@ -50,7 +50,9 @@ const trackingCode = `<!-- Google Ads Direct Tracking (alongside GTM) -->
   gtag('js', new Date());
   
   gtag('config', 'G-5GVJBRE1SY');
-  gtag('config', 'AW-17482092392');
+  gtag('config', 'AW-17482092392', {
+    send_page_view: false
+  });
   
   // Listen for GTM events and mirror them to direct gtag
   window.dataLayer.push = function(obj) {

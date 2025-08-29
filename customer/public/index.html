@@ -418,8 +418,10 @@
     // Configure GA4
     gtag('config', 'G-5GVJBRE1SY');
 
-    // Configure Google Ads
-    gtag('config', 'AW-17482092392');
+    // Configure Google Ads (disable automatic page view events)
+    gtag('config', 'AW-17482092392', {
+      send_page_view: false
+    });
 
     // Store gtag function globally for conversion tracking
     window.gtagConversion = gtag;

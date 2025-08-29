@@ -21,7 +21,7 @@ const Header1 = () => {
     }, [menuOpen]);
 
     return (
-        <div className='w-full h-20 bg-stone-200'>
+        <div className='w-full h-20 bg-stone-200 sticky top-0 z-40'>
             <div className='max-w-7xl h-full mx-auto flex items-center justify-between lg:justify-center relative'>
                 <div className='hidden lg:flex gap-6 absolute left-4 font-ubuntu text-sm'>
                     <Link to="/" className='text-gray-700 hover:text-blue-600 transition-colors relative group'>
