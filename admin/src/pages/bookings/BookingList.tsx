@@ -500,7 +500,7 @@ const BookingList: React.FC = () => {
                             Tour Types
                         </label>
                         <div className="space-y-2">
-                            {(['NIGHT_TOUR', 'MORNING_TOUR', 'UJI_TOUR', 'GION_TOUR'] as TourType[]).map(type => (
+                            {(['NIGHT_TOUR', 'MORNING_TOUR', 'UJI_TOUR', 'UJI_WALKING_TOUR', 'GION_TOUR'] as TourType[]).map(type => (
                                 <label key={type} className="flex items-center">
                                     <input
                                         type="checkbox"

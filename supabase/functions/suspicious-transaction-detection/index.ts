@@ -241,7 +241,8 @@ export class SuspiciousTransactionDetector {
             'morning-tour': { min: 5000, max: 15000 },
             'night-tour': { min: 8000, max: 20000 },
             'gion-tour': { min: 10000, max: 25000 },
-            'uji-tour': { min: 15000, max: 35000 }
+            'uji-tour': { min: 15000, max: 35000 },
+            'uji-walking-tour': { min: 12000, max: 30000 }
         };
 
         const priceRange = tourPriceRanges[data.tourId as keyof typeof tourPriceRanges];

@@ -35,10 +35,34 @@ const LoadingOrErrorState = ({ isLoading, heroImage }) => (
                 alt="Bamboo forest"
                 className='absolute inset-0 w-full h-full object-cover transform scale-105 animate-ken-burns'
             />
-            <div className='relative z-20 h-full flex items-center justify-center px-4'>
-                <h1 className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-ubuntu font-bold text-center text-white max-w-5xl mx-auto leading-tight'>
+            <div className='relative z-20 h-full flex flex-col items-center justify-center px-4'>
+                <h1 className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-ubuntu font-bold text-center text-white max-w-5xl mx-auto leading-tight mb-8'>
                     Discover Kyoto Beyond the Guidebooks
                 </h1>
+
+                {/* Animated Down Arrows */}
+                <div className='absolute bottom-8 left-0 right-0 flex justify-center animate-bounce'>
+                    <div className='flex flex-col items-center cursor-pointer group' onClick={() => {
+                        document.querySelector('main').scrollIntoView({ behavior: 'smooth' });
+                    }}>
+                        <svg
+                            className='w-24 h-6 text-white group-hover:text-blue-300 transition-colors duration-300'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 48 12'
+                        >
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='3' d='M36 3l-12 6m0 0l-12-6' />
+                        </svg>
+                        <svg
+                            className='w-24 h-6 text-white group-hover:text-blue-300 transition-colors duration-300'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 48 12'
+                        >
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='3' d='M36 3l-12 6m0 0l-12-6' />
+                        </svg>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -90,17 +114,24 @@ const LoadingOrErrorState = ({ isLoading, heroImage }) => (
     </div>
 );
 
-const TourCard = ({ image, imageAlt, title, description, price, link }) => (
+const TourCard = ({ image, imageAlt, title, description, price, link, badge }) => (
     <Link
         to={link}
         className='group bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full'
     >
-        <div className='aspect-[16/9] overflow-hidden'>
+        <div className='aspect-[16/9] overflow-hidden relative'>
             <img
                 src={image}
                 alt={imageAlt}
                 className='w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110'
             />
+            {badge && (
+                <div className='absolute top-4 left-4 z-10'>
+                    <span className='bg-white text-emerald-700 px-3 py-1.5 rounded-full text-base font-bold shadow-lg'>
+                        {badge}
+                    </span>
+                </div>
+            )}
         </div>
         <div className='p-6 flex flex-col flex-grow'>
             <h3 className='text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300 mb-4'>
@@ -183,10 +214,34 @@ const Home = () => {
                     alt="Bamboo forest"
                     className='absolute inset-0 w-full h-full object-cover transform scale-105 animate-ken-burns'
                 />
-                <div className='relative z-20 h-full flex items-center justify-center px-4'>
-                    <h1 className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-ubuntu font-bold text-center text-white max-w-5xl mx-auto leading-tight'>
+                <div className='relative z-20 h-full flex flex-col items-center justify-center px-4'>
+                    <h1 className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-ubuntu font-bold text-center text-white max-w-5xl mx-auto leading-tight mb-8'>
                         Discover Kyoto Beyond the Guidebooks
                     </h1>
+
+                    {/* Animated Down Arrows */}
+                    <div className='absolute bottom-8 left-0 right-0 flex justify-center animate-bounce'>
+                        <div className='flex flex-col items-center cursor-pointer group' onClick={() => {
+                            document.querySelector('main').scrollIntoView({ behavior: 'smooth' });
+                        }}>
+                            <svg
+                                className='w-24 h-6 text-white group-hover:text-blue-300 transition-colors duration-300'
+                                fill='none'
+                                stroke='currentColor'
+                                viewBox='0 0 48 12'
+                            >
+                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='3' d='M36 3l-12 6m0 0l-12-6' />
+                            </svg>
+                            <svg
+                                className='w-24 h-6 text-white group-hover:text-blue-300 transition-colors duration-300'
+                                fill='none'
+                                stroke='currentColor'
+                                viewBox='0 0 48 12'
+                            >
+                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='3' d='M36 3l-12 6m0 0l-12-6' />
+                            </svg>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -219,6 +274,7 @@ const Home = () => {
                             description={tours['morning-tour']['tour-description']}
                             price={`¥ ${tours['morning-tour']['tour-price'].toLocaleString('en-US')}`}
                             link="/tours/kyoto-early-bird-english-tour"
+                            badge="Best Seller"
                         />
                         <TourCard
                             image={ujiTour}

@@ -9,6 +9,7 @@ import TermsOfService from './Pages/TermsOfService';
 import About from './Pages/About';
 import MorningTour from './Pages/MorningTour';
 import UjiTour from './Pages/UjiTour';
+import UjiWalkingTour from './Pages/UjiWalkingTour';
 import ScrollToTop from './Components/ScrollToTop';
 import GionTour from './Pages/GionTour';
 import CommercialDisclosure from './Pages/CommercialDisclosure';
@@ -39,6 +40,7 @@ function App() {
         <Route path="/tours/kyoto-music-culture-walking-tour" element={<MusicTour />} />
         <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
         <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
+        <Route path="/tours/uji-walking-tour" element={<UjiWalkingTour />} />
         <Route path="/tours/kyoto-gion-early-morning-walking-tour" element={<GionTour />} />
         <Route path="/kyoto-itinerary" element={<KyotoItinerary />} />
         <Route path="/about" element={<About />} />

@@ -188,6 +188,7 @@ const handler = async (req: Request): Promise<Response> => {
         'morning-tour': 'Morning Walking Tour',
         'night-tour': 'Night Walking Tour',
         'uji-tour': 'Uji Tea Tour',
+        'uji-walking-tour': 'Uji Walking Tour',
         'gion-tour': 'Gion District Tour'
       }
 

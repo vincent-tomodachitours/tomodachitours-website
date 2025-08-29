@@ -211,7 +211,7 @@ export type Database = {
     Enums: {
       booking_status: "PENDING_PAYMENT" | "CONFIRMED" | "CANCELLED"
       discount_type: "PERCENTAGE" | "FIXED"
-      tour_type: "NIGHT_TOUR" | "MORNING_TOUR" | "UJI_TOUR" | "GION_TOUR"
+      tour_type: "NIGHT_TOUR" | "MORNING_TOUR" | "UJI_TOUR" | "UJI_WALKING_TOUR" | "GION_TOUR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -332,7 +332,7 @@ export const Constants = {
     Enums: {
       booking_status: ["PENDING_PAYMENT", "CONFIRMED", "CANCELLED"],
       discount_type: ["PERCENTAGE", "FIXED"],
-      tour_type: ["NIGHT_TOUR", "MORNING_TOUR", "UJI_TOUR", "GION_TOUR"],
+      tour_type: ["NIGHT_TOUR", "MORNING_TOUR", "UJI_TOUR", "UJI_WALKING_TOUR", "GION_TOUR"],
     },
   },
 } as const

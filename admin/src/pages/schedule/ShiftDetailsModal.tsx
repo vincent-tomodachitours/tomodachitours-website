@@ -95,7 +95,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
 
         // Group shifts by tour type and time
         const availableShifts = dayShifts.filter(s => s.status === 'available');
-        const tourTypes = ['NIGHT_TOUR', 'MORNING_TOUR', 'UJI_TOUR', 'GION_TOUR'] as TourType[];
+        const tourTypes = ['NIGHT_TOUR', 'MORNING_TOUR', 'UJI_TOUR', 'UJI_WALKING_TOUR', 'GION_TOUR'] as TourType[];
 
         // Check if available for all major tour types with reasonable coverage
         const tourTypeCoverage = tourTypes.reduce((acc, tourType) => {

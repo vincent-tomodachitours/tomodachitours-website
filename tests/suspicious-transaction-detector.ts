@@ -69,6 +69,7 @@ export class SuspiciousTransactionDetector {
             'night-tour': { min: 8000, max: 20000 },
             'gion-tour': { min: 10000, max: 25000 },
             'uji-tour': { min: 15000, max: 35000 },
+            'uji-walking-tour': { min: 12000, max: 30000 },
         };
 
         const typical = typicalAmounts[transactionData.tourId];

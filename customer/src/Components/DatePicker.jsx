@@ -132,7 +132,8 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                 const promise = (async (date) => {
                     try {
                         const dateStr = date.toLocaleDateString("en-CA");
-                        const timeSlots = await bokunAvailabilityService.getAvailableTimeSlots(sheetId, dateStr);
+                        const availabilitySource = getAvailabilitySource(sheetId);
+                        const timeSlots = await bokunAvailabilityService.getAvailableTimeSlots(availabilitySource, dateStr);
 
                         const hasAvailability = timeSlots && timeSlots.length > 0;
 
@@ -180,7 +181,14 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
         }
     }, [sheetId, availableTimes]);
 
-
+    // Helper function to get the availability source for a tour
+    const getAvailabilitySource = useCallback((tourSheetId) => {
+        // Map tours that should share availability
+        const availabilityMap = {
+            'UJI_WALKING_TOUR': 'UJI_TOUR', // Walking tour uses same availability as main Uji tour
+        };
+        return availabilityMap[tourSheetId] || tourSheetId;
+    }, []);
 
     /**
  * Get available time slots for a date combining local and Bokun data
@@ -190,7 +198,8 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
 
         try {
             // Get Bokun time slots
-            const bokunTimeSlots = await bokunAvailabilityService.getAvailableTimeSlots(sheetId, dateKey);
+            const availabilitySource = getAvailabilitySource(sheetId);
+            const bokunTimeSlots = await bokunAvailabilityService.getAvailableTimeSlots(availabilitySource, dateKey);
 
             // If we have Bokun data, use it; otherwise fall back to configured times
             if (bokunTimeSlots && bokunTimeSlots.length > 0) {
@@ -204,7 +213,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             console.log('💾 DatePicker: Falling back to configured times:', availableTimes);
             return availableTimes; // Fall back to configured times
         }
-    }, [sheetId, availableTimes]);
+    }, [sheetId, availableTimes, getAvailabilitySource]);
 
     const fetchBookings = useCallback(async () => {
         // Convert sheetId to match database tour_type format
@@ -212,6 +221,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
             'NIGHT_TOUR': 'NIGHT_TOUR',
             'MORNING_TOUR': 'MORNING_TOUR',
             'UJI_TOUR': 'UJI_TOUR',
+            'UJI_WALKING_TOUR': 'UJI_TOUR', // Use same availability as UJI_TOUR
             'GION_TOUR': 'GION_TOUR',
             'MUSIC_TOUR': 'MUSIC_TOUR',
             // Keep backwards compatibility

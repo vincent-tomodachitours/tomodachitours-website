@@ -37,6 +37,7 @@ const BookingCancellation = () => {
             'NIGHT_TOUR': 'night-tour',
             'MORNING_TOUR': 'morning-tour',
             'UJI_TOUR': 'uji-tour',
+            'UJI_WALKING_TOUR': 'uji-walking-tour',
             'GION_TOUR': 'gion-tour'
         }[tourType];
 

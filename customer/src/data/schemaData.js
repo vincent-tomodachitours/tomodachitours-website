@@ -262,6 +262,54 @@ export const tourSchemas = {
         }
     },
 
+    ujiWalkingTour: {
+        "@context": "https://schema.org",
+        "@type": "TouristAttraction",
+        "name": "Uji Walking Tour",
+        "description": "Explore historic Uji, Japan's tea capital, on this immersive walking tour. Visit UNESCO World Heritage Byodo-in Temple and ancient shrines with our English guide.",
+        "image": "https://tomodachitours.com/IMG/Uji-Tour/byodoin.webp",
+        "url": "https://tomodachitours.com/tours/uji-walking-tour",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Uji",
+            "addressLocality": "Uji, Kyoto",
+            "addressRegion": "Kyoto Prefecture",
+            "postalCode": "611-0021",
+            "addressCountry": "JP"
+        },
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 34.8841,
+            "longitude": 135.8067
+        },
+        "openingHours": "Mo-Su 09:00-16:00",
+        "isAccessibleForFree": false,
+        "publicAccess": true,
+        "touristType": "International Visitors",
+        "availableLanguage": "English",
+        "duration": "PT3H30M",
+        "offers": {
+            "@type": "Offer",
+            "price": "18500",
+            "priceCurrency": "JPY",
+            "availability": "https://schema.org/InStock",
+            "url": "https://tomodachitours.com/tours/uji-walking-tour",
+            "validFrom": "2025-02-08"
+        },
+        "provider": {
+            "@type": "TravelAgency",
+            "name": "Tomodachi Tours",
+            "url": "https://tomodachitours.com"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "5.0",
+            "reviewCount": "5",
+            "bestRating": "5",
+            "worstRating": "1"
+        }
+    },
+
     gionTour: {
         "@context": "https://schema.org",
         "@type": "TouristAttraction",

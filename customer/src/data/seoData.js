@@ -29,6 +29,12 @@ export const seoData = {
         keywords: "Uji matcha tour, matcha grinding experience, Uji tea tour, Japanese tea culture, Kyoto Uji tour, matcha experience Japan, Byodo-in temple tour, UNESCO World Heritage Uji, authentic matcha experience, English guide Uji"
     },
 
+    ujiWalkingTour: {
+        title: "Uji Walking Tour | Historic Tea Capital | Byodo-in Temple | English Guide Kyoto",
+        description: "Explore historic Uji, Japan's tea capital, on this immersive walking tour. Visit UNESCO World Heritage Byodo-in Temple (10-yen coin), ancient shrines, and scenic bridges with English guide.",
+        keywords: "Uji walking tour, Uji historic tour, Byodo-in temple tour, Japanese tea capital tour, Uji shrine tour, UNESCO World Heritage Uji, Uji river tour, historic Uji walking, English guide Uji, Kyoto Uji tour"
+    },
+
     gionTour: {
         title: "Gion District Early Morning Tour | Geisha Culture | Avoid Crowds | English Guide Kyoto",
         description: "Explore Kyoto's famous geisha district before crowds arrive. Walk historic Gion streets, visit Yasaka Shrine, Kiyomizu Temple. Learn authentic geisha culture with local English guide.",

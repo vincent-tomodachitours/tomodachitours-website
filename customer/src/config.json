@@ -37,6 +37,18 @@
     ],
     "max-participants": 6
   },
+  "uji-walking-tour": {
+    "tour-title": "Uji Walking Tour",
+    "tour-description": "Explore the historic town of Uji, the birthplace of Japanese tea culture. Visit the famous Byodo-in temple and discover the rich history and traditions of Japan's tea capital.",
+    "tour-price": 18500,
+    "tour-duration": "3.5 hours",
+    "reviews": 5,
+    "time-slots": [
+      "9:30",
+      "13:30"
+    ],
+    "max-participants": 8
+  },
   "gion-tour": {
     "tour-title": "Kyoto Gion Early Morning Walking Tour",
     "tour-description": "Experience Kyoto’s most iconic sights before the crowds arrive! Our early morning walking tour takes you through the historic streets of Gion, Geisha-district, Kiyomizurdera Temple and Yasaka Shrine.",
