@@ -1,0 +1,425 @@
+{
+    "container": {
+        "name": "Tomodachi Tours - Customer Site",
+        "description": "Google Tag Manager container for Tomodachi Tours customer-facing website with GA4 and Google Ads conversion tracking",
+        "usage": "web"
+    },
+    "workspace": {
+        "name": "Production Workspace",
+        "description": "Main workspace for production GTM container"
+    },
+    "accounts": {
+        "ga4": {
+            "measurementId": "G-5GVJBRE1SY",
+            "name": "Tomodachi Tours GA4"
+        },
+        "googleAds": {
+            "conversionId": "AW-17482092392",
+            "name": "Tomodachi Tours Google Ads"
+        }
+    },
+    "tags": [
+        {
+            "name": "GA4 Configuration",
+            "type": "gaawe",
+            "firingTriggers": [
+                "Initialization - All Pages"
+            ],
+            "parameters": {
+                "measurementId": "{{GA4 Measurement ID}}",
+                "enableEcommerce": true,
+                "enhancedEcommerce": true,
+                "customParameters": {
+                    "custom_map.tour_id": "tour_id",
+                    "custom_map.tour_name": "tour_name",
+                    "custom_map.booking_date": "booking_date",
+                    "custom_map.payment_provider": "payment_provider"
+                }
+            }
+        },
+        {
+            "name": "GA4 - Purchase Event",
+            "type": "gaawe",
+            "firingTriggers": [
+                "Purchase Event"
+            ],
+            "parameters": {
+                "eventName": "purchase",
+                "measurementId": "{{GA4 Measurement ID}}",
+                "enhancedEcommerce": true,
+                "sendTo": "{{GA4 Measurement ID}}",
+                "eventParameters": {
+                    "transaction_id": "{{Transaction ID}}",
+                    "value": "{{Transaction Value}}",
+                    "currency": "JPY",
+                    "items": "{{Items Array}}",
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "tour_category": "{{Tour Category}}",
+                    "tour_location": "{{Tour Location}}",
+                    "booking_date": "{{Booking Date}}",
+                    "payment_provider": "{{Payment Provider}}",
+                    "enhanced_ecommerce": true
+                }
+            }
+        },
+        {
+            "name": "Google Ads - Purchase Conversion",
+            "type": "awct",
+            "firingTriggers": [
+                "Google Ads Conversion - Purchase"
+            ],
+            "parameters": {
+                "conversionId": "{{Google Ads Conversion ID}}",
+                "conversionLabel": "{{Purchase Conversion Label}}",
+                "conversionValue": "{{Conversion Value}}",
+                "currencyCode": "{{Currency Code}}",
+                "orderId": "{{Transaction ID}}",
+                "enableEnhancedConversions": true,
+                "enhancedConversionData": {
+                    "email": "{{Enhanced - Email Hash}}",
+                    "phone_number": "{{Enhanced - Phone Hash}}",
+                    "first_name": "{{Enhanced - First Name Hash}}",
+                    "last_name": "{{Enhanced - Last Name Hash}}"
+                },
+                "customParameters": {
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "booking_date": "{{Booking Date}}",
+                    "payment_provider": "{{Payment Provider}}"
+                }
+            }
+        },
+        {
+            "name": "GA4 - Begin Checkout Event",
+            "type": "gaawe",
+            "firingTriggers": [
+                "Begin Checkout Event"
+            ],
+            "parameters": {
+                "eventName": "begin_checkout",
+                "measurementId": "{{GA4 Measurement ID}}",
+                "enhancedEcommerce": true,
+                "sendTo": "{{GA4 Measurement ID}}",
+                "eventParameters": {
+                    "value": "{{Checkout Value}}",
+                    "currency": "JPY",
+                    "items": "{{Items Array}}",
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "tour_category": "{{Tour Category}}",
+                    "checkout_step": 1,
+                    "checkout_option": "tour_booking",
+                    "enhanced_ecommerce": true
+                }
+            }
+        },
+        {
+            "name": "Google Ads - Begin Checkout Conversion",
+            "type": "awct",
+            "firingTriggers": [
+                "Google Ads Conversion - Begin Checkout"
+            ],
+            "parameters": {
+                "conversionId": "{{Google Ads Conversion ID}}",
+                "conversionLabel": "{{Begin Checkout Conversion Label}}",
+                "conversionValue": "{{Conversion Value}}",
+                "currencyCode": "{{Currency Code}}",
+                "enableEnhancedConversions": true,
+                "enhancedConversionData": {
+                    "email": "{{Enhanced - Email Hash}}",
+                    "phone_number": "{{Enhanced - Phone Hash}}"
+                },
+                "customParameters": {
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "checkout_step": "begin_checkout"
+                }
+            }
+        },
+        {
+            "name": "GA4 - View Item Event",
+            "type": "gaawe",
+            "firingTriggers": [
+                "View Item Event"
+            ],
+            "parameters": {
+                "eventName": "view_item",
+                "measurementId": "{{GA4 Measurement ID}}",
+                "enhancedEcommerce": true,
+                "sendTo": "{{GA4 Measurement ID}}",
+                "eventParameters": {
+                    "value": "{{Item Value}}",
+                    "currency": "JPY",
+                    "items": "{{Items Array}}",
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "tour_category": "{{Tour Category}}",
+                    "tour_location": "{{Tour Location}}",
+                    "item_category": "tour",
+                    "content_type": "product",
+                    "enhanced_ecommerce": true
+                }
+            }
+        },
+        {
+            "name": "Google Ads - View Item Conversion",
+            "type": "awct",
+            "firingTriggers": [
+                "Google Ads Conversion - View Item"
+            ],
+            "parameters": {
+                "conversionId": "{{Google Ads Conversion ID}}",
+                "conversionLabel": "{{View Item Conversion Label}}",
+                "conversionValue": "{{Conversion Value}}",
+                "currencyCode": "{{Currency Code}}",
+                "customParameters": {
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "item_category": "tour"
+                }
+            }
+        },
+        {
+            "name": "GA4 - Add Payment Info Event",
+            "type": "gaawe",
+            "firingTriggers": [
+                "Add Payment Info Event"
+            ],
+            "parameters": {
+                "eventName": "add_payment_info",
+                "measurementId": "{{GA4 Measurement ID}}",
+                "enhancedEcommerce": true,
+                "sendTo": "{{GA4 Measurement ID}}",
+                "eventParameters": {
+                    "value": "{{Payment Value}}",
+                    "currency": "JPY",
+                    "payment_type": "{{Payment Provider}}",
+                    "tour_id": "{{Tour ID}}",
+                    "tour_name": "{{Tour Name}}",
+                    "checkout_step": 2,
+                    "checkout_option": "payment_info",
+                    "enhanced_ecommerce": true
+                }
+            }
+        },
+        {
+            "name": "Google Ads - Add Payment Info Conversion",
+            "type": "awct",
+            "firingTriggers": [
+                "Google Ads Conversion - Add Payment Info"
+            ],
+            "parameters": {
+                "conversionId": "{{Google Ads Conversion ID}}",
+                "conversionLabel": "{{Add Payment Info Conversion Label}}",
+                "conversionValue": "{{Conversion Value}}",
+                "currencyCode": "{{Currency Code}}",
+                "enableEnhancedConversions": true,
+                "enhancedConversionData": {
+                    "email": "{{Enhanced - Email Hash}}",
+                    "phone_number": "{{Enhanced - Phone Hash}}"
+                },
+                "customParameters": {
+                    "payment_provider": "{{Payment Provider}}",
+                    "tour_id": "{{Tour ID}}"
+                }
+            }
+        }
+    ],
+    "triggers": [
+        {
+            "name": "Initialization - All Pages",
+            "type": "init"
+        },
+        {
+            "name": "Purchase Event",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "purchase"
+            }
+        },
+        {
+            "name": "Begin Checkout Event",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "begin_checkout"
+            }
+        },
+        {
+            "name": "View Item Event",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "view_item"
+            }
+        },
+        {
+            "name": "Add Payment Info Event",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "add_payment_info"
+            }
+        },
+        {
+            "name": "Google Ads Conversion - Purchase",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "google_ads_conversion",
+                "eventLabel": "purchase"
+            }
+        },
+        {
+            "name": "Google Ads Conversion - Begin Checkout",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "google_ads_conversion",
+                "eventLabel": "begin_checkout"
+            }
+        },
+        {
+            "name": "Google Ads Conversion - View Item",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "google_ads_conversion",
+                "eventLabel": "view_item"
+            }
+        },
+        {
+            "name": "Google Ads Conversion - Add Payment Info",
+            "type": "customEvent",
+            "customEventFilter": {
+                "eventName": "google_ads_conversion",
+                "eventLabel": "add_payment_info"
+            }
+        }
+    ],
+    "variables": [
+        {
+            "name": "GA4 Measurement ID",
+            "type": "c",
+            "value": "G-5GVJBRE1SY"
+        },
+        {
+            "name": "Google Ads Conversion ID",
+            "type": "c",
+            "value": "AW-17482092392"
+        },
+        {
+            "name": "Purchase Conversion Label",
+            "type": "c",
+            "value": "AbC-D_efGhIjKlMnOp"
+        },
+        {
+            "name": "Begin Checkout Conversion Label",
+            "type": "c",
+            "value": "XyZ-A_bcDeFgHiJkLm"
+        },
+        {
+            "name": "View Item Conversion Label",
+            "type": "c",
+            "value": "QrS-T_uvWxYzAbCdEf"
+        },
+        {
+            "name": "Add Payment Info Conversion Label",
+            "type": "c",
+            "value": "MnO-P_qrStUvWxYzAb"
+        },
+        {
+            "name": "Transaction Value",
+            "type": "v",
+            "dataLayerVariable": "value"
+        },
+        {
+            "name": "Checkout Value",
+            "type": "v",
+            "dataLayerVariable": "value"
+        },
+        {
+            "name": "Item Value",
+            "type": "v",
+            "dataLayerVariable": "value"
+        },
+        {
+            "name": "Payment Value",
+            "type": "v",
+            "dataLayerVariable": "value"
+        },
+        {
+            "name": "Conversion Value",
+            "type": "v",
+            "dataLayerVariable": "value"
+        },
+        {
+            "name": "Transaction ID",
+            "type": "v",
+            "dataLayerVariable": "transaction_id"
+        },
+        {
+            "name": "Currency Code",
+            "type": "v",
+            "dataLayerVariable": "currency"
+        },
+        {
+            "name": "Items Array",
+            "type": "v",
+            "dataLayerVariable": "items"
+        },
+        {
+            "name": "Tour ID",
+            "type": "v",
+            "dataLayerVariable": "custom_parameters.tour_id"
+        },
+        {
+            "name": "Tour Name",
+            "type": "v",
+            "dataLayerVariable": "custom_parameters.tour_name"
+        },
+        {
+            "name": "Booking Date",
+            "type": "v",
+            "dataLayerVariable": "custom_parameters.booking_date"
+        },
+        {
+            "name": "Payment Provider",
+            "type": "v",
+            "dataLayerVariable": "custom_parameters.payment_provider"
+        },
+        {
+            "name": "Enhanced - Email Hash",
+            "type": "v",
+            "dataLayerVariable": "enhanced_conversion_data.email"
+        },
+        {
+            "name": "Enhanced - Phone Hash",
+            "type": "v",
+            "dataLayerVariable": "enhanced_conversion_data.phone_number"
+        },
+        {
+            "name": "Enhanced - First Name Hash",
+            "type": "v",
+            "dataLayerVariable": "enhanced_conversion_data.first_name"
+        },
+        {
+            "name": "Enhanced - Last Name Hash",
+            "type": "v",
+            "dataLayerVariable": "enhanced_conversion_data.last_name"
+        }
+    ],
+    "enhancedConversions": {
+        "enabled": true,
+        "customerDataFields": [
+            "email",
+            "phone_number",
+            "first_name",
+            "last_name",
+            "street",
+            "city",
+            "region",
+            "postal_code",
+            "country"
+        ]
+    },
+    "debugMode": {
+        "enabled": true,
+        "previewUrl": "https://tomodachitours.com"
+    }
+}

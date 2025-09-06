@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#3B82F6" />
+
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="Tomodachi Tours - Kyoto English Walking Tours" />
+  <meta name="description"
+    content="Discover Kyoto beyond the guidebooks with our early morning and evening English walking tours. Experience Fushimi Inari, Arashiyama, Gion, and Uji while avoiding crowds." />
+  <meta name="keywords"
+    content="Kyoto tours, English tours Kyoto, Fushimi Inari tour, Arashiyama bamboo tour, Gion walking tour, Uji matcha tour, Japan tours, Kyoto guide" />
+  <meta name="author" content="Tomodachi Tours" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://tomodachitours.com/" />
+  <meta property="og:title" content="Tomodachi Tours - Kyoto English Walking Tours" />
+  <meta property="og:description"
+    content="Discover Kyoto beyond the guidebooks with our early morning and evening English walking tours. Experience authentic Japan while avoiding crowds." />
+  <meta property="og:image" content="%PUBLIC_URL%/logo-white.webp" />
+  <meta property="og:site_name" content="Tomodachi Tours" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://tomodachitours.com/" />
+  <meta property="twitter:title" content="Tomodachi Tours - Kyoto English Walking Tours" />
+  <meta property="twitter:description"
+    content="Discover Kyoto beyond the guidebooks with our early morning and evening English walking tours. Experience authentic Japan while avoiding crowds." />
+  <meta property="twitter:image" content="%PUBLIC_URL%/logo-white.webp" />
+
+  <!-- Additional SEO -->
+  <link rel="canonical" href="https://tomodachitours.com/" />
+
+  <!-- Performance Optimizations -->
+  <link rel="preconnect" href="https://js.pay.jp" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+  <link rel="dns-prefetch" href="https://www.googleadservices.com" />
+  <link rel="dns-prefetch" href="https://googleads.g.doubleclick.net" />
+  <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+
+  <!-- Google Tag Manager -->
+  <script>
+    // Initialize dataLayer before GTM loads
+    window.dataLayer = window.dataLayer || [];
+
+    // GTM initialization function
+    (function (w, d, s, l, i) {
+      w[l] = w[l] || []; w[l].push({
+        'gtm.start':
+          new Date().getTime(), event: 'gtm.js'
+      }); var f = d.getElementsByTagName(s)[0],
+        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', '%REACT_APP_GTM_CONTAINER_ID%');
+
+    // GTM loading timeout and fallback
+    window.gtmLoadTimeout = setTimeout(function () {
+      if (typeof window.google_tag_manager === 'undefined') {
+        console.warn('GTM failed to load within 5 seconds, initializing fallback tracking');
+        window.gtmFallbackMode = true;
+
+        // Initialize fallback gtag for direct GA4 tracking
+        if (!window.gtag) {
+          var script = document.createElement('script');
+          script.async = true;
+          script.src = 'https://www.googletagmanager.com/gtag/js?id=G-5GVJBRE1SY';
+          document.head.appendChild(script);
+
+          script.onload = function () {
+            window.gtag = function () { dataLayer.push(arguments); };
+            gtag('js', new Date());
+            gtag('config', 'G-5GVJBRE1SY', {
+              page_title: document.title,
+              page_location: window.location.href,
+              send_page_view: false
+            });
+            console.log('Fallback GA4 tracking initialized');
+          };
+        }
+      }
+    }, 5000);
+
+    // Clear timeout if GTM loads successfully
+    window.addEventListener('gtm.load', function () {
+      clearTimeout(window.gtmLoadTimeout);
+      console.log('GTM loaded successfully');
+    });
+  </script>
+
+  <!-- Google Ads Conversion Tracking -->
+  <script>
+    // Initialize conversion labels from environment variables
+    try {
+      window.conversionLabels = JSON.parse('%REACT_APP_GOOGLE_ADS_CONVERSION_LABELS%' || '{}');
+    } catch (e) {
+      console.warn('Failed to parse conversion labels:', e);
+      window.conversionLabels = {};
+    }
+
+    // Google Ads conversion tracking will be initialized by the React app
+    // This ensures proper access to environment variables
+    window.initGoogleAdsTracking = function (conversionId) {
+      if (typeof gtag !== 'undefined' && conversionId) {
+        gtag('config', conversionId);
+      }
+    };
+
+    // GTM and Analytics Testing Functions - Available immediately
+    window.testAnalytics = {
+      testSetup: function () {
+        console.log('🧪 Testing GTM and Analytics Setup...');
+        console.log('- dataLayer available:', typeof window.dataLayer);
+        console.log('- GTM loaded:', typeof window.google_tag_manager !== 'undefined');
+        console.log('- GTM fallback mode:', window.gtmFallbackMode || false);
+        console.log('- GA4 should be loaded with ID: G-5GVJBRE1SY');
+
+        if (typeof window.dataLayer !== 'undefined') {
+          console.log('✅ DataLayer is available for GTM events');
+          return true;
+        } else {
+          console.log('❌ DataLayer is NOT available');
+          return false;
+        }
+      },
+
+      testTourView: function () {
+        console.log('🧪 Testing Tour View Event via GTM DataLayer...');
+        if (typeof window.dataLayer !== 'undefined') {
+          window.dataLayer.push({
+            event: 'view_item',
+            event_category: 'ecommerce',
+            event_label: 'test_tour_view',
+            currency: 'JPY',
+            value: 5000,
+            items: [{
+              item_id: 'test_night_tour',
+              item_name: 'Test Night Tour View',
+              item_category: 'Tour',
+              price: 5000,
+              quantity: 1
+            }]
+          });
+          console.log('✅ Tour view event pushed to dataLayer');
+        } else {
+          console.log('❌ Cannot send event - dataLayer not available');
+        }
+      },
+
+      testBeginCheckout: function () {
+        console.log('🧪 Testing Begin Checkout Event via GTM DataLayer...');
+        if (typeof window.dataLayer !== 'undefined') {
+          window.dataLayer.push({
+            event: 'begin_checkout',
+            event_category: 'ecommerce',
+            event_label: 'test_begin_checkout',
+            currency: 'JPY',
+            value: 10000,
+            items: [{
+              item_id: 'test_night_tour',
+              item_name: 'Test Night Tour - Begin Checkout',
+              item_category: 'Tour',
+              price: 5000,
+              quantity: 2
+            }]
+          });
+          console.log('✅ Begin checkout event pushed to dataLayer');
+        } else {
+          console.log('❌ Cannot send event - dataLayer not available');
+        }
+      },
+
+      testAddPaymentInfo: function () {
+        console.log('🧪 Testing Add Payment Info Event via GTM DataLayer...');
+        if (typeof window.dataLayer !== 'undefined') {
+          window.dataLayer.push({
+            event: 'add_payment_info',
+            event_category: 'ecommerce',
+            event_label: 'test_add_payment_info',
+            currency: 'JPY',
+            value: 10000,
+            payment_type: 'credit_card',
+            items: [{
+              item_id: 'test_night_tour',
+              item_name: 'Test Night Tour - Add Payment Info',
+              item_category: 'Tour',
+              price: 5000,
+              quantity: 2
+            }]
+          });
+          console.log('✅ Add payment info event pushed to dataLayer');
+        } else {
+          console.log('❌ Cannot send event - dataLayer not available');
+        }
+      },
+
+      testPurchase: function () {
+        console.log('🧪 Testing Purchase Event via GTM DataLayer...');
+        if (typeof window.dataLayer !== 'undefined') {
+          const transactionId = 'test_' + Date.now();
+          window.dataLayer.push({
+            event: 'purchase',
+            event_category: 'ecommerce',
+            event_label: 'test_purchase',
+            transaction_id: transactionId,
+            currency: 'JPY',
+            value: 10000,
+            items: [{
+              item_id: 'test_night_tour',
+              item_name: 'Test Night Tour - Purchase',
+              item_category: 'Tour',
+              price: 5000,
+              quantity: 2
+            }],
+            // Enhanced conversion test data (hashed in real implementation)
+            user_data: {
+              email_hash: 'test_email_hash',
+              phone_hash: 'test_phone_hash'
+            }
+          });
+          console.log('✅ Purchase event pushed to dataLayer with transaction ID:', transactionId);
+        } else {
+          console.log('❌ Cannot send event - dataLayer not available');
+        }
+      },
+
+      testGTMDebug: function () {
+        console.log('🧪 Testing GTM Debug Information...');
+        console.log('- GTM Container ID should be: %REACT_APP_GTM_CONTAINER_ID%');
+        console.log('- Current dataLayer contents:', window.dataLayer);
+        console.log('- GTM object available:', typeof window.google_tag_manager);
+
+        if (typeof window.google_tag_manager !== 'undefined') {
+          console.log('✅ GTM is loaded and available');
+          console.log('📊 Use GTM Preview Mode to debug tag firing');
+        } else {
+          console.log('⚠️ GTM may not be loaded yet or fallback mode is active');
+        }
+      },
+
+      runAllTests: function () {
+        console.log('🚀 Running All GTM Analytics Tests...');
+        console.log('================================================');
+
+        if (!window.testAnalytics.testSetup()) {
+          console.log('❌ Setup test failed - stopping other tests');
+          return;
+        }
+
+        console.log('Running GTM debug check...');
+        window.testAnalytics.testGTMDebug();
+
+        console.log('Running events with 1 second delays...');
+        setTimeout(() => window.testAnalytics.testTourView(), 1000);
+        setTimeout(() => window.testAnalytics.testBeginCheckout(), 2000);
+        setTimeout(() => window.testAnalytics.testAddPaymentInfo(), 3000);
+        setTimeout(() => window.testAnalytics.testPurchase(), 4000);
+
+        setTimeout(() => {
+          console.log('================================================');
+          console.log('✅ All GTM tests completed!');
+          console.log('📊 Check Google Analytics 4 Realtime reports to see the events');
+          console.log('🔗 GA4 Realtime: https://analytics.google.com/analytics/web/#/p' + '/realtime');
+          console.log('🏷️ Use GTM Preview Mode to debug tag firing');
+          console.log('🔗 GTM Preview: https://tagmanager.google.com/');
+        }, 5000);
+      }
+    };
+
+    console.log('🧪 Analytics test functions loaded and available at window.testAnalytics');
+  </script>
+
+  <!-- Preload critical resources -->
+  <link rel="preload" href="/IMG/Morning-Tour/bamboo-main-highres1.85.webp" as="image" />
+
+
+  <!-- Production Tracking Meta Tags -->
+  <meta name="google-ads-tracking" content="enabled" />
+  <meta name="analytics-environment" content="production" />
+  <meta name="tracking-version" content="1.0.0" />
+  <!-- Security Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+
+  <!-- Core Structured Data - Always Present -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TravelAgency",
+    "name": "Tomodachi Tours",
+    "alternateName": "Tomodachi Tours Kyoto",
+    "description": "English walking tours in Kyoto focusing on early morning and evening experiences to avoid crowds while promoting sustainable tourism.",
+    "url": "https://tomodachitours.com",
+    "logo": "https://tomodachitours.com/logo-white.webp",
+    "image": "https://tomodachitours.com/logo-white.webp",
+    "telephone": "+81-90-7826-3513",
+    "email": "contact@tomodachitours.com",
+    "foundingDate": "2023",
+    "founder": {
+      "@type": "Person",
+      "name": "Shunsuke Hirota"
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Kyoto",
+      "addressRegion": "Kyoto Prefecture",
+      "addressCountry": "JP"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 35.0116,
+      "longitude": 135.7681
+    },
+    "areaServed": {
+      "@type": "City",
+      "name": "Kyoto"
+    },
+    "serviceType": "Walking Tours",
+    "priceRange": "¥¥",
+    "currenciesAccepted": "JPY",
+    "paymentAccepted": "Credit Card",
+    "openingHours": "Mo-Su 06:00-22:00",
+    "sameAs": [
+      "https://www.instagram.com/tomodachi_tours/",
+      "https://wa.me/+8109059609701"
+    ],
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Kyoto Walking Tours",
+      "itemListElement": [
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "TouristTrip",
+            "name": "Kyoto Fushimi Inari Night Walking Tour"
+          }
+        },
+        {
+          "@type": "Offer", 
+          "itemOffered": {
+            "@type": "TouristTrip",
+            "name": "Kyoto Early Bird English Tour"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "TouristTrip", 
+            "name": "Matcha Grinding Experience & Uji Walking Tour"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "TouristTrip",
+            "name": "Kyoto Gion Early Morning Walking Tour"
+          }
+        }
+      ]
+    }
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Tomodachi Tours",
+    "image": "https://tomodachitours.com/logo-white.webp",
+    "telephone": "+81-90-7826-3513",
+    "email": "contact@tomodachitours.com",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Available upon request",
+      "addressLocality": "Kyoto",
+      "addressRegion": "Kyoto Prefecture", 
+      "postalCode": "600-0000",
+      "addressCountry": "JP"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 35.0116,
+      "longitude": 135.7681
+    },
+    "url": "https://tomodachitours.com",
+    "openingHours": [
+      "Mo 06:00-22:00",
+      "Tu 06:00-22:00", 
+      "We 06:00-22:00",
+      "Th 06:00-22:00",
+      "Fr 06:00-22:00",
+      "Sa 06:00-22:00",
+      "Su 06:00-22:00"
+    ],
+    "priceRange": "¥¥",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5.0",
+      "reviewCount": "150",
+      "bestRating": "5",
+      "worstRating": "1"
+    }
+  }
+  </script>
+
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+  <script src="https://js.pay.jp/v2/pay.js"></script>
+  <title>Tomodachi Tours - Kyoto English Walking Tours</title>
+
+  <!-- Google Ads Direct Tracking (alongside GTM) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5GVJBRE1SY"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    // Configure GA4 (disable automatic page views - handled by React Router)
+    gtag('config', 'G-5GVJBRE1SY', {
+      send_page_view: false
+    });
+
+    // Configure Google Ads (disable automatic page view events)
+    gtag('config', 'AW-17482092392', {
+      send_page_view: false
+    });
+
+    // Store gtag function globally for conversion tracking
+    window.gtagConversion = gtag;
+
+    // Override dataLayer.push to mirror GTM events to direct gtag
+    const originalPush = window.dataLayer.push;
+    window.dataLayer.push = function (obj) {
+      // Call original push first
+      const result = originalPush.call(this, obj);
+
+      // Mirror purchase events to direct gtag (using environment variables)
+      if (obj.event === 'purchase' && obj.ecommerce && window.conversionLabels) {
+        const purchaseLabel = window.conversionLabels.purchase;
+        if (purchaseLabel) {
+          gtag('event', 'conversion', {
+            'send_to': `%REACT_APP_GOOGLE_ADS_CONVERSION_ID%/${purchaseLabel}`,
+            'value': obj.ecommerce.value || 0,
+            'currency': obj.ecommerce.currency || 'JPY',
+            'transaction_id': obj.ecommerce.transaction_id || ''
+          });
+          console.log('🎯 Direct gtag purchase conversion fired:', obj.ecommerce.transaction_id);
+        }
+      }
+
+      // Mirror begin_checkout events to direct gtag (using environment variables)
+      if (obj.event === 'begin_checkout' && obj.ecommerce && window.conversionLabels) {
+        const checkoutLabel = window.conversionLabels.begin_checkout;
+        if (checkoutLabel) {
+          gtag('event', 'conversion', {
+            'send_to': `%REACT_APP_GOOGLE_ADS_CONVERSION_ID%/${checkoutLabel}`,
+            'value': obj.ecommerce.value || 0,
+            'currency': obj.ecommerce.currency || 'JPY'
+          });
+          console.log('🎯 Direct gtag begin_checkout conversion fired:', obj.ecommerce.value);
+        }
+      }
+
+      // Mirror view_item events to direct gtag
+      if (obj.event === 'view_item' && obj.ecommerce) {
+        gtag('event', 'conversion', {
+          'send_to': 'AW-17482092392/6cIkCMn9540bEOiejpBB',
+          'value': obj.ecommerce.value || 0,
+          'currency': obj.ecommerce.currency || 'JPY'
+        });
+        console.log('🎯 Direct gtag view_item conversion fired:', obj.ecommerce.value);
+      }
+
+      return result;
+    };
+
+    console.log('✅ Google Ads direct tracking with GTM mirroring initialized');
+  </script>
+</head>
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=%REACT_APP_GTM_CONTAINER_ID%" height="0" width="0"
+      style="display:none;visibility:hidden"></iframe>
+  </noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+</body>
+
+</html>

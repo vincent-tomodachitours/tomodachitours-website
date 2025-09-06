@@ -1,0 +1,53 @@
+{
+  "night-tour": {
+    "tour-title": "Kyoto Fushimi-Inari Night Walking Tour",
+    "tour-description": "Join us an unforgettable evening walking tour of the Fushimi-Inari Shrine, enchanting sites away from the daytime crowds and immerse yourselves in the beautiful lantern light up.",
+    "tour-price": 6500,
+    "tour-duration": "90-120 minutes",
+    "reviews": 178,
+    "time-slots": [
+      "17:00",
+      "18:00",
+      "19:00"
+    ],
+    "max-participants": 12
+  },
+  "morning-tour": {
+    "tour-title": "Kyoto Early Bird English Tour: Fushimi-Inari and Arashiyama",
+    "tour-description": "Early morning is the key to avoid the crowds during peak tourist seasons! Hit three of the top historical attractions, Fushimi-Inari Shrine, Bamboo Grove, and Tenryu-ji Temple with our English speaking tour guide!",
+    "tour-price": 14500,
+    "tour-duration": "4.5 - 5 hours",
+    "reviews": 108,
+    "time-slots": [
+      "6:30",
+      "7:15",
+      "8:00",
+      "8:45"
+    ],
+    "max-participants": 9
+  },
+  "uji-tour": {
+    "tour-title": "Matcha Grinding Experience and Walking Tour in Uji Kyoto",
+    "tour-description": "Step into Uji, the Matcha Capital of Japan! Experience the finest Japanese green tea culture with a visit to the historic Byodo-in Temple, followed by an authentic matcha-making workshop.",
+    "tour-price": 22800,
+    "tour-duration": "4 hours",
+    "reviews": 5,
+    "time-slots": [
+      "9:30"
+    ],
+    "max-participants": 6
+  },
+  "gion-tour": {
+    "tour-title": "Kyoto Gion Early Morning Walking Tour",
+    "tour-description": "Experience Kyoto’s most iconic sights before the crowds arrive! Our early morning walking tour takes you through the historic streets of Gion, Geisha-district, Kiyomizurdera Temple and Yasaka Shrine.",
+    "tour-price": 7500,
+    "tour-duration": "3 hours",
+    "reviews": 7,
+    "time-slots": [
+      "6:30",
+      "7:15",
+      "8:00"
+    ],
+    "max-participants": 12
+  }
+}

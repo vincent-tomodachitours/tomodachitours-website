@@ -1,0 +1,233 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Tomodachi Tours Security Implementation Plan
+
+## Current Security Status
+
+### ✅ Already Implemented
+
+1. **Payment Security**
+   - PayJP integration with 3D Secure support
+   - Secure token handling (no card data stored)
+   - Payment validation using Zod schemas
+   - Secure error handling for payments
+
+2. **Input Validation & Data Protection**
+   - Zod schemas for all inputs
+   - Row Level Security (RLS) in Supabase
+   - Input sanitization
+   - SQL injection prevention via parameterized queries
+
+3. **Security Headers**
+   - HSTS
+   - CSP
+   - X-Frame-Options
+   - X-Content-Type-Options
+   - X-XSS-Protection
+
+4. **Environment Security**
+   - Secure secrets storage in Vercel/Supabase
+   - No hardcoded credentials
+   - Environment-specific configurations
+
+5. **Automated Security**
+   - Weekly security scans
+   - Dependency vulnerability checks
+   - Code quality and security analysis
+
+## Implementation Plan
+
+### Week 1: Rate Limiting & Basic Protection
+
+#### 1. Rate Limiting Implementation
+```typescript
+// Example implementation in Edge Function
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '1 m'), // 10 requests per minute
+  analytics: true
+})
+```
+
+#### Tasks:
+- [ ] Set up Upstash Redis for rate limiting
+- [ ] Implement rate limiting middleware for all Edge Functions
+- [ ] Add rate limit headers to responses
+- [ ] Configure different limits for different endpoints:
+  - Booking: 5 requests/minute
+  - Payment: 3 requests/minute
+  - General: 10 requests/minute
+
+#### 2. IP-Based Protection
+- [ ] Implement IP tracking in Edge Functions
+- [ ] Set up IP blacklist system
+- [ ] Add geolocation-based restrictions
+- [ ] Configure allowed countries list
+
+### Week 2: Payment Security Enhancement
+
+#### 1. Velocity Checks
+```typescript
+// Example velocity check implementation
+interface VelocityCheck {
+  ip: string;
+  email: string;
+  amount: number;
+  timestamp: number;
+}
+
+const checkVelocity = async (transaction: VelocityCheck): Promise<boolean> => {
+  const timeWindow = 1 * 60 * 60 * 1000; // 1 hour
+  const maxAmount = 100000; // ¥100,000
+  const maxTransactions = 3;
+  
+  // Implementation details...
+}
+```
+
+#### Tasks:
+- [ ] Implement transaction velocity monitoring
+- [ ] Set up amount-based limits
+- [ ] Add frequency checks per email/IP
+- [ ] Create alert system for suspicious patterns
+
+#### 2. Suspicious Transaction Detection
+- [ ] Implement risk scoring system
+- [ ] Add pattern detection for suspicious bookings
+- [ ] Set up automated flagging system
+- [ ] Create manual review queue for flagged transactions
+
+### Week 3-4: Logging & Monitoring
+
+#### 1. Logging System
+```typescript
+// Example logging setup
+interface SecurityLog {
+  timestamp: string;
+  event: string;
+  severity: 'low' | 'medium' | 'high';
+  details: Record<string, unknown>;
+  ip?: string;
+  userAgent?: string;
+}
+```
+
+#### Tasks:
+- [ ] Set up structured logging
+- [ ] Implement log rotation and retention
+- [ ] Add context-aware logging
+- [ ] Create log analysis tools
+
+#### 2. Monitoring System
+- [ ] Set up real-time monitoring dashboard
+- [ ] Implement alert thresholds
+- [ ] Create incident response procedures
+- [ ] Set up automated reporting
+
+### Month 2: Security Hardening
+
+#### 1. Enhanced Security Headers
+```typescript
+// Example security headers
+const securityHeaders = {
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.pay.jp; style-src 'self' 'unsafe-inline';",
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Feature-Policy': "camera 'none'; microphone 'none'; geolocation 'none'",
+  // Additional headers...
+}
+```
+
+#### Tasks:
+- [ ] Audit and update CSP rules
+- [ ] Implement Feature-Policy headers
+- [ ] Add Referrer-Policy headers
+- [ ] Configure additional security headers
+
+#### 2. General Security Improvements
+- [ ] Implement request sanitization
+- [ ] Add response sanitization
+- [ ] Set up security event logging
+- [ ] Create security incident playbooks
+
+## Monitoring & Maintenance Plan
+
+### Daily Monitoring
+- Check security logs
+- Review flagged transactions
+- Monitor rate limit violations
+- Check system performance
+
+### Weekly Tasks
+- Review security alerts
+- Analyze traffic patterns
+- Update IP blacklists
+- Check dependency vulnerabilities
+
+### Monthly Tasks
+- Full security audit
+- Update security policies
+- Review and update rate limits
+- Check and update allowed countries list
+
+## Emergency Response Plan
+
+### Security Incident Response
+1. Detect and classify incident
+2. Contain the incident
+3. Investigate root cause
+4. Implement fixes
+5. Document and report
+6. Review and improve
+
+### Contact Information
+- Security Team Email: security@tomodachitours.com
+- Emergency Contact: [Emergency Phone Number]
+- Incident Response Team: [Team Members]
+
+## Documentation & Training
+
+### Documentation Requirements
+- Security implementation details
+- Monitoring procedures
+- Incident response procedures
+- Regular update schedule
+
+### Review Schedule
+- Weekly security review
+- Monthly comprehensive audit
+- Quarterly policy review
+- Annual security assessment
+
+## Success Metrics
+
+### Key Performance Indicators
+- Number of security incidents
+- Rate limit violation frequency
+- Average response time to alerts
+- System uptime and availability
+
+### Monitoring Metrics
+- Failed payment attempts
+- Suspicious IP activities
+- Rate limit violations
+- Security alert frequency
+
+## Future Considerations
+
+### Potential Enhancements
+- Advanced fraud detection
+- Machine learning-based risk scoring
+- Enhanced monitoring capabilities
+- Automated response systems
+
+### Technology Stack Updates
+- Keep dependencies updated
+- Monitor for security patches
+- Review new security features
+- Plan for infrastructure updates

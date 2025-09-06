@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-08-15T04:53:21.014Z",
+  "environment": "production",
+  "status": "failed",
+  "errors": [
+    "Environment variable REACT_APP_GOOGLE_ADS_CONVERSION_LABELS contains placeholder values",
+    "Environment variable REACT_APP_TOUR_SPECIFIC_CONVERSION_LABELS contains placeholder values",
+    "Conversion label purchase contains placeholder values",
+    "Conversion label begin_checkout contains placeholder values",
+    "Conversion label view_item contains placeholder values",
+    "Conversion label add_to_cart contains placeholder values",
+    "Tour-specific label gion_purchase contains placeholder values",
+    "Tour-specific label morning_purchase contains placeholder values",
+    "Tour-specific label night_purchase contains placeholder values",
+    "Tour-specific label uji_purchase contains placeholder values"
+  ],
+  "warnings": [
+    "GTM container ID contains placeholder values"
+  ],
+  "deploymentLog": [
+    "Backup created at: /home/tyis/Tomodachi Tours/Website/tomodachitours/customer/backups/backup-2025-08-15T04-53-21-011Z"
+  ],
+  "configuration": {
+    "ga4Configured": true,
+    "googleAdsConfigured": false,
+    "gtmConfigured": false,
+    "tourSpecificTracking": true
+  }
+}

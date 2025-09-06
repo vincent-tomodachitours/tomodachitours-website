@@ -1,0 +1,122 @@
+{
+  "name": "tomodachitours",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
+    "@mui/material": "^5.15.10",
+    "@sendgrid/mail": "^8.1.5",
+    "@stripe/react-stripe-js": "^2.9.0",
+    "@stripe/stripe-js": "^2.4.0",
+    "@supabase/supabase-js": "^2.39.6",
+    "@tailwindcss/cli": "^0.1.2",
+    "@testing-library/dom": "^9.3.4",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.2.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@upstash/redis": "^1.28.4",
+    "autoprefixer": "^10.4.17",
+    "classnames": "^2.5.1",
+    "crypto-js": "^4.2.0",
+    "googleapis": "^133.0.0",
+    "node-fetch": "^3.3.2",
+    "nth-check": "^2.1.1",
+    "payjp": "^2.3.0",
+    "postcss": "^8.5.4",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-calendar": "^4.8.0",
+    "react-dom": "^18.2.0",
+    "react-phone-input-2": "^2.15.1",
+    "react-router-dom": "^6.22.1",
+    "react-scripts": "5.0.1",
+    "web-vitals": "^3.5.2",
+    "webpack-dev-server": "^5.2.2",
+    "yargs": "^17.7.2",
+    "yet-another-react-lightbox": "^3.15.6",
+    "zod": "^3.25.67"
+  },
+  "scripts": {
+    "dev": "react-scripts start",
+    "build": "react-scripts build",
+    "start": "react-scripts start",
+    "test": "react-scripts test",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:tracking-accuracy": "node src/services/__tests__/runTrackingAccuracyTests.js",
+    "test:tracking-accuracy:watch": "nodemon --exec \"npm run test:tracking-accuracy\"",
+    "test:e2e-tracking": "jest src/services/__tests__/endToEndTracking.test.js --verbose",
+    "test:attribution": "jest src/services/__tests__/attributionModels.test.js --verbose",
+    "test:privacy": "jest src/services/__tests__/privacyCompliance.test.js --verbose",
+    "test:performance": "jest src/services/__tests__/performanceImpact.test.js --verbose",
+    "test:validation": "jest src/services/__tests__/dataValidationAccuracy.test.js --verbose",
+    "test:gtm-comprehensive": "node src/services/__tests__/runComprehensiveGTMTests.js",
+    "test:gtm-integration": "jest src/services/__tests__/gtmIntegrationComprehensive.test.js --verbose",
+    "test:gtm-accuracy": "jest src/services/__tests__/conversionAccuracyValidation.test.js --verbose",
+    "test:gtm-debug": "jest src/services/__tests__/gtmDebugValidation.test.js --verbose",
+    "test:gtm-e2e": "jest src/services/__tests__/endToEndBookingFlow.test.js --verbose",
+    "deploy:production-tracking": "node scripts/deploy-production-tracking.js",
+    "vercel-build": "CI=false react-scripts build",
+    "eject": "react-scripts eject",
+    "fetch-config": "node scripts/fetchConfig.js",
+    "blacklist": "ts-node scripts/manage-blacklist.ts",
+    "review-queue": "ts-node scripts/manage-review-queue.ts",
+    "security:daily-check": "node scripts/security-daily-check.js",
+    "security:weekly-report": "node scripts/security-weekly-report.js",
+    "security:analyze": "node scripts/security-daily-check.js",
+    "security:report": "node scripts/security-weekly-report.js",
+    "security:health-check": "node -e \"console.log('Security system health check - implement based on your monitoring needs')\"",
+    "script:blacklist": "ts-node scripts/manage-blacklist.ts",
+    "script:review-queue": "ts-node scripts/manage-review-queue.ts",
+    "test:supabase": "node -e \"require('dotenv').config(); require('./tests/supabase-functions-test.js')\""
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/express": "^4.17.23",
+    "@types/yargs": "^17.0.32",
+    "@upstash/ratelimit": "^2.0.5",
+    "@upstash/redis": "^1.35.0",
+    "@vitest/coverage-v8": "^3.2.2",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "identity-obj-proxy": "^3.0.0",
+    "tailwindcss": "^3.4.17",
+    "vitest": "^3.2.2"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!src/index.js",
+      "!src/reportWebVitals.js",
+      "!src/**/*.test.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    }
+  }
+}

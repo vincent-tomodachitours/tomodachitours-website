@@ -1,0 +1,139 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Here's a detailed implementation plan for using SendGrid:
+
+### Phase 1: SendGrid Account Setup
+1. **Create SendGrid Account**
+   - Sign up at sendgrid.com
+   - Choose a free plan (100 emails/day) or paid plan based on volume needs
+   - Complete domain authentication:
+     - Add DNS records to your domain (tomodachitours.com)
+     - Verify domain ownership
+     - Set up reverse DNS
+
+2. **Email Authentication**
+   - Set up SPF records
+   - Set up DKIM authentication
+   - Configure DMARC policy
+   - These ensure better email deliverability
+
+3. **API Key Setup**
+   - Create a new API key in SendGrid dashboard
+   - Give it necessary permissions:
+     - `Mail Send` - Full Access
+     - `Template Engine` - Full Access
+   - Store the API key securely
+
+4. **Sender Identity**
+   - Verify sender email (noreply@tomodachitours.com)
+   - Create sender identity in SendGrid
+
+### Phase 2: Email Template Setup
+1. **Create Dynamic Templates in SendGrid**
+   - Booking Confirmation Template
+     - Copy existing HTML from Google Apps Script
+     - Convert to SendGrid's template syntax
+     - Add dynamic variables using HandleBars syntax
+     - Test template preview
+   
+   - Company Notification Template
+     - Copy existing HTML from Google Apps Script
+     - Convert to SendGrid's template syntax
+     - Add dynamic variables
+     - Test template preview
+
+2. **Store Template IDs**
+   - Save template IDs for both emails
+   - Will be used in the code to reference templates
+
+### Phase 3: Supabase Integration
+1. **Environment Variables**
+   ```
+   SENDGRID_API_KEY=your_api_key
+   SENDGRID_FROM_EMAIL=noreply@tomodachitours.com
+   SENDGRID_COMPANY_EMAIL=spirivincent03@gmail.com
+   SENDGRID_CONFIRMATION_TEMPLATE_ID=your_template_id
+   SENDGRID_COMPANY_TEMPLATE_ID=your_template_id
+   ```
+
+2. **Project Structure**
+   ```
+   src/
+     services/
+       email/
+         sendgrid/
+           index.ts           # Main SendGrid service
+           templates/
+             types.ts         # Template data types
+             mapping.ts       # Data mapping utilities
+           config.ts          # SendGrid configuration
+           errors.ts         # Custom error handling
+   ```
+
+### Phase 4: Code Implementation Plan
+1. **SendGrid Service Setup**
+   - Install SendGrid package
+   - Create service configuration
+   - Set up error handling
+   - Implement retry logic
+
+2. **Template Data Mapping**
+   - Create interfaces for template data
+   - Create mapping functions for booking data
+   - Add validation
+
+3. **Email Service Functions**
+   - Implement sendBookingConfirmation
+   - Implement sendCompanyNotification
+   - Add logging and monitoring
+
+4. **Integration Points**
+   - Update send-notification function
+   - Update create-charge function
+   - Add error handling and fallbacks
+
+### Phase 5: Testing Plan
+1. **Local Testing**
+   - Set up SendGrid API key in local env
+   - Test with sample booking data
+   - Verify email delivery
+   - Check template rendering
+
+2. **Staging Testing**
+   - Deploy to staging environment
+   - Test full booking flow
+   - Verify both emails are received
+   - Check all dynamic data
+
+3. **Production Testing**
+   - Gradual rollout
+   - Monitor delivery rates
+   - Check spam scores
+   - Verify tracking data
+
+### Phase 6: Monitoring and Maintenance
+1. **Setup Monitoring**
+   - Track delivery rates
+   - Monitor bounce rates
+   - Set up alerts for failures
+
+2. **Documentation**
+   - Update technical documentation
+   - Document template management
+   - Add troubleshooting guide
+
+### Fallback Plan
+1. **Error Handling**
+   - Define retry strategy
+   - Set up dead letter queue
+   - Create alert system
+
+2. **Manual Recovery**
+   - Create admin interface for failed emails
+   - Add manual resend capability
+   - Log all failures
+
+Would you like me to elaborate on any of these phases before we start implementation?

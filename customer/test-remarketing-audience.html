@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remarketing Audience Event Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .test-button:hover {
+            background: #3367d6;
+        }
+
+        .success {
+            color: #0f9d58;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #ea4335;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #fbbc04;
+            font-weight: bold;
+        }
+
+        .log-output {
+            background: #f8f9fa;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Remarketing Audience Event Test</h1>
+    <p>This page tests the <code>remarketing_audience</code> event implementation for Google Ads remarketing.</p>
+
+    <div class="test-section">
+        <h2>Environment Setup</h2>
+        <div id="environment-status"></div>
+        <button class="test-button" onclick="checkEnvironment()">Check Environment</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test remarketing_audience Event</h2>
+        <p>Test the basic remarketing_audience event firing:</p>
+        <button class="test-button" onclick="testRemarketingAudienceEvent()">Fire Test Event</button>
+        <div id="remarketing-test-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Tour View Integration</h2>
+        <p>Test remarketing_audience events triggered by tour views:</p>
+        <button class="test-button" onclick="testTourViewGion()">View Gion Tour</button>
+        <button class="test-button" onclick="testTourViewMorning()">View Morning Tour</button>
+        <button class="test-button" onclick="testTourViewNight()">View Night Tour</button>
+        <div id="tour-view-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Event Log</h2>
+        <button class="test-button" onclick="clearLog()">Clear Log</button>
+        <div id="event-log" class="log-output"></div>
+    </div>
+
+    <!-- Google Analytics / Google Ads Setup -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17482092392"></script>
+    <script>
+        // Initialize gtag
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'AW-17482092392');
+
+        // Mock environment variables
+        window.process = window.process || {};
+        window.process.env = window.process.env || {};
+        window.process.env.REACT_APP_GOOGLE_ADS_CONVERSION_ID = 'AW-17482092392';
+
+        // Event logging
+        let eventLog = [];
+
+        // Override gtag to log events
+        const originalGtag = window.gtag;
+        window.gtag = function (command, eventName, parameters) {
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                command,
+                eventName,
+                parameters: JSON.parse(JSON.stringify(parameters || {}))
+            };
+            eventLog.push(logEntry);
+            updateEventLog();
+
+            // Call original gtag
+            return originalGtag.apply(this, arguments);
+        };
+
+        // Override dataLayer.push to log events
+        const originalPush = window.dataLayer.push;
+        window.dataLayer.push = function (data) {
+            if (data.event) {
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    type: 'dataLayer',
+                    event: data.event,
+                    data: JSON.parse(JSON.stringify(data))
+                };
+                eventLog.push(logEntry);
+                updateEventLog();
+            }
+            return originalPush.apply(this, arguments);
+        };
+
+        function updateEventLog() {
+            const logElement = document.getElementById('event-log');
+            if (logElement) {
+                logElement.innerHTML = eventLog
+                    .slice(-10) // Show last 10 events
+                    .map(entry => {
+                        if (entry.type === 'dataLayer') {
+                            return `[${entry.timestamp}] dataLayer: ${entry.event}\n${JSON.stringify(entry.data, null, 2)}`;
+                        } else {
+                            return `[${entry.timestamp}] gtag('${entry.command}', '${entry.eventName}')\n${JSON.stringify(entry.parameters, null, 2)}`;
+                        }
+                    })
+                    .join('\n\n');
+            }
+        }
+
+        function clearLog() {
+            eventLog = [];
+            updateEventLog();
+        }
+
+        function checkEnvironment() {
+            const statusElement = document.getElementById('environment-status');
+            let status = [];
+
+            // Check gtag
+            if (typeof window.gtag === 'function') {
+                status.push('<span class="success">✅ gtag is available</span>');
+            } else {
+                status.push('<span class="error">❌ gtag is not available</span>');
+            }
+
+            // Check dataLayer
+            if (window.dataLayer && Array.isArray(window.dataLayer)) {
+                status.push('<span class="success">✅ dataLayer is available</span>');
+            } else {
+                status.push('<span class="error">❌ dataLayer is not available</span>');
+            }
+
+            // Check conversion ID
+            if (window.process.env.REACT_APP_GOOGLE_ADS_CONVERSION_ID) {
+                status.push('<span class="success">✅ Google Ads conversion ID is configured</span>');
+            } else {
+                status.push('<span class="error">❌ Google Ads conversion ID is not configured</span>');
+            }
+
+            statusElement.innerHTML = status.join('<br>');
+        }
+
+        function testRemarketingAudienceEvent() {
+            const outputElement = document.getElementById('remarketing-test-output');
+
+            try {
+                // Fire remarketing_audience event
+                gtag('event', 'remarketing_audience', {
+                    send_to: 'AW-17482092392',
+                    audience_id: 'test_audience_manual',
+                    event_category: 'remarketing',
+                    event_label: 'test_audience_manual',
+                    custom_parameter_1: 'Cultural',
+                    custom_parameter_2: 'Gion',
+                    custom_parameter_3: 'gion-tour',
+                    value: 8000,
+                    currency: 'JPY'
+                });
+
+                // Also push to dataLayer
+                dataLayer.push({
+                    event: 'remarketing_audience',
+                    audience_id: 'test_audience_manual',
+                    tour_category: 'Cultural',
+                    tour_location: 'Gion',
+                    tour_id: 'gion-tour',
+                    value: 8000,
+                    currency: 'JPY'
+                });
+
+                outputElement.innerHTML = '<span class="success">✅ remarketing_audience event fired successfully</span>';
+            } catch (error) {
+                outputElement.innerHTML = `<span class="error">❌ Error firing event: ${error.message}</span>`;
+            }
+        }
+
+        function testTourView(tourId, tourName, category, location, price) {
+            const outputElement = document.getElementById('tour-view-output');
+
+            try {
+                // Simulate tour view remarketing event
+                const audienceId = `${tourId.replace('-', '_')}_viewers`;
+
+                gtag('event', 'remarketing_audience', {
+                    send_to: 'AW-17482092392',
+                    audience_id: audienceId,
+                    event_category: 'remarketing',
+                    event_label: audienceId,
+                    custom_parameter_1: category,
+                    custom_parameter_2: location,
+                    custom_parameter_3: tourId,
+                    value: price,
+                    currency: 'JPY'
+                });
+
+                // Also fire view_item event for dynamic remarketing
+                gtag('event', 'view_item', {
+                    send_to: 'AW-17482092392',
+                    event_category: 'dynamic_remarketing',
+                    event_label: tourId,
+                    ecomm_prodid: tourId,
+                    ecomm_pagetype: 'product',
+                    ecomm_totalvalue: price,
+                    ecomm_category: category,
+                    custom_parameter_1: location,
+                    custom_parameter_2: '3 hours',
+                    custom_parameter_3: 'easy',
+                    value: price,
+                    currency: 'JPY'
+                });
+
+                outputElement.innerHTML = `<span class="success">✅ Tour view events fired for ${tourName}</span>`;
+            } catch (error) {
+                outputElement.innerHTML = `<span class="error">❌ Error firing tour view events: ${error.message}</span>`;
+            }
+        }
+
+        function testTourViewGion() {
+            testTourView('gion-tour', 'Gion District Cultural Walking Tour', 'Cultural', 'Gion', 8000);
+        }
+
+        function testTourViewMorning() {
+            testTourView('morning-tour', 'Arashiyama Bamboo Grove Morning Tour', 'Nature', 'Arashiyama', 9000);
+        }
+
+        function testTourViewNight() {
+            testTourView('night-tour', 'Fushimi Inari Night Photography Tour', 'Cultural', 'Fushimi', 7000);
+        }
+
+        // Initialize environment check on page load
+        window.addEventListener('load', function () {
+            checkEnvironment();
+        });
+    </script>
+</body>
+
+</html>
