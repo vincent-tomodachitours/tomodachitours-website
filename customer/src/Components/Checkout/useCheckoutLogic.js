@@ -369,7 +369,7 @@ export const useCheckoutLogic = ({
         };
     }, [paymentProcessing]);
 
-    // Initialize booking flow effect
+    // Initialize booking flow effect - only run once when component mounts
     useEffect(() => {
         const initializeBookingFlow = async () => {
             try {
@@ -418,13 +418,7 @@ export const useCheckoutLogic = ({
                         price: finalPrice,
                         quantity: 1
                     }],
-                    customerData: formData.email ? {
-                        email: formData.email,
-                        phone: formData.phone,
-                        name: `${formData.fname} ${formData.lname}`.trim(),
-                        firstName: formData.fname,
-                        lastName: formData.lname
-                    } : null
+                    customerData: null // Don't include customer data in initial tracking
                 };
 
                 const trackingResult = bookingFlowManager.trackBeginCheckout(checkoutData);
@@ -432,7 +426,7 @@ export const useCheckoutLogic = ({
                 if (trackingResult.success) {
                     gtmService.trackBeginCheckoutConversion(
                         trackingResult.data,
-                        checkoutData.customerData,
+                        null, // No customer data initially
                         pricingContext
                     );
 
@@ -467,7 +461,7 @@ export const useCheckoutLogic = ({
         };
 
         initializeBookingFlow();
-    }, [sheetId, tourName, finalPrice, adult, child, infant, tourDate, tourTime, appliedDiscount, tourPrice, formData.email, formData.phone, formData.fname, formData.lname, fallbackBeginCheckoutTracking, retryConversionTracking, validateConversionFiring]);
+    }, [sheetId, tourName, finalPrice, adult, child, infant, tourDate, tourTime, appliedDiscount, tourPrice, fallbackBeginCheckoutTracking, retryConversionTracking, validateConversionFiring]);
 
     // Cleanup effect for component unmount
     useEffect(() => {
