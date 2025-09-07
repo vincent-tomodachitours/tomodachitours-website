@@ -131,31 +131,64 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
         try {
             const transactionId = data.transaction_id || data.charge_id || `booking_${Date.now()}`;
 
-            // Track purchase through bookingFlowManager
+            // Get current booking state
             const currentBookingState = bookingFlowManager.getCurrentBookingState();
+
+            // Track purchase through bookingFlowManager
             if (currentBookingState && !bookingFlowManager.isConversionTracked('purchase')) {
                 const transactionData = {
                     transactionId: transactionId,
                     finalAmount: totalPrice,
-                    paymentProvider: data.provider_used || 'stripe'
+                    paymentProvider: data.provider_used || 'stripe',
+                    transaction_id: transactionId, // Ensure transaction_id is included
+                    value: totalPrice,
+                    currency: 'JPY',
+                    tour_id: sheetId,
+                    tour_name: tourName
                 };
 
                 const trackingResult = bookingFlowManager.trackPurchase(transactionData);
 
                 if (trackingResult.success) {
                     // Hash customer data for enhanced conversions
-                    const customerData = currentBookingState.customerData ? {
-                        email_hash: await hashCustomerData(currentBookingState.customerData.email),
-                        phone_hash: currentBookingState.customerData.phone ?
-                            await hashCustomerData(currentBookingState.customerData.phone) : null
+                    const hashedCustomerData = formRef.current?.email ? {
+                        email_hash: await hashCustomerData(formRef.current.email),
+                        phone_hash: formRef.current?.phone ?
+                            await hashCustomerData(formRef.current.phone) : null
                     } : null;
 
                     // Fire GTM purchase conversion
-                    gtmService.trackPurchaseConversion(trackingResult.data, customerData);
+                    gtmService.trackPurchaseConversion(trackingResult.data, hashedCustomerData);
                     console.log('✅ Purchase conversion tracked via GTM and bookingFlowManager');
                 } else {
                     console.warn('Failed to track purchase via bookingFlowManager:', trackingResult.reason);
                 }
+            } else if (!currentBookingState) {
+                // Fallback: Track purchase directly via GTM if no booking state
+                console.warn('No booking state found, tracking purchase directly via GTM');
+                const directTransactionData = {
+                    transaction_id: transactionId,
+                    value: totalPrice,
+                    currency: 'JPY',
+                    tour_id: sheetId,
+                    tour_name: tourName,
+                    items: [{
+                        item_id: sheetId,
+                        item_name: tourName,
+                        item_category: 'tour',
+                        price: totalPrice,
+                        quantity: 1
+                    }]
+                };
+
+                const hashedCustomerData = formRef.current?.email ? {
+                    email_hash: await hashCustomerData(formRef.current.email),
+                    phone_hash: formRef.current?.phone ?
+                        await hashCustomerData(formRef.current.phone) : null
+                } : null;
+
+                gtmService.trackPurchaseConversion(directTransactionData, hashedCustomerData);
+                console.log('✅ Purchase conversion tracked directly via GTM (fallback)');
             }
 
             // Prepare comprehensive transaction data for legacy analytics and session storage
@@ -229,6 +262,14 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
 
         // Keep loading states active, but update the status message
         // Don't turn off loading until we're about to redirect
+
+        // Signal that payment is complete to stop any retry mechanisms
+        try {
+            sessionStorage.setItem('payment_completed', 'true');
+            sessionStorage.setItem('payment_completion_time', Date.now().toString());
+        } catch (error) {
+            console.warn('Failed to set payment completion flag:', error);
+        }
 
         // Check if backup payment was used and show appropriate message
         if (data.backup_used) {

@@ -206,6 +206,17 @@ export const useCheckoutLogic = ({
                             return;
                         }
 
+                        // Don't retry if payment has been completed
+                        try {
+                            const paymentCompleted = sessionStorage.getItem('payment_completed') === 'true';
+                            if (paymentCompleted) {
+                                console.log('Skipping conversion retry - payment already completed');
+                                return;
+                            }
+                        } catch (error) {
+                            // Continue with retry if we can't check the flag
+                        }
+
                         try {
                             setConversionRetryCount(prev => prev + 1);
 
@@ -244,6 +255,17 @@ export const useCheckoutLogic = ({
             if (document.hidden || document.visibilityState === 'hidden') {
                 console.log('Skipping conversion retry - page is hidden');
                 return;
+            }
+
+            // Don't retry if payment has been completed
+            try {
+                const paymentCompleted = sessionStorage.getItem('payment_completed') === 'true';
+                if (paymentCompleted) {
+                    console.log('Skipping conversion retry - payment already completed');
+                    return;
+                }
+            } catch (error) {
+                // Continue with retry if we can't check the flag
             }
 
             try {
