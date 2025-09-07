@@ -40,8 +40,20 @@ const CardForm = forwardRef(({ totalPrice, originalPrice, appliedDiscount, formR
             setPaymentProcessing(true);
             setIsProcessing(true);
 
+            // Convert sheetId to proper tour_type enum value
+            const convertToTourType = (sheetId) => {
+                const typeMap = {
+                    'night-tour': 'NIGHT_TOUR',
+                    'morning-tour': 'MORNING_TOUR',
+                    'uji-tour': 'UJI_TOUR',
+                    'uji-walking-tour': 'UJI_WALKING_TOUR',
+                    'gion-tour': 'GION_TOUR'
+                };
+                return typeMap[sheetId] || sheetId.toUpperCase().replace('-', '_');
+            };
+
             const bookingData = {
-                tour_type: sheetId.toUpperCase().replace(' ', '_'),
+                tour_type: convertToTourType(sheetId),
                 booking_date: formRef.current.date,
                 booking_time: formRef.current.time,
                 customer_name: formRef.current.name,
