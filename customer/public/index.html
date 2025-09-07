@@ -79,7 +79,9 @@
             gtag('config', 'G-5GVJBRE1SY', {
               page_title: document.title,
               page_location: window.location.href,
-              send_page_view: false
+              send_page_view: false,
+              allow_google_signals: true,
+              allow_ad_personalization_signals: true
             });
             console.log('Fallback GA4 tracking initialized');
           };
@@ -416,73 +418,21 @@
   <script src="https://js.pay.jp/v2/pay.js"></script>
   <title>Tomodachi Tours - Kyoto English Walking Tours</title>
 
-  <!-- Google Ads Direct Tracking (alongside GTM) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5GVJBRE1SY"></script>
+  <!-- GTM-Only Tracking Configuration -->
   <script>
+    // Initialize dataLayer for GTM (no direct gtag calls)
     window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
 
-    // Configure GA4 (disable automatic page views - handled by React Router)
-    gtag('config', 'G-5GVJBRE1SY', {
-      send_page_view: false
-    });
+    // Store conversion labels for GTM use
+    try {
+      window.conversionLabels = JSON.parse('%REACT_APP_GOOGLE_ADS_CONVERSION_LABELS%' || '{}');
+    } catch (e) {
+      console.warn('Failed to parse conversion labels:', e);
+      window.conversionLabels = {};
+    }
 
-    // Configure Google Ads (disable automatic page view events)
-    gtag('config', 'AW-17482092392', {
-      send_page_view: false
-    });
-
-    // Store gtag function globally for conversion tracking
-    window.gtagConversion = gtag;
-
-    // Override dataLayer.push to mirror GTM events to direct gtag
-    const originalPush = window.dataLayer.push;
-    window.dataLayer.push = function (obj) {
-      // Call original push first
-      const result = originalPush.call(this, obj);
-
-      // Mirror purchase events to direct gtag (using environment variables)
-      if (obj.event === 'purchase' && obj.ecommerce && window.conversionLabels) {
-        const purchaseLabel = window.conversionLabels.purchase;
-        if (purchaseLabel) {
-          gtag('event', 'conversion', {
-            'send_to': `%REACT_APP_GOOGLE_ADS_CONVERSION_ID%/${purchaseLabel}`,
-            'value': obj.ecommerce.value || 0,
-            'currency': obj.ecommerce.currency || 'JPY',
-            'transaction_id': obj.ecommerce.transaction_id || ''
-          });
-          console.log('🎯 Direct gtag purchase conversion fired:', obj.ecommerce.transaction_id);
-        }
-      }
-
-      // Mirror begin_checkout events to direct gtag (using environment variables)
-      if (obj.event === 'begin_checkout' && obj.ecommerce && window.conversionLabels) {
-        const checkoutLabel = window.conversionLabels.begin_checkout;
-        if (checkoutLabel) {
-          gtag('event', 'conversion', {
-            'send_to': `%REACT_APP_GOOGLE_ADS_CONVERSION_ID%/${checkoutLabel}`,
-            'value': obj.ecommerce.value || 0,
-            'currency': obj.ecommerce.currency || 'JPY'
-          });
-          console.log('🎯 Direct gtag begin_checkout conversion fired:', obj.ecommerce.value);
-        }
-      }
-
-      // Mirror view_item events to direct gtag
-      if (obj.event === 'view_item' && obj.ecommerce) {
-        gtag('event', 'conversion', {
-          'send_to': 'AW-17482092392/6cIkCMn9540bEOiejpBB',
-          'value': obj.ecommerce.value || 0,
-          'currency': obj.ecommerce.currency || 'JPY'
-        });
-        console.log('🎯 Direct gtag view_item conversion fired:', obj.ecommerce.value);
-      }
-
-      return result;
-    };
-
-    console.log('✅ Google Ads direct tracking with GTM mirroring initialized');
+    // GTM will handle all tracking - no direct gtag calls needed
+    console.log('✅ GTM-only tracking configuration initialized');
   </script>
 </head>
 

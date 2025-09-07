@@ -653,8 +653,9 @@ class GTMService {
         try {
             // Use direct gtag if available
             if (window.gtagConversion && conversionLabel) {
+                const conversionId = process.env.REACT_APP_GOOGLE_ADS_CONVERSION_ID || 'AW-17482092392';
                 const conversionConfig = {
-                    send_to: `AW-17482092392/${conversionLabel}`,
+                    send_to: `${conversionId}/${conversionLabel}`,
                     value: conversionData.value || 0,
                     currency: conversionData.currency || 'JPY',
                     transaction_id: conversionData.transaction_id || ''

@@ -189,8 +189,13 @@
           window.location = url;
         }
       };
+      // Use environment variables for conversion tracking
+      const conversionId = '%REACT_APP_GOOGLE_ADS_CONVERSION_ID%' || 'AW-17482092392';
+      const conversionLabels = JSON.parse('%REACT_APP_GOOGLE_ADS_CONVERSION_LABELS%' || '{}');
+      const beginCheckoutLabel = conversionLabels.begin_checkout || 'mEaUCKmY8Y0bEOiejpBB';
+
       gtag('event', 'conversion', {
-        'send_to': 'AW-17482092392/mEaUCKmY8Y0bEOiejpBB',
+        'send_to': `${conversionId}/${beginCheckoutLabel}`,
         'value': 5000.0,
         'currency': 'JPY',
         'event_callback': callback

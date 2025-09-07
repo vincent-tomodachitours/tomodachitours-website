@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import NightTour from './Pages/NightTour';
 
 import Home from './Pages/Home';
@@ -39,6 +39,8 @@ function App() {
         <Route path="/" element={<Home />} />
         {/* <Route path="/tours" element={<Tours />} /> */}
         <Route path="/tours/kyoto-fushimi-inari-night-walking-tour" element={<NightTour />} />
+        {/* Redirect for typo in URL */}
+        <Route path="/kyoto-fushimi-inari-night-walking-tourit" element={<Navigate to="/tours/kyoto-fushimi-inari-night-walking-tour" replace />} />
         <Route path="/tours/kyoto-music-culture-walking-tour" element={<MusicTour />} />
         <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
         <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />

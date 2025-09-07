@@ -1,15 +1,14 @@
 // Google Ads Conversion Tracking Service
 // Integrates with existing analytics.js to provide Google Ads conversion tracking
 
+/* global gtag */
+
 import privacyManager from './privacyManager.js';
 import performanceMonitor, { ERROR_TYPES } from './performanceMonitor.js';
 import dataValidator from './dataValidator.js';
 
-// Initialize gtag if not already available (should be available from analytics.js)
+// GTM-only tracking - no direct gtag calls
 window.dataLayer = window.dataLayer || [];
-function gtag() {
-    window.dataLayer.push(arguments);
-}
 
 // Google Ads configuration
 const GOOGLE_ADS_CONVERSION_ID = process.env.REACT_APP_GOOGLE_ADS_CONVERSION_ID;
@@ -150,8 +149,8 @@ const validateTrackingPrerequisites = (actionName) => {
 };
 
 /**
- * Initialize Google Ads conversion tracking
- * Should be called after gtag is loaded
+ * Initialize Google Ads conversion tracking via GTM
+ * GTM will handle all Google Ads configuration
  */
 export const initializeGoogleAdsTracking = () => {
     if (!shouldTrack() || !GOOGLE_ADS_CONVERSION_ID) {
@@ -159,9 +158,14 @@ export const initializeGoogleAdsTracking = () => {
         return;
     }
 
-    // Configure Google Ads
-    gtag('config', GOOGLE_ADS_CONVERSION_ID);
-    console.log('Google Ads conversion tracking initialized');
+    // Send initialization event to GTM
+    window.dataLayer.push({
+        event: 'google_ads_init',
+        google_ads_conversion_id: GOOGLE_ADS_CONVERSION_ID,
+        conversion_labels: GOOGLE_ADS_CONVERSION_LABELS
+    });
+
+    console.log('Google Ads conversion tracking initialized via GTM');
 };
 
 /**

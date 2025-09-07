@@ -225,42 +225,40 @@ const Thankyou = () => {
 
 
 
-                    // DIRECT GOOGLE ADS CONVERSION TRACKING FOR THANK YOU PAGE
-                    // This ensures the conversion fires even if GTM tags aren't properly configured
+                    // GTM-ONLY CONVERSION TRACKING FOR THANK YOU PAGE
+                    // GTM will handle all Google Ads conversions through its tags
                     try {
-                        console.log('🎯 Firing direct Google Ads conversion for thank you page visit');
+                        console.log('🎯 Sending thank you page conversion data to GTM');
 
-                        // Get conversion labels from environment variables
-                        const conversionLabels = JSON.parse(process.env.REACT_APP_GOOGLE_ADS_CONVERSION_LABELS || '{}');
-                        const thankyouLabel = conversionLabels.thankyou_page || conversionLabels.purchase;
-                        const conversionId = process.env.REACT_APP_GOOGLE_ADS_CONVERSION_ID;
-
-                        if (thankyouLabel && conversionId) {
-                            // Method 1: Direct dataLayer push for the specific conversion action
-                            window.dataLayer.push({
-                                event: 'conversion',
-                                send_to: `${conversionId}/${thankyouLabel}`,
+                        // Send conversion data to GTM dataLayer - GTM tags will handle Google Ads conversion
+                        window.dataLayer.push({
+                            event: 'thankyou_page_conversion',
+                            ecommerce: {
+                                transaction_id: transactionData.transactionId,
                                 value: transactionData.value || 7000,
                                 currency: 'JPY',
-                                transaction_id: transactionData.transactionId
-                            });
-
-                            // Method 2: Direct gtag call as backup
-                            if (typeof window.gtag !== 'undefined') {
-                                window.gtag('event', 'conversion', {
-                                    send_to: `${conversionId}/${thankyouLabel}`,
-                                    value: transactionData.value || 7000,
-                                    currency: 'JPY',
-                                    transaction_id: transactionData.transactionId
-                                });
+                                items: [{
+                                    item_id: tourData.tourId,
+                                    item_name: tourData.tourName,
+                                    item_category: tourData.category,
+                                    price: tourData.price,
+                                    quantity: 1
+                                }]
+                            },
+                            // Additional data for GTM to use in conversion tags
+                            conversion_context: {
+                                page_type: 'thank_you',
+                                tour_id: tourData.tourId,
+                                tour_name: tourData.tourName,
+                                booking_date: tourData.date,
+                                booking_time: tourData.time,
+                                payment_provider: paymentData.provider
                             }
-                        } else {
-                            console.error('Missing conversion configuration for thank you page');
-                        }
+                        });
 
-                        console.log('✅ Direct Google Ads conversion fired for thank you page');
+                        console.log('✅ Thank you page conversion data sent to GTM');
                     } catch (conversionError) {
-                        console.error('❌ Direct conversion tracking failed:', conversionError);
+                        console.error('❌ GTM conversion data push failed:', conversionError);
                     }
 
                     console.log('🎯 Comprehensive purchase conversion tracking completed');
