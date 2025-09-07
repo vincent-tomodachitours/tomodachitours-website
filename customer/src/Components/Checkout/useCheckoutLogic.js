@@ -446,6 +446,7 @@ export const useCheckoutLogic = ({
                 const trackingResult = bookingFlowManager.trackBeginCheckout(checkoutData);
 
                 if (trackingResult.success) {
+                    // Only fire GTM conversion for new tracking (not already tracked)
                     gtmService.trackBeginCheckoutConversion(
                         trackingResult.data,
                         null, // No customer data initially
@@ -453,11 +454,11 @@ export const useCheckoutLogic = ({
                     );
 
                     await validateConversionFiring('begin_checkout', trackingResult.data);
+                } else if (trackingResult.reason === 'already_tracked') {
+                    console.log('Begin checkout already tracked, skipping GTM conversion');
                 } else {
                     console.warn('Begin checkout tracking failed:', trackingResult.reason);
-                    if (trackingResult.reason !== 'already_tracked') {
-                        retryConversionTracking('begin_checkout', checkoutData, pricingContext);
-                    }
+                    retryConversionTracking('begin_checkout', checkoutData, pricingContext);
                 }
 
                 try {
