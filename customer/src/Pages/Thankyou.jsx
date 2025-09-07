@@ -8,10 +8,6 @@ import { ReactComponent as Instagram } from '../SVG/instagram.svg'
 import { ReactComponent as Whatsapp } from '../SVG/whatsapp.svg'
 import { Link } from 'react-router-dom'
 import gtmService from '../services/gtmService'
-import bookingFlowManager from '../services/bookingFlowManager'
-import enhancedConversionService from '../services/enhancedConversionService'
-import serverSideConversionTracker from '../services/serverSideConversionTracker'
-import conversionValueOptimizer from '../services/conversionValueOptimizer'
 
 const Thankyou = () => {
     useEffect(() => {
@@ -66,41 +62,23 @@ const Thankyou = () => {
 
                 console.log('📊 Purchase data prepared:', { transactionId, value, tourId, tourName });
 
-                // Track purchase conversion via GTM service
+                // Check if purchase has already been tracked to prevent duplicates
+                const purchaseTracked = sessionStorage.getItem('purchase_tracked');
+                if (purchaseTracked === 'true') {
+                    console.log('🚫 Purchase already tracked, skipping duplicate');
+                    return;
+                }
+
+                // Track purchase conversion via GTM service (this handles the Google Ads conversion)
                 const gtmSuccess = gtmService.trackPurchaseConversion(purchaseData, customerData);
 
                 if (gtmSuccess) {
                     console.log('✅ GTM purchase conversion tracked successfully');
+                    // Mark as tracked to prevent duplicates
+                    sessionStorage.setItem('purchase_tracked', 'true');
                 } else {
                     console.warn('⚠️ GTM purchase conversion tracking failed');
                 }
-
-                // Also push directly to dataLayer as backup
-                window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({
-                    event: 'purchase',
-                    ecommerce: {
-                        transaction_id: transactionId,
-                        value: value,
-                        currency: 'JPY',
-                        items: [{
-                            item_id: tourId,
-                            item_name: tourName,
-                            item_category: 'tour',
-                            price: value,
-                            quantity: 1
-                        }]
-                    },
-                    // Enhanced conversion data
-                    user_data: customerData,
-                    // Custom parameters
-                    custom_parameters: {
-                        conversion_page: 'thank_you',
-                        tour_id: tourId
-                    }
-                });
-
-                console.log('✅ Purchase event pushed to dataLayer');
 
                 // Clean up session storage after successful tracking
                 setTimeout(() => {
@@ -123,7 +101,8 @@ const Thankyou = () => {
                             'booking_date',
                             'booking_time',
                             'payment_completed',
-                            'payment_completion_time'
+                            'payment_completion_time',
+                            'purchase_tracked'
                         ];
 
                         keysToRemove.forEach(key => {
