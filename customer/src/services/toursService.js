@@ -85,7 +85,8 @@ function getConfigKey(tourType) {
         'MORNING_TOUR': 'morning-tour',
         'UJI_TOUR': 'uji-tour',
         'UJI_WALKING_TOUR': 'uji-walking-tour',
-        'GION_TOUR': 'gion-tour'
+        'GION_TOUR': 'gion-tour',
+        'MUSIC_TOUR': 'music-tour'
     };
     return typeMap[tourType] || tourType.toLowerCase();
 }
@@ -237,7 +238,8 @@ function convertConfigKeyToTourType(configKey) {
         'morning-tour': 'MORNING_TOUR',
         'uji-tour': 'UJI_TOUR',
         'uji-walking-tour': 'UJI_WALKING_TOUR',
-        'gion-tour': 'GION_TOUR'
+        'gion-tour': 'GION_TOUR',
+        'music-tour': 'MUSIC_TOUR'
     };
     return keyMap[configKey] || configKey.toUpperCase().replace('-', '_');
 }
@@ -260,7 +262,7 @@ export async function invalidateAvailabilityCache(tourType, date) {
 export async function refreshAvailabilityForDate(date) {
     try {
         // Invalidate cache for all tour types to force fresh data
-        const tourTypes = ['NIGHT_TOUR', 'MORNING_TOUR', 'UJI_TOUR', 'UJI_WALKING_TOUR', 'GION_TOUR'];
+        const tourTypes = ['NIGHT_TOUR', 'MORNING_TOUR', 'UJI_TOUR', 'UJI_WALKING_TOUR', 'GION_TOUR', 'MUSIC_TOUR'];
 
         for (const tourType of tourTypes) {
             await bokunAvailabilityService.invalidateCache(tourType, date);

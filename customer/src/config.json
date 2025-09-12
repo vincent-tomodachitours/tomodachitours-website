@@ -61,5 +61,18 @@
       "8:00"
     ],
     "max-participants": 12
+  },
+  "music-tour": {
+    "tour-title": "Kyoto Music Culture Walking Tour",
+    "tour-description": "Join us for an enchanting musical journey through Kyoto's rich cultural heritage. Discover the sounds that have shaped this ancient city for over a thousand years.",
+    "tour-price": 8500,
+    "tour-duration": "2 hours",
+    "reviews": 0,
+    "time-slots": [
+      "10:00",
+      "14:00",
+      "16:00"
+    ],
+    "max-participants": 8
   }
 }
