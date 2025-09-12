@@ -114,7 +114,7 @@ const LoadingOrErrorState = ({ isLoading, heroImage }) => (
     </div>
 );
 
-const TourCard = ({ image, imageAlt, title, description, price, link, badge }) => (
+const TourCard = ({ image, imageAlt, title, description, price, originalPrice, link, badge, showOriginalPrice }) => (
     <Link
         to={link}
         className='group bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full'
@@ -141,9 +141,16 @@ const TourCard = ({ image, imageAlt, title, description, price, link, badge }) =
                 {description}
             </p>
             <div className='flex items-center justify-between mt-auto'>
-                <span className='text-2xl font-bold text-blue-600'>
-                    {price}
-                </span>
+                <div className='flex flex-col'>
+                    {showOriginalPrice && originalPrice && originalPrice > 0 && (
+                        <span className='text-lg text-red-500 line-through mb-1'>
+                            ¥ {originalPrice.toLocaleString('en-US')}
+                        </span>
+                    )}
+                    <span className='text-2xl font-bold text-blue-600'>
+                        {price}
+                    </span>
+                </div>
                 <span className='inline-flex items-center text-blue-600 font-semibold group-hover:translate-x-1 transition-transform duration-300'>
                     Learn More
                     <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,6 +277,8 @@ const Home = () => {
                             title={tours['night-tour']['tour-title']}
                             description={tours['night-tour']['tour-description']}
                             price={`¥ ${tours['night-tour']['tour-price'].toLocaleString('en-US')}`}
+                            originalPrice={tours['night-tour']['original-price']}
+                            showOriginalPrice={true}
                             link="/tours/kyoto-fushimi-inari-night-walking-tour"
                         />
                         <TourCard
@@ -278,6 +287,8 @@ const Home = () => {
                             title={tours['morning-tour']['tour-title']}
                             description={tours['morning-tour']['tour-description']}
                             price={`¥ ${tours['morning-tour']['tour-price'].toLocaleString('en-US')}`}
+                            originalPrice={tours['morning-tour']['original-price']}
+                            showOriginalPrice={true}
                             link="/tours/kyoto-early-bird-english-tour"
                             badge="Best Seller"
                         />
@@ -287,6 +298,8 @@ const Home = () => {
                             title={tours['uji-tour']['tour-title']}
                             description={tours['uji-tour']['tour-description']}
                             price={`¥ ${tours['uji-tour']['tour-price'].toLocaleString('en-US')}`}
+                            originalPrice={tours['uji-tour']['original-price']}
+                            showOriginalPrice={false}
                             link="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto"
                         />
                         <TourCard
@@ -295,6 +308,8 @@ const Home = () => {
                             title={tours['gion-tour']['tour-title']}
                             description={tours['gion-tour']['tour-description']}
                             price={`¥ ${tours['gion-tour']['tour-price'].toLocaleString('en-US')}`}
+                            originalPrice={tours['gion-tour']['original-price']}
+                            showOriginalPrice={false}
                             link="/tours/kyoto-gion-early-morning-walking-tour"
                         />
                     </div>
