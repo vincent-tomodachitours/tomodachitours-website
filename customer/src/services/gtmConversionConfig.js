@@ -123,10 +123,15 @@ class GTMConversionConfig {
             event_label: eventType,
 
             // Google Ads conversion parameters
-            conversion_id: conversionConfig.conversionId,
+            conversion_id: parseInt(conversionConfig.conversionId.replace('AW-', ''), 10),
             conversion_label: conversionConfig.conversionLabel,
             value: conversionConfig.conversionValue,
             currency: conversionConfig.currencyCode,
+
+            // Add explicit variables that GTM expects
+            'Transaction Value': conversionConfig.conversionValue,
+            'Currency Code': conversionConfig.currencyCode,
+            'Transaction ID': eventData.transaction_id,
 
             // Enhanced conversion data (if enabled)
             ...(conversionConfig.enhancedConversions && eventData.user_data && {
@@ -176,6 +181,20 @@ class GTMConversionConfig {
             enhancedConversionsEnabled: this.enhancedConversionsEnabled,
             configurationValid: this.validateConfiguration()
         };
+    }
+
+    /**
+     * Debug function to log what's being sent to GTM
+     */
+    debugConversionEvent(eventType, eventData, conversionConfig) {
+        const event = this.generateConversionDataLayerEvent(eventType, eventData, conversionConfig);
+        console.log('🔍 GTM Conversion Debug:', {
+            eventType,
+            originalEventData: eventData,
+            conversionConfig,
+            finalDataLayerEvent: event
+        });
+        return event;
     }
 }
 

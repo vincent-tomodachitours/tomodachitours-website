@@ -401,11 +401,9 @@ class GTMService {
             };
 
             // Generate dataLayer event for Google Ads conversion
-            const conversionEvent = this.conversionConfig.generateConversionDataLayerEvent(
-                conversionType,
-                enhancedEventData,
-                conversionConfig
-            );
+            const conversionEvent = this.debugMode ?
+                this.conversionConfig.debugConversionEvent(conversionType, enhancedEventData, conversionConfig) :
+                this.conversionConfig.generateConversionDataLayerEvent(conversionType, enhancedEventData, conversionConfig);
 
             // Push conversion event to dataLayer
             this.pushEvent('google_ads_conversion', conversionEvent);
