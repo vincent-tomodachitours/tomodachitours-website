@@ -49,8 +49,8 @@ const PriceDisplay = ({
 
     return (
         <div className={`text-gray-800 ${className}`}>
-            {/* Viator comparison (if enabled and original price available) */}
-            {showViatorComparison && originalPrice && (
+            {/* Viator comparison (if enabled and original price available and different from current price) */}
+            {showViatorComparison && originalPrice && originalPrice !== jpyPrice && (
                 <div className="mb-1">
                     <div className="flex items-center gap-2 text-gray-500">
                         <span className="line-through decoration-red-500 decoration-2 text-base font-medium">

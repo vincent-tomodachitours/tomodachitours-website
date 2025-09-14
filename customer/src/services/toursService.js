@@ -95,23 +95,49 @@ function getConfigKey(tourType) {
  * Format duration from minutes to human readable
  */
 function formatDuration(minutes) {
-    if (minutes < 60) {
-        return `${minutes} minutes`;
+    console.log('formatDuration input:', minutes, 'type:', typeof minutes);
+
+    // Handle string inputs that might already be formatted or malformed
+    if (typeof minutes === 'string') {
+        console.log('Processing string input:', minutes);
+        // Clean up malformed strings like "4 hours 0 minutes" or "4 hours minutes"
+        let cleaned = minutes
+            .replace(/\s+0\s+minutes?/g, '') // Remove "0 minutes"
+            .replace(/\s+minutes?\s*$/g, '') // Remove trailing "minutes" without a number
+            .replace(/(\d+)\s+hours?\s+minutes?$/g, '$1 hours') // Fix "X hours minutes" to "X hours"
+            .trim();
+
+        console.log('Cleaned string result:', cleaned);
+        return cleaned || minutes; // Return cleaned version or original if cleaning failed
     }
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
+
+    // Convert to number if it's not already
+    const numMinutes = Number(minutes);
+    if (isNaN(numMinutes)) {
+        console.log('Could not parse as number, returning as-is:', minutes);
+        return minutes; // Return as-is if we can't parse it
+    }
+
+    console.log('Processing numeric input:', numMinutes);
+
+    if (numMinutes < 60) {
+        return `${numMinutes} minutes`;
+    }
+    const hours = Math.floor(numMinutes / 60);
+    const remainingMinutes = numMinutes % 60;
 
     if (remainingMinutes === 0) {
-        return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+        const result = `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+        console.log('Formatted result (no remaining minutes):', result);
+        return result;
     }
 
     if (hours === 1) {
         return `1 hour ${remainingMinutes} minutes`;
     }
 
-    // Convert to decimal format for consistency with existing config
-    const decimalHours = (hours + remainingMinutes / 60).toFixed(1);
-    return `${decimalHours} hours`;
+    // For multiple hours with minutes, use the format "X hours Y minutes"
+    return `${hours} hours ${remainingMinutes} minutes`;
 }
 
 /**

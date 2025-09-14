@@ -12,7 +12,7 @@ const TourOverview = ({ content, isExpanded, setIsExpanded, isMobile }) => {
                 ))}
             </div>
 
-            <div className="flex items-center gap-2 bg-gray-100 p-4 rounded-lg mx-4">
+            <div className="flex items-center gap-2 bg-gray-100 p-4 rounded-lg mx-4 mt-6">
                 <ClockRewind className="w-5 h-5 text-amber-600" />
                 <div>
                     <Link to="/cancellation-policy" className="font-bold text-blue-600 hover:underline">

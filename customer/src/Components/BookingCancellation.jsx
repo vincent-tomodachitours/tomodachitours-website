@@ -38,7 +38,8 @@ const BookingCancellation = () => {
             'MORNING_TOUR': 'morning-tour',
             'UJI_TOUR': 'uji-tour',
             'UJI_WALKING_TOUR': 'uji-walking-tour',
-            'GION_TOUR': 'gion-tour'
+            'GION_TOUR': 'gion-tour',
+            'MUSIC_TOUR': 'music-tour'
         }[tourType];
 
         return tours[tourKey]?.['tour-title'] || tourType;

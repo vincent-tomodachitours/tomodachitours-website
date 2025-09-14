@@ -63,10 +63,10 @@
     "max-participants": 12
   },
   "music-tour": {
-    "tour-title": "Kyoto Music Culture Walking Tour",
-    "tour-description": "Join us for an enchanting musical journey through Kyoto's rich cultural heritage. Discover the sounds that have shaped this ancient city for over a thousand years.",
+    "tour-title": "Tofukuji Zen Tour: Traditional Music Performance & Tea Ceremony",
+    "tour-description": "Experience the serene beauty of Tofukuji Temple combined with traditional Japanese music and an authentic tea ceremony. This unique tour offers a peaceful journey through one of Kyoto's most magnificent Zen temples, featuring live traditional music performances and a hands-on tea ceremony experience. Immerse yourself in centuries-old traditions while enjoying the temple's stunning architecture and tranquil gardens.",
     "tour-price": 8500,
-    "tour-duration": "2 hours",
+    "tour-duration": "4 hours",
     "reviews": 0,
     "time-slots": [
       "10:00",

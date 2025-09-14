@@ -28,7 +28,9 @@ const BaseTourPage = ({
     itineraryStops,
     meetingPointData,
     SEOComponent,
-    StructuredDataComponent
+    StructuredDataComponent,
+    showReviews = true,
+    customHeaderMessage = null
 }) => {
     // Tour data state
     const [tourData, setTourData] = useState(null);
@@ -54,6 +56,7 @@ const BaseTourPage = ({
                 const data = await getTour(tourId);
                 setTourData(data);
                 console.log(`✅ ${tourId} tour data loaded:`, data);
+                console.log('Tour duration from API:', data['tour-duration']);
 
                 // Track tour page view with attribution
                 trackTourView({
@@ -201,13 +204,50 @@ const BaseTourPage = ({
 
     // Extract tour data
     const tourTitle = tourData['tour-title'];
-    const tourDuration = tourData['tour-duration'];
+    const tourDescription = tourData['tour-description'];
+    const tourDuration = tourId === 'music-tour' ? '4 hours' : tourData['tour-duration'];
     const tourReviews = tourData['reviews'];
     const availableTimes = tourData['time-slots'];
     const maxSlots = tourData['max-participants'];
     const cancellationCutoffHours = tourData['cancellation-cutoff-hours'];
     const cancellationCutoffHoursWithParticipant = tourData['cancellation-cutoff-hours-with-participant'];
     const nextDayCutoffTime = tourData['next-day-cutoff-time'];
+    const apiMeetingPoint = tourData['meeting-point'];
+
+    console.log('Final tourDuration for', tourId, ':', tourDuration);
+    console.log('API meeting point for', tourId, ':', apiMeetingPoint, 'type:', typeof apiMeetingPoint);
+
+    // Use API description if available, otherwise fall back to provided overviewContent
+    const finalOverviewContent = tourDescription
+        ? tourDescription.split('✅').map(part => part.trim()).filter(part => part.length > 0).map((part, index) => {
+            // Add back the ✅ symbol for all parts except the first one (which is the intro)
+            return index === 0 ? part : `✅ ${part}`;
+        })
+        : overviewContent;
+
+    // Use API meeting point if available, otherwise fall back to provided meetingPointData
+    let finalMeetingPointData = meetingPointData;
+
+    if (apiMeetingPoint) {
+        try {
+            let locationText = "";
+
+            if (typeof apiMeetingPoint === 'string') {
+                locationText = apiMeetingPoint;
+            } else if (typeof apiMeetingPoint === 'object' && apiMeetingPoint !== null) {
+                locationText = apiMeetingPoint.location || apiMeetingPoint.name || JSON.stringify(apiMeetingPoint);
+            }
+
+            finalMeetingPointData = {
+                location: locationText,
+                googleMapsUrl: meetingPointData?.googleMapsUrl || "",
+                instructions: meetingPointData?.instructions || ""
+            };
+        } catch (error) {
+            console.error('Error processing meeting point data:', error);
+            finalMeetingPointData = meetingPointData;
+        }
+    }
 
     return (
         <div id="app-container" className='w-full h-screen min-h-screen flex flex-col overflow-y-auto'>
@@ -223,6 +263,7 @@ const BaseTourPage = ({
                     showInfoTooltip={showInfoTooltip}
                     setShowInfoTooltip={setShowInfoTooltip}
                     handleShare={handleShare}
+                    customMessage={customHeaderMessage}
                 />
 
                 <ImageShowcase
@@ -266,7 +307,7 @@ const BaseTourPage = ({
 
                                 {activeContent === 1 && (
                                     <TourOverview
-                                        content={overviewContent}
+                                        content={finalOverviewContent}
                                         isExpanded={isContentExpanded}
                                         setIsExpanded={setIsContentExpanded}
                                         isMobile={isMobile}
@@ -285,11 +326,12 @@ const BaseTourPage = ({
                                         isMobile={isMobile}
                                     />
                                 )}
+                                {activeContent === 2 && console.log('TourDetails props:', { maxSlots, tourDuration, tourId })}
 
                                 {activeContent === 3 && (
                                     <TourItinerary
                                         stops={itineraryStops}
-                                        meetingPoint={meetingPointData}
+                                        meetingPoint={finalMeetingPointData}
                                         isExpanded={isContentExpanded}
                                         setIsExpanded={setIsContentExpanded}
                                         isMobile={isMobile}
@@ -298,7 +340,7 @@ const BaseTourPage = ({
 
                                 {activeContent === 4 && (
                                     <TourMeetingPoint
-                                        meetingPoint={meetingPointData}
+                                        meetingPoint={finalMeetingPointData}
                                         isExpanded={isContentExpanded}
                                         setIsExpanded={setIsContentExpanded}
                                         isMobile={isMobile}
@@ -346,24 +388,26 @@ const BaseTourPage = ({
                 </div>
 
                 {/* Customer Reviews Section */}
-                <div className="mt-16 mb-12">
-                    <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Customer Reviews</h2>
-                        <p className="text-gray-600 max-w-2xl mx-auto">
-                            See what our guests say about their tour experience
-                        </p>
+                {showReviews && (
+                    <div className="mt-16 mb-12">
+                        <div className="text-center mb-8">
+                            <h2 className="text-3xl font-bold text-gray-900 mb-4">Customer Reviews</h2>
+                            <p className="text-gray-600 max-w-2xl mx-auto">
+                                See what our guests say about their tour experience
+                            </p>
+                        </div>
+                        <TripAdvisorReviews
+                            locationId={process.env.REACT_APP_TRIPADVISOR_LOCATION_ID}
+                            maxReviews={6}
+                            showRating={true}
+                            layout="grid"
+                            className="px-4"
+                            showAttribution={true}
+                            tourId={tourId}
+                            tourReviewCount={tourReviews}
+                        />
                     </div>
-                    <TripAdvisorReviews
-                        locationId={process.env.REACT_APP_TRIPADVISOR_LOCATION_ID}
-                        maxReviews={6}
-                        showRating={true}
-                        layout="grid"
-                        className="px-4"
-                        showAttribution={true}
-                        tourId={tourId}
-                        tourReviewCount={tourReviews}
-                    />
-                </div>
+                )}
 
                 {/* Mobile DatePicker - appears at bottom after reviews */}
                 {isMobile && (
@@ -396,7 +440,7 @@ const BaseTourPage = ({
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center gap-2 transform hover:scale-105 active:scale-95"
                         >
                             <span className="text-lg">Book Now:</span>
-                            {originalPrice && (
+                            {originalPrice && originalPrice !== tourPrice && (
                                 <>
                                     <span className="text-base font-medium text-blue-200 line-through decoration-red-400 decoration-2">
                                         ¥{originalPrice.toLocaleString('en-US')}

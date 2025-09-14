@@ -78,8 +78,12 @@ export const getTourTypeBadgeVariant = (tourType?: string): BadgeVariant => {
             return 'info';
         case 'UJI_TOUR':
             return 'success';
+        case 'UJI_WALKING_TOUR':
+            return 'success';
         case 'GION_TOUR':
             return 'warning';
+        case 'MUSIC_TOUR':
+            return 'danger';
         default:
             return 'default';
     }
@@ -95,8 +99,12 @@ export const formatTourType = (tourType?: string): string => {
             return 'Morning Tour';
         case 'UJI_TOUR':
             return 'Uji Tour';
+        case 'UJI_WALKING_TOUR':
+            return 'Uji Walking Tour';
         case 'GION_TOUR':
             return 'Gion Tour';
+        case 'MUSIC_TOUR':
+            return 'Music Tour';
         default:
             return tourType;
     }

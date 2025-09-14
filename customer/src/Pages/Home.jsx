@@ -22,6 +22,7 @@ import nightTour from "../IMG/Night-Tour/1.webp"
 import morningTour from "../IMG/Morning-Tour/IMG_7260 2.webp"
 import ujiTour from "../IMG/Uji-Tour/icecream.webp"
 import gionTour from "../IMG/Gion-Tour/geisha.webp"
+import musicTour from "../IMG/Music-Tour/1.webp"
 
 const LoadingOrErrorState = ({ isLoading, heroImage }) => (
     <div className='min-h-screen flex flex-col bg-gradient-to-b from-white to-stone-100'>
@@ -127,7 +128,10 @@ const TourCard = ({ image, imageAlt, title, description, price, originalPrice, l
             />
             {badge && (
                 <div className='absolute top-4 left-4 z-10'>
-                    <span className='bg-white text-emerald-700 px-3 py-1.5 rounded-full text-base font-bold shadow-lg'>
+                    <span className={`px-3 py-1.5 rounded-full text-base font-bold shadow-lg ${badge === 'NEW TOUR'
+                            ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+                            : 'bg-white text-emerald-700'
+                        }`}>
                         {badge}
                     </span>
                 </div>
@@ -270,7 +274,7 @@ const Home = () => {
                         </div>
                     </div>
 
-                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto'>
+                    <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 max-w-7xl mx-auto'>
                         <TourCard
                             image={nightTour}
                             imageAlt="Couple walking through torii gates"
@@ -293,6 +297,17 @@ const Home = () => {
                             badge="Best Seller"
                         />
                         <TourCard
+                            image={musicTour}
+                            imageAlt="Traditional music performance in Kyoto"
+                            title={tours['music-tour']['tour-title']}
+                            description={tours['music-tour']['tour-description']}
+                            price={`¥ ${tours['music-tour']['tour-price'].toLocaleString('en-US')}`}
+                            originalPrice={tours['music-tour']['original-price']}
+                            showOriginalPrice={tours['music-tour']['original-price'] !== tours['music-tour']['tour-price']}
+                            link="/tours/kyoto-music-culture-walking-tour"
+                            badge="NEW TOUR"
+                        />
+                        <TourCard
                             image={ujiTour}
                             imageAlt="Matcha on ice cream"
                             title={tours['uji-tour']['tour-title']}
@@ -304,7 +319,7 @@ const Home = () => {
                         />
                         <TourCard
                             image={gionTour}
-                            imageAlt="Geisha walking through hanamachi"
+                            imageAlt="Geisha walking through hanamichi"
                             title={tours['gion-tour']['tour-title']}
                             description={tours['gion-tour']['tour-description']}
                             price={`¥ ${tours['gion-tour']['tour-price'].toLocaleString('en-US')}`}

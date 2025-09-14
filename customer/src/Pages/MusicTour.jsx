@@ -11,6 +11,8 @@ import photo2 from '../IMG/Music-Tour/2.webp'
 import photo3 from '../IMG/Music-Tour/3.webp'
 import photo4 from '../IMG/Music-Tour/4.webp'
 import photo5 from '../IMG/Music-Tour/5.webp'
+import photo6 from '../IMG/Music-Tour/6.webp'
+import photo7 from '../IMG/Music-Tour/7.webp'
 
 const MusicTour = () => {
     const images = [
@@ -19,40 +21,37 @@ const MusicTour = () => {
         { src: photo3 },
         { src: photo4 },
         { src: photo5 },
+        { src: photo6 },
+        { src: photo7 },
     ];
 
+    // Overview content will now come from the API (tour description)
+    // Keeping this as fallback in case API fails
     const overviewContent = [
-        "Join us for an enchanting musical journey through Kyoto's rich cultural heritage. Discover the sounds that have shaped this ancient city for over a thousand years.",
-        "⚠️ This tour includes visits to traditional music venues and may include live performances depending on availability.",
-        "⚠️ Prior to the tour, please ensure WhatsApp or SMS is available for easy communication. Our tour guide will use these platforms to contact you.",
-        "✅ This is an English Guided Walking Tour. Explore the musical traditions and cultural significance of Kyoto's soundscape with a knowledgeable and passionate guide.",
-        "✅ A Unique Cultural Experience: Immerse yourself in traditional Japanese music, from ancient court music to folk songs and modern interpretations.",
-        "✅ Historic Music Venues: Visit traditional tea houses, temples, and cultural centers where music has been performed for centuries.",
-        "*This tour focuses on cultural appreciation and may include opportunities to try traditional instruments."
+        "Join us for an enchanting musical journey through Kyoto's rich cultural heritage. Discover the sounds that have shaped this ancient city for over a thousand years."
     ];
 
     const tourDetails = {
         included: [
-            "English Speaking Guide",
-            "Cultural Music Experience",
-            "Traditional Instrument Demonstration"
+            "English speaking guide",
+            "Traditional Music Performance",
+            "Japanese Tea Ceremony Experience",
+            "Tofukuji Entrance Fare (1000 yen)"
         ],
         notIncluded: [
-            "Public Transportation Fare (300 yen)",
             "Food and Beverages"
         ],
         accessibility: [
             "Not wheelchair accessible",
-            "Service animals allowed",
+            "Service animals not allowed",
             "Near public transportation"
         ]
     };
 
     const itineraryStops = [
-        { name: "Traditional Music Hall", duration: "30 minutes", description: "Experience traditional Japanese court music" },
-        { name: "Historic Tea House", duration: "25 minutes", description: "Listen to shamisen and koto performances" },
-        { name: "Temple Music Experience", duration: "20 minutes", description: "Buddhist chanting and temple bells" },
-        { name: "Folk Music Venue", duration: "25 minutes", description: "Traditional folk songs and storytelling" }
+        { name: "Tofukuji Walking Tour", duration: "2 hours", description: "Explore the historic Tofukuji Temple grounds and surrounding areas" },
+        { name: "Traditional Music Performance", duration: "1 hour", description: "Experience authentic Japanese musical traditions with live performances" },
+        { name: "Authentic Tea Ceremony", duration: "1 hour", description: "Participate in a traditional Japanese tea ceremony experience" }
     ];
 
     const meetingPointData = {
@@ -105,6 +104,8 @@ const MusicTour = () => {
             meetingPointData={meetingPointData}
             SEOComponent={SEOComponent}
             StructuredDataComponent={StructuredDataComponent}
+            showReviews={false}
+            customHeaderMessage="Exclusive debut October 2nd - Only 12 spots available!"
         />
     );
 };

@@ -288,6 +288,10 @@ const TourList: React.FC = () => {
                                     <option value="NIGHT_TOUR">Night Tour</option>
                                     <option value="MORNING_TOUR">Morning Tour</option>
                                     <option value="UJI_TOUR">Uji Tour</option>
+                                    <option value="UJI_WALKING_TOUR">Uji Walking Tour</option>
+                                    <option value="GION_TOUR">Gion Tour</option>
+                                    <option value="MUSIC_TOUR">Music Tour</option>
+                                    <option value="UJI_TOUR">Uji Tour</option>
                                     <option value="GION_TOUR">Gion Tour</option>
                                 </select>
                             </div>
