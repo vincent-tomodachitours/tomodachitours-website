@@ -50,8 +50,8 @@ const MusicTour = () => {
 
     const itineraryStops = [
         { name: "Tofukuji Walking Tour", duration: "2 hours", description: "Explore the historic Tofukuji Temple grounds and surrounding areas" },
-        { name: "Traditional Music Performance", duration: "1 hour", description: "Experience authentic Japanese musical traditions with live performances" },
-        { name: "Authentic Tea Ceremony", duration: "1 hour", description: "Participate in a traditional Japanese tea ceremony experience" }
+        { name: "Authentic Tea Ceremony", duration: "1 hour", description: "Participate in a traditional Japanese tea ceremony experience" },
+        { name: "Traditional Music Performance", duration: "1 hour", description: "Experience authentic Japanese musical traditions with live performances" }
     ];
 
     const meetingPointData = {

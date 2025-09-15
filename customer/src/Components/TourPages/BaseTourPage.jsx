@@ -231,17 +231,24 @@ const BaseTourPage = ({
     if (apiMeetingPoint) {
         try {
             let locationText = "";
+            let googleMapsUrl = "";
+            let instructions = "";
 
             if (typeof apiMeetingPoint === 'string') {
                 locationText = apiMeetingPoint;
+                // Fall back to hardcoded values for string-only meeting points
+                googleMapsUrl = meetingPointData?.googleMapsUrl || "";
+                instructions = meetingPointData?.instructions || "";
             } else if (typeof apiMeetingPoint === 'object' && apiMeetingPoint !== null) {
                 locationText = apiMeetingPoint.location || apiMeetingPoint.name || JSON.stringify(apiMeetingPoint);
+                googleMapsUrl = apiMeetingPoint.googleMapsUrl || apiMeetingPoint.google_maps_url || meetingPointData?.googleMapsUrl || "";
+                instructions = apiMeetingPoint.instructions || apiMeetingPoint.meeting_instructions || meetingPointData?.instructions || "";
             }
 
             finalMeetingPointData = {
                 location: locationText,
-                googleMapsUrl: meetingPointData?.googleMapsUrl || "",
-                instructions: meetingPointData?.instructions || ""
+                googleMapsUrl: googleMapsUrl,
+                instructions: instructions
             };
         } catch (error) {
             console.error('Error processing meeting point data:', error);
@@ -375,6 +382,7 @@ const BaseTourPage = ({
                                 className="h-fit"
                                 tourName={tourTitle}
                                 sheetId={tourId}
+                                tourId={tourId}
                                 price={tourPrice}
                                 originalPrice={originalPrice}
                                 availableTimes={availableTimes}
@@ -416,6 +424,7 @@ const BaseTourPage = ({
                             className="h-fit"
                             tourName={tourTitle}
                             sheetId={tourId}
+                            tourId={tourId}
                             price={tourPrice}
                             originalPrice={originalPrice}
                             availableTimes={availableTimes}

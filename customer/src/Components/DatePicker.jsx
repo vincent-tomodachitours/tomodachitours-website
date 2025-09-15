@@ -7,7 +7,7 @@ import { useAvailability } from '../hooks/useAvailability';
 import { useBookings } from '../hooks/useBookings';
 import { trackParticipantChange } from '../services/analytics/basicTracking.js';
 
-function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, price, originalPrice, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime }) {
+function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId, tourId, price, originalPrice, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime }) {
     // State management
     const [checkout, setCheckout] = useState(false);
     const [loadingAvailability, setLoadingAvailability] = useState(false);
@@ -415,6 +415,7 @@ function DatePicker({ tourName = "noTourName", maxSlots, availableTimes, sheetId
                     setCalendarActiveStartDate={setCalendarActiveStartDate}
                     oneYearsLater={oneYearsLater}
                     minViewLimit={minViewLimit}
+                    tourId={tourId}
                 />
             );
         } else if (calendarState === 1) {

@@ -78,10 +78,7 @@ const AnalyticsDashboard: React.FC = () => {
         'UJI_TOUR': '#10B981',
         'UJI_WALKING_TOUR': '#06B6D4',
         'GION_TOUR': '#F97316',
-        'MUSIC_TOUR': '#EC4899',
-        'UJI_TOUR': '#10B981',
-        'UJI_WALKING_TOUR': '#06B6D4',
-        'GION_TOUR': '#3B82F6'
+        'MUSIC_TOUR': '#EC4899'
     };
 
     const statusColors = {

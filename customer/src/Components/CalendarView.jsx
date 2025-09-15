@@ -21,7 +21,8 @@ const CalendarView = ({
     calendarActiveStartDate,
     setCalendarActiveStartDate,
     oneYearsLater,
-    minViewLimit
+    minViewLimit,
+    tourId
 }) => {
     return (
         <div>
@@ -30,7 +31,7 @@ const CalendarView = ({
                     <PeopleSelector
                         min={1}
                         max={maxSlots}
-                        title={"Adult"}
+                        title={"Adults"}
                         ageRange="18 - 90"
                         price={price}
                         participants={participants}
@@ -40,23 +41,25 @@ const CalendarView = ({
                     <PeopleSelector
                         min={0}
                         max={maxSlots}
-                        title={"Child"}
-                        ageRange="3 - 17"
+                        title={"Children"}
+                        ageRange={tourId === 'music-tour' ? "6 - 17" : "3 - 17"}
                         price={price}
                         participants={participants}
                         value={childParticipants}
                         onChange={handleChildParticipantsChange}
                     />
-                    <PeopleSelector
-                        min={0}
-                        max={maxSlots}
-                        title={"Infant"}
-                        ageRange="0 - 2"
-                        price={0}
-                        participants={participants}
-                        value={infantParticipants}
-                        onChange={handleInfantParticipantsChange}
-                    />
+                    {tourId !== 'music-tour' && (
+                        <PeopleSelector
+                            min={0}
+                            max={maxSlots}
+                            title={"Infants"}
+                            ageRange="0 - 2"
+                            price={0}
+                            participants={participants}
+                            value={infantParticipants}
+                            onChange={handleInfantParticipantsChange}
+                        />
+                    )}
                 </div>
             </div>
             <h1 className='font-ubuntu font-bold text-2xl text-gray-800 mb-6'>Choose a date</h1>

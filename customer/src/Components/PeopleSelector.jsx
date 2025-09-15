@@ -19,7 +19,7 @@ const PeopleSelector = ({ min = 0, max = 9, title = "NAME", participants, value,
             <div className='flex justify-between items-center'>
                 <div className='flex-1'>
                     <div className='flex items-center gap-2 mb-1'>
-                        <h3 className='font-semibold text-gray-800 text-base'>{title}s</h3>
+                        <h3 className='font-semibold text-gray-800 text-base'>{title}</h3>
                         <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
                             Age {ageRange}
                         </span>

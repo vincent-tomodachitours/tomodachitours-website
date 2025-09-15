@@ -51,7 +51,8 @@ const AvailabilityCalendar: React.FC = () => {
             'MORNING_TOUR': new Set(),
             'UJI_TOUR': new Set(),
             'UJI_WALKING_TOUR': new Set(),
-            'GION_TOUR': new Set()
+            'GION_TOUR': new Set(),
+            'MUSIC_TOUR': new Set()
         };
 
         tours.forEach(tour => {
@@ -70,7 +71,8 @@ const AvailabilityCalendar: React.FC = () => {
             'MORNING_TOUR': Array.from(timeSlotsByType['MORNING_TOUR']).sort(),
             'UJI_TOUR': Array.from(timeSlotsByType['UJI_TOUR']).sort(),
             'UJI_WALKING_TOUR': Array.from(timeSlotsByType['UJI_WALKING_TOUR']).sort(),
-            'GION_TOUR': Array.from(timeSlotsByType['GION_TOUR']).sort()
+            'GION_TOUR': Array.from(timeSlotsByType['GION_TOUR']).sort(),
+            'MUSIC_TOUR': Array.from(timeSlotsByType['MUSIC_TOUR']).sort()
         };
 
         return result;
