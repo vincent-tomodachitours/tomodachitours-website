@@ -18,8 +18,6 @@ const TripAdvisorReviews = ({
     tourId = null, // New prop for tour-specific filtering
     tourReviewCount = null // New prop for tour-specific review count
 }) => {
-    console.log('🏗️ TripAdvisorReviews: Rendering with props:', { locationId, maxReviews, showRating });
-
     const {
         reviews,
         businessInfo,
@@ -30,14 +28,6 @@ const TripAdvisorReviews = ({
         handleRefresh,
         MAX_RETRIES
     } = useTripAdvisorData(locationId, maxReviews, autoRefresh, refreshInterval, tourId);
-
-    console.log('📊 TripAdvisorReviews: Current state:', {
-        reviewsCount: reviews.length,
-        businessInfo,
-        loading,
-        error,
-        totalReviewsFromBusinessInfo: businessInfo?.totalReviews
-    });
 
     // Don't render anything if no locationId is provided
     if (!locationId) {

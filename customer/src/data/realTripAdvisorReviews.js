@@ -641,8 +641,6 @@ export async function getRealBusinessInfoWithAPI() {
             return getRealBusinessInfo();
         }
 
-        console.log('🔍 Fetching TripAdvisor location data using Method 2 (working approach)...');
-
         // Use Method 2 from our successful test - browser-like headers
         const directUrl = `https://api.content.tripadvisor.com/api/v1/location/${locationId}/details?key=${apiKey}&language=en&currency=USD`;
         console.log('🌐 URL:', directUrl.replace(apiKey, 'API_KEY_HIDDEN'));
@@ -736,9 +734,6 @@ export async function getRealBusinessInfoWithAPI() {
                         ranking: locationData.ranking_data?.ranking_string || REAL_BUSINESS_INFO.ranking,
                         tripAdvisorUrl: locationData.web_url || REAL_BUSINESS_INFO.tripAdvisorUrl
                     };
-
-                    console.log('🔧 Processed Business Info:', businessInfo);
-                    console.log(`🎉 SUCCESS: Using real TripAdvisor data - ${businessInfo.totalReviews} reviews, ${businessInfo.overallRating} rating`);
 
                     return businessInfo;
                 } else {

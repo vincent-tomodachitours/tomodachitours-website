@@ -133,7 +133,6 @@ export async function clearCache(locationId) {
             return false;
         }
 
-        console.log(`TripAdvisor cache cleared for location: ${locationId}`);
         return true;
     } catch (error) {
         console.error('Error clearing cache:', error);

@@ -9,8 +9,6 @@ import { getRealBusinessInfoWithAPI, getRealReviews } from '../../data/realTripA
  * Fallback function when TripAdvisor API is unavailable - uses real reviews
  */
 export async function getRealBusinessReviews(options = {}) {
-    console.log('📋 Using real TripAdvisor reviews (manually collected)');
-
     const maxReviews = options.maxReviews || 6;
     const tourId = options.tourId || null;
     const realReviews = getRealReviews(maxReviews, tourId);
@@ -43,8 +41,6 @@ export async function getBusinessReviewsWithFallback(getBusinessReviews, options
 
         // If we get real data but no reviews, supplement with real collected reviews for display
         if (result.reviews.length === 0 && result.businessInfo) {
-            console.log('📊 Real business data retrieved, supplementing with manually collected reviews');
-
             // Use real business info but add manually collected reviews
             const realReviews = getRealReviews(options.maxReviews || 6, options.tourId);
 

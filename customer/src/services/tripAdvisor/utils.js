@@ -19,7 +19,7 @@ export function logApiMetrics(operation, metrics = {}) {
     };
 
     // In production, this could be sent to a logging service
-    console.log('TripAdvisor API Metrics:', logData);
+    // Metrics logging disabled
 }
 
 /**

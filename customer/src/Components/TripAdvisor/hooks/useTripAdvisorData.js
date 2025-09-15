@@ -15,13 +15,9 @@ export const useTripAdvisorData = (locationId, maxReviews = 6, autoRefresh = fal
      * Fetch reviews from TripAdvisor service
      */
     const fetchReviews = useCallback(async (forceRefresh = false) => {
-        console.log('🚀 useTripAdvisorData: Starting fetchReviews with:', { locationId, maxReviews, forceRefresh });
-
         try {
             setLoading(true);
             setError(null);
-
-            console.log('📞 useTripAdvisorData: Calling getBusinessReviewsWithFallback...');
 
             const result = await getBusinessReviewsWithFallback({
                 locationId,
@@ -30,10 +26,6 @@ export const useTripAdvisorData = (locationId, maxReviews = 6, autoRefresh = fal
                 tourId
             });
 
-            console.log('📊 useTripAdvisorData: Received result:', result);
-            console.log('📈 useTripAdvisorData: Business info:', result.businessInfo);
-            console.log('📝 useTripAdvisorData: Total reviews from API:', result.businessInfo?.totalReviews);
-
             // Limit reviews to maxReviews
             const limitedReviews = result.reviews.slice(0, maxReviews);
 
@@ -41,8 +33,6 @@ export const useTripAdvisorData = (locationId, maxReviews = 6, autoRefresh = fal
             setBusinessInfo(result.businessInfo);
             setLastFetch(new Date());
             setRetryCount(0); // Reset retry count on success
-
-            console.log('✅ useTripAdvisorData: Successfully set data - businessInfo.totalReviews:', result.businessInfo?.totalReviews);
 
         } catch (err) {
             console.error('❌ useTripAdvisorData: Error fetching TripAdvisor reviews:', err);
@@ -78,7 +68,6 @@ export const useTripAdvisorData = (locationId, maxReviews = 6, autoRefresh = fal
     // Initial load
     useEffect(() => {
         if (locationId) {
-            console.log('🔄 useTripAdvisorData: Initial load triggered');
             fetchReviews();
         }
     }, [fetchReviews, locationId]);

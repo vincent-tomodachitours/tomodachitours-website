@@ -215,8 +215,6 @@ export async function refreshCache(locationId = TRIPADVISOR_CONFIG.locationId) {
  */
 export async function warmCache(locationId = TRIPADVISOR_CONFIG.locationId, options = {}) {
     try {
-        console.log(`Warming TripAdvisor cache for location: ${locationId}`);
-
         // Force refresh to get fresh data
         await getBusinessReviews({
             locationId,
@@ -225,7 +223,6 @@ export async function warmCache(locationId = TRIPADVISOR_CONFIG.locationId, opti
             language: options.language || 'en'
         });
 
-        console.log(`TripAdvisor cache warmed successfully for location: ${locationId}`);
         return true;
     } catch (error) {
         console.error('Error warming cache:', error);
@@ -245,21 +242,14 @@ export {
 
 // Export the enhanced version with fallback
 export async function getBusinessReviewsWithFallbackWrapper(options = {}) {
-    console.log('🚀 Starting getBusinessReviewsWithFallbackWrapper with options:', options);
-
     try {
         // Use our working Method 2 implementation directly for business info
         const { getRealReviews, getRealBusinessInfoWithAPI } = await import('../../data/realTripAdvisorReviews');
 
-        console.log('📊 Fetching real TripAdvisor business data using Method 2...');
         const businessInfo = await getRealBusinessInfoWithAPI();
-
-        console.log('✅ Business info received:', businessInfo);
 
         // Get manually collected reviews for display, filtered by tour if specified
         const realReviews = getRealReviews(options.maxReviews || 6, options.tourId);
-
-        console.log(`🔧 Returning hybrid data: ${businessInfo.totalReviews} total reviews, displaying ${realReviews.length} manually collected reviews${options.tourId ? ` for tour: ${options.tourId}` : ''}`);
 
         return {
             reviews: realReviews,
