@@ -15,45 +15,49 @@ interface ErrorStateProps {
 export const SkeletonCards: React.FC<SkeletonCardsProps> = ({ maxReviews }) => {
     const skeletonCount = Math.min(maxReviews, 6);
 
-    return Array.from({ length: skeletonCount }, (_, index) => (
-        <div
-            key={`skeleton-${index}`}
-            className="bg-white rounded-lg shadow-md border border-gray-200 p-6 animate-pulse"
-            data-testid="skeleton-card"
-        >
-            {/* Rating skeleton */}
-            <div className="flex items-center mb-4">
-                <div className="flex space-x-1">
-                    {Array.from({ length: 5 }, (_, i) => (
-                        <div key={i} className="w-4 h-4 bg-gray-300 rounded"></div>
-                    ))}
-                </div>
-                <div className="ml-2 w-8 h-4 bg-gray-300 rounded"></div>
-            </div>
+    return (
+        <>
+            {Array.from({ length: skeletonCount }, (_, index) => (
+                <div
+                    key={`skeleton-${index}`}
+                    className="bg-white rounded-lg shadow-md border border-gray-200 p-6 animate-pulse"
+                    data-testid="skeleton-card"
+                >
+                    {/* Rating skeleton */}
+                    <div className="flex items-center mb-4">
+                        <div className="flex space-x-1">
+                            {Array.from({ length: 5 }, (_, i) => (
+                                <div key={i} className="w-4 h-4 bg-gray-300 rounded"></div>
+                            ))}
+                        </div>
+                        <div className="ml-2 w-8 h-4 bg-gray-300 rounded"></div>
+                    </div>
 
-            {/* Title skeleton */}
-            <div className="w-3/4 h-6 bg-gray-300 rounded mb-4"></div>
+                    {/* Title skeleton */}
+                    <div className="w-3/4 h-6 bg-gray-300 rounded mb-4"></div>
 
-            {/* Text skeleton */}
-            <div className="space-y-2 mb-4">
-                <div className="w-full h-4 bg-gray-300 rounded"></div>
-                <div className="w-full h-4 bg-gray-300 rounded"></div>
-                <div className="w-2/3 h-4 bg-gray-300 rounded"></div>
-            </div>
+                    {/* Text skeleton */}
+                    <div className="space-y-2 mb-4">
+                        <div className="w-full h-4 bg-gray-300 rounded"></div>
+                        <div className="w-full h-4 bg-gray-300 rounded"></div>
+                        <div className="w-2/3 h-4 bg-gray-300 rounded"></div>
+                    </div>
 
-            {/* Footer skeleton */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <div className="flex items-center">
-                    <div className="w-8 h-8 bg-gray-300 rounded-full mr-3"></div>
-                    <div>
-                        <div className="w-20 h-4 bg-gray-300 rounded mb-1"></div>
+                    {/* Footer skeleton */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <div className="flex items-center">
+                            <div className="w-8 h-8 bg-gray-300 rounded-full mr-3"></div>
+                            <div>
+                                <div className="w-20 h-4 bg-gray-300 rounded mb-1"></div>
+                                <div className="w-16 h-3 bg-gray-300 rounded"></div>
+                            </div>
+                        </div>
                         <div className="w-16 h-3 bg-gray-300 rounded"></div>
                     </div>
                 </div>
-                <div className="w-16 h-3 bg-gray-300 rounded"></div>
-            </div>
-        </div>
-    ));
+            ))}
+        </>
+    );
 };
 
 // Error state
