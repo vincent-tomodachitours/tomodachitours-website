@@ -1,12 +1,34 @@
 #!/usr/bin/env node
 
-const { Redis } = require('@upstash/redis');
-const { SecurityLogger } = require('../src/services/logging/SecurityLogger');
-const { LogAnalyzer } = require('../src/services/logging/LogAnalyzer');
-const fs = require('fs').promises;
-const path = require('path');
+import { Redis } from '@upstash/redis';
+import { SecurityLogger } from '../src/services/logging/SecurityLogger';
+import { LogAnalyzer } from '../src/services/logging/LogAnalyzer';
+import { promises as fs } from 'fs';
+import path from 'path';
 
-async function generateWeeklyReport() {
+interface SecurityReport {
+    generatedAt: string;
+    period: {
+        start: string;
+        end: string;
+    };
+    summary: {
+        totalEvents: number;
+        criticalEvents: number;
+        suspiciousLogins: number;
+        suspiciousPayments: number;
+        rateLimitViolations: number;
+    };
+    insights: any;
+    criticalEvents: any[];
+    analysis: {
+        logins: any[];
+        payments: any[];
+        rateLimits: any[];
+    };
+}
+
+async function generateWeeklyReport(): Promise<void> {
     console.log('📊 Generating Weekly Security Report...');
     console.log('='.repeat(60));
 
@@ -44,7 +66,7 @@ async function generateWeeklyReport() {
         );
 
         // Create report
-        const report = {
+        const report: SecurityReport = {
             generatedAt: new Date().toISOString(),
             period: {
                 start: new Date(weekAgo).toISOString(),
@@ -82,7 +104,7 @@ async function generateWeeklyReport() {
     }
 }
 
-function displayConsoleReport(report) {
+function displayConsoleReport(report: SecurityReport): void {
     console.log('\n📈 WEEKLY SECURITY REPORT');
     console.log('='.repeat(50));
     console.log(`📅 Period: ${formatDate(report.period.start)} to ${formatDate(report.period.end)}`);
@@ -226,7 +248,7 @@ function displayConsoleReport(report) {
     console.log('• Update security team on findings');
 }
 
-async function saveReportToFile(report) {
+async function saveReportToFile(report: SecurityReport): Promise<void> {
     try {
         // Ensure reports directory exists
         const reportsDir = path.join(process.cwd(), 'reports');
@@ -252,7 +274,7 @@ async function saveReportToFile(report) {
     }
 }
 
-function generateTextSummary(report) {
+function generateTextSummary(report: SecurityReport): string {
     return `
 TOMODACHI TOURS - WEEKLY SECURITY REPORT
 Generated: ${formatDate(report.generatedAt)}
@@ -288,7 +310,7 @@ Next report: ${formatDate(Date.now() + (7 * 24 * 60 * 60 * 1000))}
 `;
 }
 
-function generateRecommendations(report) {
+function generateRecommendations(report: SecurityReport): string {
     const recommendations = [];
 
     if (report.summary.criticalEvents > 0) {
@@ -315,17 +337,17 @@ function generateRecommendations(report) {
     return recommendations.join('\n');
 }
 
-function formatDate(timestamp) {
+function formatDate(timestamp: string | number): string {
     return new Date(timestamp).toLocaleString();
 }
 
-function getDateString() {
+function getDateString(): string {
     return new Date().toISOString().split('T')[0];
 }
 
 // Run the weekly report
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     generateWeeklyReport().catch(console.error);
 }
 
-module.exports = { generateWeeklyReport }; 
+export { generateWeeklyReport }; 

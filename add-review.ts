@@ -3,32 +3,45 @@
 /**
  * Helper script to add real TripAdvisor reviews
  * 
- * Usage: node add-review.js
+ * Usage: npx tsx add-review.ts
  * 
  * This script will prompt you for review details and automatically
  * add them to the realTripAdvisorReviews.js file.
  */
 
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
+import fs from 'fs';
+import path from 'path';
+import readline from 'readline';
+
+interface Review {
+    id: string;
+    title: string;
+    text: string;
+    rating: number;
+    author: string;
+    authorLocation: string;
+    date: string;
+    helpfulVotes: number;
+    isVerified: boolean;
+    language: string;
+}
 
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
-function question(prompt) {
+function question(prompt: string): Promise<string> {
     return new Promise((resolve) => {
         rl.question(prompt, resolve);
     });
 }
 
-function generateReviewId() {
+function generateReviewId(): string {
     return 'real_review_' + Date.now();
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr: string): string {
     if (!dateStr) return new Date().toISOString().split('T')[0];
 
     // Try to parse various date formats
@@ -40,7 +53,7 @@ function formatDate(dateStr) {
     return date.toISOString().split('T')[0];
 }
 
-async function addReview() {
+async function addReview(): Promise<void> {
     console.log('\n🌟 Add Real TripAdvisor Review');
     console.log('================================\n');
 
@@ -53,7 +66,7 @@ async function addReview() {
         const date = await question('Review date (YYYY-MM-DD or leave empty for today): ');
         const helpfulVotes = await question('Helpful votes (or leave empty for 0): ');
 
-        const review = {
+        const review: Review = {
             id: generateReviewId(),
             title: title.trim(),
             text: text.trim(),

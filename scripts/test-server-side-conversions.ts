@@ -2,23 +2,48 @@
 
 /**
  * Test script for server-side conversion backup system
- * Usage: node scripts/test-server-side-conversions.js [command] [options]
+ * Usage: npx tsx scripts/test-server-side-conversions.ts [command] [options]
  */
 
-const { createClient } = require('@supabase/supabase-js')
-require('dotenv').config()
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+interface TestConversion {
+    conversion_action: string;
+    conversion_value: number;
+    currency: string;
+    order_id: string;
+    conversion_date_time: string;
+}
+
+interface TestBooking {
+    id: string;
+    status: string;
+    total_amount: number;
+    currency: string;
+    customer_email: string;
+    customer_phone: string;
+    tour_id: string;
+    booking_date: string;
+    gclid: string;
+    created_at: string;
+}
 
 const supabase = createClient(
-    process.env.REACT_APP_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+    process.env.REACT_APP_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 class ConversionTestSuite {
+    private functionUrl: string;
+
     constructor() {
         this.functionUrl = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/google-ads-conversion`
     }
 
-    async testBookingValidation(bookingId) {
+    async testBookingValidation(bookingId: string): Promise<boolean> {
         console.log(`\n🔍 Testing booking validation for: ${bookingId}`)
 
         try {
@@ -47,10 +72,10 @@ class ConversionTestSuite {
         }
     }
 
-    async testManualConversion() {
+    async testManualConversion(): Promise<boolean> {
         console.log('\n🔧 Testing manual conversion upload')
 
-        const testConversion = {
+        const testConversion: TestConversion = {
             conversion_action: process.env.GOOGLE_ADS_PURCHASE_CONVERSION_ACTION || 'test-action',
             conversion_value: 5000,
             currency: 'JPY',
@@ -85,7 +110,7 @@ class ConversionTestSuite {
         }
     }
 
-    async testConversionReconciliation(days = 7) {
+    async testConversionReconciliation(days: number = 7): Promise<boolean> {
         console.log(`\n📈 Testing conversion reconciliation for last ${days} days`)
 
         const endDate = new Date().toISOString()
@@ -135,10 +160,10 @@ class ConversionTestSuite {
         }
     }
 
-    async createTestBooking() {
+    async createTestBooking(): Promise<string | null> {
         console.log('\n🏗️  Creating test booking for validation')
 
-        const testBooking = {
+        const testBooking: TestBooking = {
             id: `test-booking-${Date.now()}`,
             status: 'confirmed',
             total_amount: 5000,
@@ -171,7 +196,7 @@ class ConversionTestSuite {
         }
     }
 
-    async cleanupTestBookings() {
+    async cleanupTestBookings(): Promise<boolean> {
         console.log('\n🧹 Cleaning up test bookings')
 
         try {
@@ -193,7 +218,7 @@ class ConversionTestSuite {
         }
     }
 
-    async runFullTestSuite() {
+    async runFullTestSuite(): Promise<boolean> {
         console.log('🚀 Running full server-side conversion test suite\n')
 
         const results = {
@@ -239,7 +264,7 @@ class ConversionTestSuite {
 }
 
 // CLI interface
-async function main() {
+async function main(): Promise<void> {
     const args = process.argv.slice(2)
     const command = args[0] || 'full'
 
@@ -275,11 +300,11 @@ async function main() {
     }
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     main().catch(error => {
         console.error('❌ Script error:', error.message)
         process.exit(1)
     })
 }
 
-module.exports = { ConversionTestSuite }
+export { ConversionTestSuite };

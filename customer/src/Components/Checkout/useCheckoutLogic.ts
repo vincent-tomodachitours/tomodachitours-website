@@ -485,7 +485,7 @@ export const useCheckoutLogic = ({
         };
 
         initializeBookingFlow();
-    }, [sheetId, tourName, finalPrice, adult, child, infant, tourDate, tourTime, tourPrice, fallbackBeginCheckoutTracking, retryConversionTracking, validateConversionFiring]);
+    }, [sheetId, tourName, finalPrice, adult, child, infant, tourDate, tourTime, tourPrice, appliedDiscount, fallbackBeginCheckoutTracking, retryConversionTracking, validateConversionFiring]);
 
     // Cleanup effect for component unmount
     useEffect(() => {

@@ -1,12 +1,29 @@
 // Campaign Optimization Utilities
 // Shared utility functions for campaign optimization
 
+export interface CampaignData {
+    campaignId?: string;
+    impressions?: number;
+    clicks?: number;
+    conversions?: number;
+    cost?: number;
+    conversionValue?: number;
+    keywords?: any[];
+    audienceData?: any;
+    lastUpdated?: string;
+}
+
+export interface ValidationResult {
+    isValid: boolean;
+    missingRequired: string[];
+    missingOptional: string[];
+    completeness: number;
+}
+
 /**
  * Calculate standard deviation of an array of values
- * @param {Array} values - Array of numeric values
- * @returns {number} Standard deviation
  */
-export function calculateStandardDeviation(values) {
+export function calculateStandardDeviation(values: number[]): number {
     if (values.length === 0) return 0;
 
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
@@ -18,10 +35,8 @@ export function calculateStandardDeviation(values) {
 
 /**
  * Calculate confidence score based on data quality
- * @param {Object} data - Campaign data
- * @returns {number} Confidence score (0-1)
  */
-export function calculateConfidenceScore(data) {
+export function calculateConfidenceScore(data: CampaignData): number {
     const thresholds = {
         minConversions: 10,
         minImpressions: 1000
@@ -46,7 +61,7 @@ export function calculateConfidenceScore(data) {
     else if (dataAge <= 30) score += 0.1;
 
     // Data completeness score (30%)
-    const requiredFields = ['impressions', 'clicks', 'conversions', 'cost', 'conversionValue'];
+    const requiredFields: (keyof CampaignData)[] = ['impressions', 'clicks', 'conversions', 'cost', 'conversionValue'];
     const presentFields = requiredFields.filter(field => data[field] !== undefined).length;
     score += (presentFields / requiredFields.length) * 0.3;
 
@@ -55,22 +70,16 @@ export function calculateConfidenceScore(data) {
 
 /**
  * Calculate percentage change between two values
- * @param {number} oldValue - Original value
- * @param {number} newValue - New value
- * @returns {number} Percentage change
  */
-export function calculatePercentageChange(oldValue, newValue) {
+export function calculatePercentageChange(oldValue: number, newValue: number): number {
     if (oldValue === 0) return newValue > 0 ? 100 : 0;
     return ((newValue - oldValue) / oldValue) * 100;
 }
 
 /**
  * Format currency value for display
- * @param {number} value - Numeric value
- * @param {string} currency - Currency code (default: JPY)
- * @returns {string} Formatted currency string
  */
-export function formatCurrency(value, currency = 'JPY') {
+export function formatCurrency(value: number, currency: string = 'JPY'): string {
     if (currency === 'JPY') {
         return `¥${value.toLocaleString()}`;
     }
@@ -79,76 +88,55 @@ export function formatCurrency(value, currency = 'JPY') {
 
 /**
  * Format percentage for display
- * @param {number} value - Percentage value
- * @param {number} decimals - Number of decimal places (default: 1)
- * @returns {string} Formatted percentage string
  */
-export function formatPercentage(value, decimals = 1) {
+export function formatPercentage(value: number, decimals: number = 1): string {
     return `${value.toFixed(decimals)}%`;
 }
 
 /**
  * Calculate ROAS (Return on Ad Spend)
- * @param {number} revenue - Revenue generated
- * @param {number} cost - Cost of advertising
- * @returns {number} ROAS ratio
  */
-export function calculateROAS(revenue, cost) {
+export function calculateROAS(revenue: number, cost: number): number {
     if (cost === 0) return 0;
     return revenue / cost;
 }
 
 /**
  * Calculate ROI (Return on Investment)
- * @param {number} revenue - Revenue generated
- * @param {number} cost - Cost of advertising
- * @returns {number} ROI percentage
  */
-export function calculateROI(revenue, cost) {
+export function calculateROI(revenue: number, cost: number): number {
     if (cost === 0) return 0;
     return ((revenue - cost) / cost) * 100;
 }
 
 /**
  * Calculate conversion rate
- * @param {number} conversions - Number of conversions
- * @param {number} clicks - Number of clicks
- * @returns {number} Conversion rate percentage
  */
-export function calculateConversionRate(conversions, clicks) {
+export function calculateConversionRate(conversions: number, clicks: number): number {
     if (clicks === 0) return 0;
     return (conversions / clicks) * 100;
 }
 
 /**
  * Calculate cost per conversion
- * @param {number} cost - Total cost
- * @param {number} conversions - Number of conversions
- * @returns {number} Cost per conversion
  */
-export function calculateCostPerConversion(cost, conversions) {
+export function calculateCostPerConversion(cost: number, conversions: number): number {
     if (conversions === 0) return 0;
     return cost / conversions;
 }
 
 /**
  * Calculate click-through rate
- * @param {number} clicks - Number of clicks
- * @param {number} impressions - Number of impressions
- * @returns {number} CTR percentage
  */
-export function calculateCTR(clicks, impressions) {
+export function calculateCTR(clicks: number, impressions: number): number {
     if (impressions === 0) return 0;
     return (clicks / impressions) * 100;
 }
 
 /**
  * Determine priority level based on impact and urgency
- * @param {number} impact - Impact score (0-100)
- * @param {number} urgency - Urgency score (0-100)
- * @returns {string} Priority level
  */
-export function determinePriority(impact, urgency) {
+export function determinePriority(impact: number, urgency: number): 'critical' | 'high' | 'medium' | 'low' {
     const score = (impact + urgency) / 2;
 
     if (score >= 80) return 'critical';
@@ -159,14 +147,12 @@ export function determinePriority(impact, urgency) {
 
 /**
  * Validate campaign data completeness
- * @param {Object} data - Campaign data
- * @returns {Object} Validation result
  */
-export function validateCampaignData(data) {
-    const requiredFields = ['campaignId', 'impressions', 'clicks', 'cost'];
-    const optionalFields = ['conversions', 'conversionValue', 'keywords', 'audienceData'];
+export function validateCampaignData(data: CampaignData): ValidationResult {
+    const requiredFields: (keyof CampaignData)[] = ['campaignId', 'impressions', 'clicks', 'cost'];
+    const optionalFields: (keyof CampaignData)[] = ['conversions', 'conversionValue', 'keywords', 'audienceData'];
 
-    const validation = {
+    const validation: ValidationResult = {
         isValid: true,
         missingRequired: [],
         missingOptional: [],
@@ -198,28 +184,23 @@ export function validateCampaignData(data) {
 
 /**
  * Generate unique optimization ID
- * @param {string} campaignId - Campaign ID
- * @param {string} type - Optimization type
- * @returns {string} Unique optimization ID
  */
-export function generateOptimizationId(campaignId, type) {
+export function generateOptimizationId(campaignId: string, type: string): string {
     const timestamp = Date.now();
     return `${campaignId}_${type}_${timestamp}`;
 }
 
 /**
  * Deep clone an object
- * @param {Object} obj - Object to clone
- * @returns {Object} Cloned object
  */
-export function deepClone(obj) {
+export function deepClone<T>(obj: T): T {
     if (obj === null || typeof obj !== 'object') return obj;
-    if (obj instanceof Date) return new Date(obj.getTime());
-    if (obj instanceof Array) return obj.map(item => deepClone(item));
+    if (obj instanceof Date) return new Date(obj.getTime()) as T;
+    if (obj instanceof Array) return obj.map(item => deepClone(item)) as T;
 
-    const cloned = {};
-    Object.keys(obj).forEach(key => {
-        cloned[key] = deepClone(obj[key]);
+    const cloned = {} as T;
+    Object.keys(obj as any).forEach(key => {
+        (cloned as any)[key] = deepClone((obj as any)[key]);
     });
 
     return cloned;
@@ -227,41 +208,35 @@ export function deepClone(obj) {
 
 /**
  * Throttle function execution
- * @param {Function} func - Function to throttle
- * @param {number} delay - Delay in milliseconds
- * @returns {Function} Throttled function
  */
-export function throttle(func, delay) {
-    let timeoutId;
+export function throttle<T extends (...args: any[]) => any>(func: T, delay: number): T {
+    let timeoutId: NodeJS.Timeout | undefined;
     let lastExecTime = 0;
 
-    return function (...args) {
+    return ((...args: Parameters<T>) => {
         const currentTime = Date.now();
 
         if (currentTime - lastExecTime > delay) {
-            func.apply(this, args);
+            func.apply(null, args);
             lastExecTime = currentTime;
         } else {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
-                func.apply(this, args);
+                func.apply(null, args);
                 lastExecTime = Date.now();
             }, delay - (currentTime - lastExecTime));
         }
-    };
+    }) as T;
 }
 
 /**
  * Debounce function execution
- * @param {Function} func - Function to debounce
- * @param {number} delay - Delay in milliseconds
- * @returns {Function} Debounced function
  */
-export function debounce(func, delay) {
-    let timeoutId;
+export function debounce<T extends (...args: any[]) => any>(func: T, delay: number): T {
+    let timeoutId: NodeJS.Timeout | undefined;
 
-    return function (...args) {
+    return ((...args: Parameters<T>) => {
         clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => func.apply(this, args), delay);
-    };
+        timeoutId = setTimeout(() => func.apply(null, args), delay);
+    }) as T;
 }

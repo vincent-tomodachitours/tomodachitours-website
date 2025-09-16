@@ -1,9 +1,166 @@
 // Bid Recommendation Engine
 // Generates automated bid adjustment recommendations based on performance data
 
-import { calculateConfidenceScore } from './utils.js';
+import { calculateConfidenceScore } from './utils';
+
+interface CampaignData {
+    campaignId: string;
+    bidStrategy?: string;
+    conversionValue?: number;
+    cost?: number;
+    conversions?: number;
+    clicks?: number;
+    impressions?: number;
+    avgQualityScore?: number;
+    keywords?: KeywordData[];
+    deviceBreakdown?: Record<string, DeviceData>;
+    locationData?: LocationData[];
+    audienceData?: AudienceData[];
+    timeData?: TimeData[];
+}
+
+interface KeywordData {
+    keyword: string;
+    conversionValue?: number;
+    cost?: number;
+    conversions?: number;
+    clicks?: number;
+    impressions?: number;
+    avgCpc?: number;
+}
+
+interface DeviceData {
+    conversionValue?: number;
+    cost?: number;
+    conversions?: number;
+    clicks?: number;
+    impressions?: number;
+}
+
+interface LocationData {
+    location: string;
+    performance: number;
+}
+
+interface AudienceData {
+    name: string;
+    performance: number;
+}
+
+interface TimeData {
+    hour: number;
+    performance: number;
+}
+
+interface KeywordPerformance extends KeywordData {
+    roas: number;
+    conversionRate: number;
+    costPerConversion: number;
+    performanceScore: number;
+}
+
+interface OverallPerformance {
+    roas: number;
+    conversionRate: number;
+    costPerConversion: number;
+    avgCpc: number;
+    qualityScore: number;
+}
+
+interface BidAnalysis {
+    overallPerformance: OverallPerformance;
+    keywordPerformance: KeywordPerformance[];
+    devicePerformance: Record<string, DevicePerformance>;
+    locationPerformance: LocationPerformance;
+    audiencePerformance: AudiencePerformance;
+    timePerformance: TimePerformance;
+}
+
+interface DevicePerformance {
+    roas: number;
+    conversionRate: number;
+    costPerConversion: number;
+}
+
+interface LocationPerformance {
+    topLocations: string[];
+    underperformingLocations: string[];
+}
+
+interface AudiencePerformance {
+    topAudiences: AudienceData[];
+    adjustmentRecommendations: any[];
+}
+
+interface TimePerformance {
+    bestHours: number[];
+    worstHours: number[];
+}
+
+interface KeywordAdjustment {
+    keyword: string;
+    currentBid: number;
+    recommendedAdjustment: number;
+    newBid: number;
+    reason: string;
+    priority: 'low' | 'medium' | 'high';
+    expectedImpact: string;
+}
+
+interface DeviceAdjustment {
+    device: string;
+    currentAdjustment: number;
+    recommendedAdjustment: number;
+    reason: string;
+    priority: 'low' | 'medium' | 'high';
+    expectedImpact: string;
+}
+
+interface BidAdjustments {
+    keywords?: KeywordAdjustment[];
+    devices?: Record<string, DeviceAdjustment>;
+    locations?: Record<string, any>;
+    audiences?: Record<string, any>;
+    schedule?: Record<string, any>;
+}
+
+interface Recommendation {
+    type: string;
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    title: string;
+    description: string;
+    action: string;
+    expectedImpact: string;
+}
+
+interface ExpectedImpact {
+    estimatedCostChange: number;
+    estimatedConversionChange: number;
+    estimatedRevenueChange: number;
+    riskLevel: 'low' | 'medium' | 'high';
+}
+
+interface BidRecommendations {
+    timestamp: string;
+    campaignId: string;
+    currentBidStrategy: string;
+    recommendations: Recommendation[];
+    adjustments: BidAdjustments;
+    expectedImpact: ExpectedImpact;
+    confidenceLevel: number;
+}
+
+interface Thresholds {
+    minConversions: number;
+    minImpressions: number;
+    roasTarget: number;
+    conversionRateTarget: number;
+    costPerConversionTarget: number;
+}
 
 class BidRecommendationEngine {
+    private thresholds: Thresholds;
+
     constructor() {
         this.thresholds = {
             minConversions: 10,
@@ -16,17 +173,15 @@ class BidRecommendationEngine {
 
     /**
      * Generate bid recommendations for a campaign
-     * @param {Object} campaignData - Campaign performance data
-     * @returns {Promise<Object>} Bid adjustment recommendations
      */
-    async generateRecommendations(campaignData) {
-        const recommendations = {
+    async generateRecommendations(campaignData: CampaignData): Promise<BidRecommendations> {
+        const recommendations: BidRecommendations = {
             timestamp: new Date().toISOString(),
             campaignId: campaignData.campaignId,
             currentBidStrategy: campaignData.bidStrategy || 'unknown',
             recommendations: [],
             adjustments: {},
-            expectedImpact: {},
+            expectedImpact: {} as ExpectedImpact,
             confidenceLevel: 0
         };
 
@@ -62,23 +217,21 @@ class BidRecommendationEngine {
 
     /**
      * Analyze bid performance across different dimensions
-     * @param {Object} campaignData - Campaign data
-     * @returns {Object} Bid performance analysis
      */
-    analyzeBidPerformance(campaignData) {
-        const analysis = {
-            overallPerformance: {},
+    private analyzeBidPerformance(campaignData: CampaignData): BidAnalysis {
+        const analysis: BidAnalysis = {
+            overallPerformance: {} as OverallPerformance,
             keywordPerformance: [],
             devicePerformance: {},
-            locationPerformance: {},
-            audiencePerformance: {},
-            timePerformance: {}
+            locationPerformance: {} as LocationPerformance,
+            audiencePerformance: {} as AudiencePerformance,
+            timePerformance: {} as TimePerformance
         };
 
         // Overall performance metrics
         analysis.overallPerformance = {
-            roas: campaignData.conversionValue / (campaignData.cost || 1),
-            conversionRate: (campaignData.conversions / (campaignData.clicks || 1)) * 100,
+            roas: (campaignData.conversionValue || 0) / (campaignData.cost || 1),
+            conversionRate: ((campaignData.conversions || 0) / (campaignData.clicks || 1)) * 100,
             costPerConversion: (campaignData.cost || 0) / (campaignData.conversions || 1),
             avgCpc: (campaignData.cost || 0) / (campaignData.clicks || 1),
             qualityScore: campaignData.avgQualityScore || 5
@@ -88,8 +241,8 @@ class BidRecommendationEngine {
         if (campaignData.keywords) {
             analysis.keywordPerformance = campaignData.keywords.map(keyword => ({
                 ...keyword,
-                roas: keyword.conversionValue / (keyword.cost || 1),
-                conversionRate: (keyword.conversions / (keyword.clicks || 1)) * 100,
+                roas: (keyword.conversionValue || 0) / (keyword.cost || 1),
+                conversionRate: ((keyword.conversions || 0) / (keyword.clicks || 1)) * 100,
                 costPerConversion: (keyword.cost || 0) / (keyword.conversions || 1),
                 performanceScore: this.calculateKeywordPerformanceScore(keyword)
             }));
@@ -120,11 +273,9 @@ class BidRecommendationEngine {
 
     /**
      * Generate keyword bid adjustments
-     * @param {Object} bidAnalysis - Bid analysis data
-     * @returns {Array} Keyword bid adjustments
      */
-    generateKeywordBidAdjustments(bidAnalysis) {
-        const adjustments = [];
+    private generateKeywordBidAdjustments(bidAnalysis: BidAnalysis): KeywordAdjustment[] {
+        const adjustments: KeywordAdjustment[] = [];
 
         if (bidAnalysis.keywordPerformance.length === 0) {
             return adjustments;
@@ -135,15 +286,15 @@ class BidRecommendationEngine {
             let reason = '';
 
             // High-performing keywords
-            if (keyword.roas > this.thresholds.roasTarget * 1.5 && keyword.conversions >= 3) {
+            if (keyword.roas > this.thresholds.roasTarget * 1.5 && (keyword.conversions || 0) >= 3) {
                 adjustment = 25; // Increase bid by 25%
                 reason = `Excellent ROAS of ${keyword.roas.toFixed(2)}:1`;
-            } else if (keyword.roas > this.thresholds.roasTarget && keyword.conversions >= 2) {
+            } else if (keyword.roas > this.thresholds.roasTarget && (keyword.conversions || 0) >= 2) {
                 adjustment = 15; // Increase bid by 15%
                 reason = `Good ROAS of ${keyword.roas.toFixed(2)}:1`;
             }
             // Low-performing keywords
-            else if (keyword.roas < 1 && keyword.cost > 5000) {
+            else if (keyword.roas < 1 && (keyword.cost || 0) > 5000) {
                 adjustment = -50; // Decrease bid by 50%
                 reason = `Poor ROAS of ${keyword.roas.toFixed(2)}:1`;
             } else if (keyword.roas < this.thresholds.roasTarget * 0.5) {
@@ -169,11 +320,9 @@ class BidRecommendationEngine {
 
     /**
      * Generate device bid adjustments
-     * @param {Object} bidAnalysis - Bid analysis data
-     * @returns {Object} Device bid adjustments
      */
-    generateDeviceBidAdjustments(bidAnalysis) {
-        const adjustments = {};
+    private generateDeviceBidAdjustments(bidAnalysis: BidAnalysis): Record<string, DeviceAdjustment> {
+        const adjustments: Record<string, DeviceAdjustment> = {};
 
         if (!bidAnalysis.devicePerformance || Object.keys(bidAnalysis.devicePerformance).length === 0) {
             return adjustments;
@@ -184,7 +333,6 @@ class BidRecommendationEngine {
             let reason = '';
 
             const roas = performance.roas || 0;
-            const conversionRate = performance.conversionRate || 0;
 
             // High-performing devices
             if (roas > this.thresholds.roasTarget * 1.3) {
@@ -217,16 +365,12 @@ class BidRecommendationEngine {
 
     /**
      * Generate overall bid recommendations
-     * @param {Object} bidAnalysis - Bid analysis data
-     * @param {Object} adjustments - Specific adjustments
-     * @returns {Array} Overall recommendations
      */
-    generateOverallBidRecommendations(bidAnalysis, adjustments) {
-        const recommendations = [];
+    private generateOverallBidRecommendations(bidAnalysis: BidAnalysis, adjustments: BidAdjustments): Recommendation[] {
+        const recommendations: Recommendation[] = [];
 
         // Overall campaign performance recommendations
         const overallRoas = bidAnalysis.overallPerformance.roas || 0;
-        const overallConversionRate = bidAnalysis.overallPerformance.conversionRate || 0;
 
         if (overallRoas > this.thresholds.roasTarget * 1.5) {
             recommendations.push({
@@ -296,11 +440,9 @@ class BidRecommendationEngine {
 
     /**
      * Calculate bid adjustment impact
-     * @param {Object} adjustments - Bid adjustments
-     * @returns {Object} Expected impact
      */
-    calculateBidAdjustmentImpact(adjustments) {
-        const impact = {
+    private calculateBidAdjustmentImpact(adjustments: BidAdjustments): ExpectedImpact {
+        const impact: ExpectedImpact = {
             estimatedCostChange: 0,
             estimatedConversionChange: 0,
             estimatedRevenueChange: 0,
@@ -342,21 +484,17 @@ class BidRecommendationEngine {
 
     /**
      * Calculate bid recommendation confidence
-     * @param {Object} campaignData - Campaign data
-     * @returns {number} Confidence level (0-1)
      */
-    calculateBidRecommendationConfidence(campaignData) {
+    private calculateBidRecommendationConfidence(campaignData: CampaignData): number {
         return calculateConfidenceScore(campaignData);
     }
 
     /**
      * Calculate keyword performance score
-     * @param {Object} keyword - Keyword data
-     * @returns {number} Performance score
      */
-    calculateKeywordPerformanceScore(keyword) {
-        const roas = keyword.conversionValue / (keyword.cost || 1);
-        const conversionRate = (keyword.conversions / (keyword.clicks || 1)) * 100;
+    private calculateKeywordPerformanceScore(keyword: KeywordData): number {
+        const roas = (keyword.conversionValue || 0) / (keyword.cost || 1);
+        const conversionRate = ((keyword.conversions || 0) / (keyword.clicks || 1)) * 100;
         const volume = keyword.impressions || 0;
 
         // Weighted score: ROAS (50%), Conversion Rate (30%), Volume (20%)
@@ -369,11 +507,8 @@ class BidRecommendationEngine {
 
     /**
      * Calculate keyword adjustment impact
-     * @param {Object} keyword - Keyword data
-     * @param {number} adjustment - Bid adjustment percentage
-     * @returns {string} Expected impact description
      */
-    calculateKeywordAdjustmentImpact(keyword, adjustment) {
+    private calculateKeywordAdjustmentImpact(_keyword: KeywordData, adjustment: number): string {
         const direction = adjustment > 0 ? 'increase' : 'decrease';
         const magnitude = Math.abs(adjustment);
 
@@ -387,13 +522,13 @@ class BidRecommendationEngine {
     }
 
     // Placeholder methods for complex analysis functions
-    analyzeDevicePerformance(deviceBreakdown) {
-        const performance = {};
+    private analyzeDevicePerformance(deviceBreakdown: Record<string, DeviceData>): Record<string, DevicePerformance> {
+        const performance: Record<string, DevicePerformance> = {};
 
         Object.entries(deviceBreakdown).forEach(([device, data]) => {
             performance[device] = {
-                roas: data.conversionValue / (data.cost || 1),
-                conversionRate: (data.conversions / (data.clicks || 1)) * 100,
+                roas: (data.conversionValue || 0) / (data.cost || 1),
+                conversionRate: ((data.conversions || 0) / (data.clicks || 1)) * 100,
                 costPerConversion: (data.cost || 0) / (data.conversions || 1)
             };
         });
@@ -401,7 +536,7 @@ class BidRecommendationEngine {
         return performance;
     }
 
-    analyzeLocationPerformance(locationData) {
+    private analyzeLocationPerformance(_locationData: LocationData[]): LocationPerformance {
         // Simplified location analysis
         return {
             topLocations: ['Tokyo', 'Osaka', 'Kyoto'],
@@ -409,7 +544,7 @@ class BidRecommendationEngine {
         };
     }
 
-    analyzeAudiencePerformanceForBids(audienceData) {
+    private analyzeAudiencePerformanceForBids(audienceData: AudienceData[]): AudiencePerformance {
         // Simplified audience analysis for bidding
         return {
             topAudiences: audienceData.slice(0, 3),
@@ -417,7 +552,7 @@ class BidRecommendationEngine {
         };
     }
 
-    analyzeTimePerformance(timeData) {
+    private analyzeTimePerformance(_timeData: TimeData[]): TimePerformance {
         // Simplified time-based analysis
         return {
             bestHours: [9, 10, 11, 19, 20, 21],
@@ -425,9 +560,17 @@ class BidRecommendationEngine {
         };
     }
 
-    generateLocationBidAdjustments() { return {}; }
-    generateAudienceBidAdjustments() { return {}; }
-    generateScheduleBidAdjustments() { return {}; }
+    private generateLocationBidAdjustments(_bidAnalysis: BidAnalysis): Record<string, any> {
+        return {};
+    }
+
+    private generateAudienceBidAdjustments(_bidAnalysis: BidAnalysis): Record<string, any> {
+        return {};
+    }
+
+    private generateScheduleBidAdjustments(_bidAnalysis: BidAnalysis): Record<string, any> {
+        return {};
+    }
 }
 
 export default BidRecommendationEngine;

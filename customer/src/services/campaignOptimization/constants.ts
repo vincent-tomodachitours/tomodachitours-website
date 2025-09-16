@@ -1,8 +1,76 @@
 // Campaign Optimization Constants
 // Shared constants for campaign optimization
 
+export interface SeasonalFactor {
+    months: number[];
+    demandMultiplier: number;
+    competitionLevel: 'low' | 'medium' | 'high' | 'very_high';
+    recommendedBudgetIncrease: number;
+    topTours: string[];
+}
+
+export interface OptimizationThresholds {
+    minConversions: number;
+    minImpressions: number;
+    roasTarget: number;
+    conversionRateTarget: number;
+    costPerConversionTarget: number;
+    confidenceLevel: number;
+    qualityScoreTarget: number;
+    ctrTarget: number;
+}
+
+export interface TourType {
+    name: string;
+    averagePrice: number;
+    duration: number;
+    seasonality: string;
+    targetAudience: string;
+}
+
+export interface DeviceBenchmark {
+    expectedConversionRate: number;
+    expectedRoas: number;
+    trafficShare: number;
+}
+
+export interface TimePatterns {
+    highPerformanceHours: number[];
+    lowPerformanceHours: number[];
+    weekendMultiplier: number;
+    weekdayMultiplier: number;
+    holidayMultiplier: number;
+}
+
+export interface AudienceSegment {
+    name: string;
+    expectedRoas: number;
+    preferredTours: string[];
+    seasonality: string;
+}
+
+export interface KeywordCategory {
+    expectedCtr: number;
+    expectedConversionRate: number;
+    expectedRoas: number;
+    bidStrategy: 'conservative' | 'moderate' | 'aggressive';
+}
+
+export interface GeographicPerformance {
+    expectedRoas: number;
+    competitionLevel: 'low' | 'medium' | 'high' | 'very_high';
+}
+
+export interface DefaultConfig {
+    cacheTimeout: number;
+    maxRecommendations: number;
+    minDataPoints: number;
+    confidenceThreshold: number;
+    updateFrequency: number;
+}
+
 // Seasonal patterns for Kyoto tourism
-export const SEASONAL_FACTORS = {
+export const SEASONAL_FACTORS: Record<string, SeasonalFactor> = {
     // Cherry blossom season (March-May)
     spring: {
         months: [2, 3, 4],
@@ -38,7 +106,7 @@ export const SEASONAL_FACTORS = {
 };
 
 // Optimization thresholds
-export const OPTIMIZATION_THRESHOLDS = {
+export const OPTIMIZATION_THRESHOLDS: OptimizationThresholds = {
     minConversions: 10,
     minImpressions: 1000,
     roasTarget: 3.0,
@@ -55,10 +123,10 @@ export const PRIORITY_LEVELS = {
     HIGH: 90,
     MEDIUM: 70,
     LOW: 50
-};
+} as const;
 
 // Tour types and their characteristics
-export const TOUR_TYPES = {
+export const TOUR_TYPES: Record<string, TourType> = {
     gion: {
         name: 'Gion Cultural Tour',
         averagePrice: 12000,
@@ -97,7 +165,7 @@ export const TOUR_TYPES = {
 };
 
 // Device performance benchmarks
-export const DEVICE_BENCHMARKS = {
+export const DEVICE_BENCHMARKS: Record<string, DeviceBenchmark> = {
     mobile: {
         expectedConversionRate: 1.8,
         expectedRoas: 2.8,
@@ -116,7 +184,7 @@ export const DEVICE_BENCHMARKS = {
 };
 
 // Time-based performance patterns
-export const TIME_PATTERNS = {
+export const TIME_PATTERNS: TimePatterns = {
     highPerformanceHours: [9, 10, 11, 19, 20, 21],
     lowPerformanceHours: [1, 2, 3, 4, 5, 6],
     weekendMultiplier: 1.3,
@@ -125,7 +193,7 @@ export const TIME_PATTERNS = {
 };
 
 // Audience segments and their characteristics
-export const AUDIENCE_SEGMENTS = {
+export const AUDIENCE_SEGMENTS: Record<string, AudienceSegment> = {
     cultural_enthusiasts: {
         name: 'Cultural Enthusiasts',
         expectedRoas: 3.5,
@@ -159,7 +227,7 @@ export const AUDIENCE_SEGMENTS = {
 };
 
 // Keyword categories and performance expectations
-export const KEYWORD_CATEGORIES = {
+export const KEYWORD_CATEGORIES: Record<string, KeywordCategory> = {
     branded: {
         expectedCtr: 8.0,
         expectedConversionRate: 5.0,
@@ -193,7 +261,10 @@ export const KEYWORD_CATEGORIES = {
 };
 
 // Geographic performance expectations
-export const GEOGRAPHIC_PERFORMANCE = {
+export const GEOGRAPHIC_PERFORMANCE: {
+    domestic: Record<string, GeographicPerformance>;
+    international: Record<string, GeographicPerformance>;
+} = {
     domestic: {
         tokyo: { expectedRoas: 3.2, competitionLevel: 'high' },
         osaka: { expectedRoas: 3.0, competitionLevel: 'medium' },
@@ -214,7 +285,7 @@ export const OPTIMIZATION_TYPES = {
     AUDIENCE_INSIGHTS: 'audience_insights',
     SEASONAL_TRACKING: 'seasonal_tracking',
     BID_RECOMMENDATIONS: 'bid_recommendations'
-};
+} as const;
 
 // Recommendation types
 export const RECOMMENDATION_TYPES = {
@@ -226,7 +297,7 @@ export const RECOMMENDATION_TYPES = {
     VALUE_IMPROVEMENT: 'value_improvement',
     BUDGET_ADJUSTMENT: 'budget_adjustment',
     QUALITY_IMPROVEMENT: 'quality_improvement'
-};
+} as const;
 
 // Error codes for optimization
 export const ERROR_CODES = {
@@ -235,13 +306,18 @@ export const ERROR_CODES = {
     API_ERROR: 'API_ERROR',
     CALCULATION_ERROR: 'CALCULATION_ERROR',
     CONFIGURATION_ERROR: 'CONFIGURATION_ERROR'
-};
+} as const;
 
 // Default configuration values
-export const DEFAULT_CONFIG = {
+export const DEFAULT_CONFIG: DefaultConfig = {
     cacheTimeout: 3600000, // 1 hour in milliseconds
     maxRecommendations: 10,
     minDataPoints: 30,
     confidenceThreshold: 0.7,
     updateFrequency: 86400000 // 24 hours in milliseconds
 };
+
+export type OptimizationType = typeof OPTIMIZATION_TYPES[keyof typeof OPTIMIZATION_TYPES];
+export type RecommendationType = typeof RECOMMENDATION_TYPES[keyof typeof RECOMMENDATION_TYPES];
+export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
+export type PriorityLevel = typeof PRIORITY_LEVELS[keyof typeof PRIORITY_LEVELS];

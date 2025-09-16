@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-const { Redis } = require('@upstash/redis');
-const { SecurityLogger } = require('../src/services/logging/SecurityLogger');
-const { LogAnalyzer } = require('../src/services/logging/LogAnalyzer');
+import { Redis } from '@upstash/redis';
+import { SecurityLogger } from '../src/services/logging/SecurityLogger';
+import { LogAnalyzer } from '../src/services/logging/LogAnalyzer';
 
-async function dailySecurityCheck() {
+async function dailySecurityCheck(): Promise<void> {
     console.log('🔒 Starting Daily Security Check...');
     console.log('='.repeat(50));
 
@@ -20,7 +20,7 @@ async function dailySecurityCheck() {
 
         // 1. Check Critical Events
         console.log('\n📊 Critical Events (Last 24 hours):');
-        const criticalEvents = await logger.getCriticalEvents(50);
+        const criticalEvents: any[] = await logger.getCriticalEvents(50);
         console.log(`Found ${criticalEvents.length} critical events`);
 
         if (criticalEvents.length > 0) {
@@ -39,7 +39,7 @@ async function dailySecurityCheck() {
 
         // 2. Check Rate Limit Violations
         console.log('\n🚫 Rate Limit Analysis (Last 24 hours):');
-        const rateLimitResults = await analyzer.analyzeRateLimiting(86400000);
+        const rateLimitResults: any[] = await analyzer.analyzeRateLimiting(86400000);
         console.log(`Found ${rateLimitResults.length} rate limit violations`);
 
         if (rateLimitResults.length > 0) {
@@ -55,7 +55,7 @@ async function dailySecurityCheck() {
 
         // 3. Check Suspicious Transactions
         console.log('\n💳 Payment Pattern Analysis (Last 24 hours):');
-        const paymentResults = await analyzer.analyzePaymentPatterns(86400000);
+        const paymentResults: any[] = await analyzer.analyzePaymentPatterns(86400000);
         console.log(`Found ${paymentResults.length} suspicious payment patterns`);
 
         if (paymentResults.length > 0) {
@@ -71,7 +71,7 @@ async function dailySecurityCheck() {
 
         // 4. Check Login Attempts
         console.log('\n🔐 Login Attempt Analysis (Last 24 hours):');
-        const loginResults = await analyzer.analyzeLoginAttempts(86400000);
+        const loginResults: any[] = await analyzer.analyzeLoginAttempts(86400000);
         console.log(`Found ${loginResults.length} suspicious login patterns`);
 
         if (loginResults.length > 0) {
@@ -87,7 +87,7 @@ async function dailySecurityCheck() {
 
         // 5. Get Security Insights
         console.log('\n📈 Security Insights (Last 24 hours):');
-        const insights = await analyzer.getSecurityInsights(86400000);
+        const insights: any = await analyzer.getSecurityInsights(86400000);
         console.log(`Total Events: ${insights.totalEvents}`);
         console.log('Severity Distribution:', insights.severityDistribution);
 
@@ -109,7 +109,7 @@ async function dailySecurityCheck() {
         console.log('\n📋 Daily Summary:');
         console.log('='.repeat(30));
 
-        const totalIssues = criticalEvents.length + rateLimitResults.length +
+        const totalIssues: number = criticalEvents.length + rateLimitResults.length +
             paymentResults.length + loginResults.length;
 
         if (totalIssues === 0) {
@@ -152,8 +152,8 @@ async function dailySecurityCheck() {
 }
 
 // Run the daily check
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     dailySecurityCheck().catch(console.error);
 }
 
-module.exports = { dailySecurityCheck }; 
+export { dailySecurityCheck }; 

@@ -5,15 +5,32 @@
  * Run this after fixing your email service to catch up on missed notifications
  */
 
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+interface Booking {
+    id: string;
+    status: string;
+    customer_name: string;
+    customer_email: string;
+    tour_type: string;
+    booking_date: string;
+    booking_time: string;
+    created_at: string;
+}
+
+interface EmailFailure {
+    booking_id: string;
+}
 
 const supabase = createClient(
-    process.env.REACT_APP_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY
+    process.env.REACT_APP_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY!
 );
 
-async function sendMissedEmails() {
+async function sendMissedEmails(): Promise<void> {
     try {
         console.log('🔍 Looking for recent bookings without email confirmations...');
 
@@ -46,12 +63,12 @@ async function sendMissedEmails() {
             .select('booking_id')
             .in('booking_id', recentBookings.map(b => b.id));
 
-        const failedBookingIds = new Set(emailFailures?.map(f => f.booking_id) || []);
+        const failedBookingIds = new Set(emailFailures?.map((f: EmailFailure) => f.booking_id) || []);
 
         console.log('\n📋 Recent Bookings Status:');
         console.log('='.repeat(80));
 
-        for (const booking of recentBookings) {
+        for (const booking of recentBookings as Booking[]) {
             const hasEmailFailure = failedBookingIds.has(booking.id);
             const status = hasEmailFailure ? '❌ EMAIL FAILED' : '✅ EMAIL SENT';
 
@@ -62,7 +79,7 @@ async function sendMissedEmails() {
         }
 
         // Show instructions for manual follow-up
-        const failedBookings = recentBookings.filter(b => failedBookingIds.has(b.id));
+        const failedBookings = (recentBookings as Booking[]).filter(b => failedBookingIds.has(b.id));
 
         if (failedBookings.length > 0) {
             console.log('\n🚨 MANUAL ACTION REQUIRED:');
@@ -73,7 +90,7 @@ async function sendMissedEmails() {
             console.log('3. Send emails manually to customers');
 
             console.log('\n📝 Customer emails to contact manually:');
-            failedBookings.forEach(booking => {
+            failedBookings.forEach((booking: Booking) => {
                 console.log(`- ${booking.customer_email} (Booking #${booking.id})`);
             });
         }

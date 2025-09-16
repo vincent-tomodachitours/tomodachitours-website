@@ -4,9 +4,11 @@
  * Script to test email service functionality
  */
 
-require('dotenv').config();
+import dotenv from 'dotenv';
 
-async function testSendGrid() {
+dotenv.config();
+
+async function testSendGrid(): Promise<boolean> {
     console.log('🧪 Testing SendGrid API...');
 
     const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
@@ -26,7 +28,7 @@ async function testSendGrid() {
         });
 
         if (response.ok) {
-            const account = await response.json();
+            const account: any = await response.json();
             console.log('✅ SendGrid API key is valid');
             console.log(`   Account: ${account.email || 'N/A'}`);
             return true;
@@ -46,10 +48,10 @@ async function testSendGrid() {
     }
 }
 
-async function testSendGridSending() {
+async function testSendGridSending(): Promise<boolean> {
     console.log('\n📧 Testing SendGrid email sending...');
 
-    const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+    const SENDGRID_API_KEY: string | undefined = process.env.SENDGRID_API_KEY;
 
     try {
         const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
@@ -90,7 +92,7 @@ async function testSendGridSending() {
             console.log('   Check spirivincent03@gmail.com for the test email');
             return true;
         } else {
-            const error = await response.json();
+            const error: any = await response.json();
             console.log('❌ Failed to send test email:', error);
 
             if (error.errors?.[0]?.message?.includes('Maximum credits exceeded')) {
@@ -106,10 +108,10 @@ async function testSendGridSending() {
     }
 }
 
-async function checkEmailFailures() {
+async function checkEmailFailures(): Promise<void> {
     console.log('\n📊 Checking for recent email failures...');
 
-    const { createClient } = require('@supabase/supabase-js');
+    const { createClient } = await import('@supabase/supabase-js');
 
     const supabase = createClient(
         process.env.REACT_APP_SUPABASE_URL,
@@ -151,7 +153,7 @@ async function checkEmailFailures() {
     }
 }
 
-async function runTests() {
+async function runTests(): Promise<void> {
     console.log('🔧 Email Service Diagnostic Tool');
     console.log('='.repeat(50));
 

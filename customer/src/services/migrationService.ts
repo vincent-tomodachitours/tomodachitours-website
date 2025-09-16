@@ -8,21 +8,103 @@ import parallelTrackingValidator from './parallelTrackingValidator';
 import migrationMonitor from './migrationMonitor';
 import rollbackManager from './rollbackManager';
 
-class MigrationService {
-    constructor() {
-        this.initialized = false;
-        this.trackingMethods = {
-            legacy: null,
-            gtm: null
-        };
+interface TrackingMethod {
+    trackEvent: (eventName: string, eventData: Record<string, any>) => void;
+    trackPurchase: (transactionData: TransactionData) => void;
+    trackConversion: (conversionData: ConversionData) => void;
+}
 
+interface TransactionData {
+    transaction_id: string;
+    value: number;
+    currency: string;
+    items?: Array<{
+        item_id: string;
+        item_name: string;
+        category?: string;
+        quantity?: number;
+        price?: number;
+    }>;
+}
+
+interface ConversionData {
+    conversion_label: string;
+    value: number;
+    currency: string;
+    transaction_id: string;
+}
+
+interface TrackingMethods {
+    legacy: TrackingMethod | null;
+    gtm: TrackingMethod | null;
+}
+
+interface MigrationDashboard {
+    migrationStatus: any;
+    monitoringDashboard: any;
+    validationReport: any;
+    rollbackStatus: any;
+    trackingMethods: {
+        legacy: boolean;
+        gtm: boolean;
+    };
+    initialized: boolean;
+}
+
+interface TestResult {
+    success: boolean;
+    error?: string;
+    details?: any;
+}
+
+interface MigrationTestResults {
+    timestamp: number;
+    tests: {
+        featureFlags?: TestResult;
+        trackingMethods?: TestResult;
+        parallelValidation?: TestResult;
+        rollbackSystem?: TestResult;
+    };
+    overallSuccess: boolean;
+    error?: string;
+}
+
+interface TrackingMethodTestResults {
+    legacy: { available: boolean; tested: boolean };
+    gtm: { available: boolean; tested: boolean };
+}
+
+interface MigrationExportData {
+    timestamp: number;
+    migrationEvents: any[];
+    validationReport: any;
+    monitoringDashboard: any;
+    rollbackStatus: any;
+    migrationStatus: any;
+}
+
+declare global {
+    interface Window {
+        gtag?: (...args: any[]) => void;
+        dataLayer?: any[];
+    }
+}
+
+class MigrationService {
+    private initialized: boolean = false;
+    private trackingMethods: TrackingMethods = {
+        legacy: null,
+        gtm: null
+    };
+
+    constructor() {
         this.initialize();
     }
 
     /**
      * Initialize migration service
      */
-    async initialize() {
+    async initialize(): Promise<void> {
         if (this.initialized) return;
 
         try {
@@ -35,7 +117,7 @@ class MigrationService {
             this.initialized = true;
 
             migrationFeatureFlags.trackMigrationEvent('migration_service_initialized', {
-                migrationPhase: migrationFeatureFlags.migrationPhase,
+                migrationPhase: migrationFeatureFlags.getMigrationStatus().phase,
                 shouldUseGTM: migrationFeatureFlags.shouldUseGTM(),
                 shouldUseParallelTracking: migrationFeatureFlags.shouldUseParallelTracking()
             });
@@ -44,14 +126,14 @@ class MigrationService {
             console.error('[MigrationService] Initialization failed:', error);
 
             // Fallback to legacy tracking
-            await this.fallbackToLegacy(error.message);
+            await this.fallbackToLegacy((error as Error).message);
         }
     }
 
     /**
      * Initialize tracking methods based on migration phase
      */
-    async initializeTrackingMethods() {
+    private async initializeTrackingMethods(): Promise<void> {
         const migrationStatus = migrationFeatureFlags.getMigrationStatus();
 
         // Always initialize legacy tracking as fallback
@@ -71,15 +153,15 @@ class MigrationService {
     /**
      * Initialize legacy tracking
      */
-    async initializeLegacyTracking() {
+    private async initializeLegacyTracking(): Promise<TrackingMethod> {
         return {
-            trackEvent: (eventName, eventData) => {
+            trackEvent: (eventName: string, eventData: Record<string, any>) => {
                 if (window.gtag) {
                     window.gtag('event', eventName, eventData);
                 }
             },
 
-            trackPurchase: (transactionData) => {
+            trackPurchase: (transactionData: TransactionData) => {
                 if (window.gtag) {
                     window.gtag('event', 'purchase', {
                         transaction_id: transactionData.transaction_id,
@@ -90,7 +172,7 @@ class MigrationService {
                 }
             },
 
-            trackConversion: (conversionData) => {
+            trackConversion: (conversionData: ConversionData) => {
                 if (window.gtag) {
                     window.gtag('event', 'conversion', {
                         send_to: conversionData.conversion_label,
@@ -106,20 +188,20 @@ class MigrationService {
     /**
      * Initialize GTM tracking
      */
-    async initializeGTMTracking() {
+    private async initializeGTMTracking(): Promise<TrackingMethod> {
         // Import GTM service dynamically
         const { default: gtmService } = await import('./gtmService');
 
         return {
-            trackEvent: (eventName, eventData) => {
+            trackEvent: (eventName: string, eventData: Record<string, any>) => {
                 gtmService.pushEvent(eventName, eventData);
             },
 
-            trackPurchase: (transactionData) => {
+            trackPurchase: (transactionData: TransactionData) => {
                 gtmService.pushEvent('purchase', transactionData);
             },
 
-            trackConversion: (conversionData) => {
+            trackConversion: (conversionData: ConversionData) => {
                 gtmService.pushEvent('conversion', conversionData);
             }
         };
@@ -128,14 +210,15 @@ class MigrationService {
     /**
      * Set up event listeners for migration management
      */
-    setupEventListeners() {
+    private setupEventListeners(): void {
         // Listen for rollback completion
-        window.addEventListener('migration-rollback-complete', (event) => {
-            this.handleRollbackComplete(event.detail);
+        window.addEventListener('migration-rollback-complete', (event: Event) => {
+            const customEvent = event as CustomEvent;
+            this.handleRollbackComplete(customEvent.detail);
         });
 
         // Listen for feature flag changes
-        window.addEventListener('storage', (event) => {
+        window.addEventListener('storage', (event: StorageEvent) => {
             if (event.key && event.key.startsWith('migration_flag_')) {
                 this.handleFeatureFlagChange(event);
             }
@@ -145,7 +228,7 @@ class MigrationService {
     /**
      * Handle rollback completion
      */
-    handleRollbackComplete(rollbackEvent) {
+    private handleRollbackComplete(rollbackEvent: { success: boolean; id: string }): void {
         if (rollbackEvent.success) {
             // Reinitialize with legacy tracking only
             this.trackingMethods.gtm = null;
@@ -158,9 +241,8 @@ class MigrationService {
     /**
      * Handle feature flag changes
      */
-    async handleFeatureFlagChange(event) {
-        const flagName = event.key.replace('migration_flag_', '');
-        const newValue = event.newValue === 'true';
+    private async handleFeatureFlagChange(event: StorageEvent): Promise<void> {
+        const flagName = event.key!.replace('migration_flag_', '');
 
         // Reinitialize if GTM flags changed
         if (flagName.includes('gtm') || flagName === 'emergencyRollbackEnabled') {
@@ -171,7 +253,7 @@ class MigrationService {
     /**
      * Track event with migration logic
      */
-    async trackEvent(eventName, eventData) {
+    async trackEvent(eventName: string, eventData: Record<string, any>): Promise<void> {
         const migrationStatus = migrationFeatureFlags.getMigrationStatus();
 
         try {
@@ -204,7 +286,7 @@ class MigrationService {
 
             // Fallback to legacy if GTM fails
             if (migrationStatus.shouldUseGTM && !this.trackingMethods.legacy) {
-                await this.fallbackToLegacy(`Event tracking failed: ${error.message}`);
+                await this.fallbackToLegacy(`Event tracking failed: ${(error as Error).message}`);
             }
         }
     }
@@ -212,7 +294,7 @@ class MigrationService {
     /**
      * Track purchase with migration logic
      */
-    async trackPurchase(transactionData) {
+    async trackPurchase(transactionData: TransactionData): Promise<void> {
         const migrationStatus = migrationFeatureFlags.getMigrationStatus();
 
         try {
@@ -245,7 +327,7 @@ class MigrationService {
 
             // This is critical - trigger rollback if purchase tracking fails
             if (migrationStatus.shouldUseGTM) {
-                rollbackManager.triggerEmergencyRollback(`Purchase tracking failed: ${error.message}`);
+                rollbackManager.triggerEmergencyRollback(`Purchase tracking failed: ${(error as Error).message}`);
             }
         }
     }
@@ -253,7 +335,7 @@ class MigrationService {
     /**
      * Track conversion with migration logic
      */
-    async trackConversion(conversionData) {
+    async trackConversion(conversionData: ConversionData): Promise<void> {
         const migrationStatus = migrationFeatureFlags.getMigrationStatus();
 
         try {
@@ -286,7 +368,7 @@ class MigrationService {
 
             // This is critical - trigger rollback if conversion tracking fails
             if (migrationStatus.shouldUseGTM) {
-                rollbackManager.triggerEmergencyRollback(`Conversion tracking failed: ${error.message}`);
+                rollbackManager.triggerEmergencyRollback(`Conversion tracking failed: ${(error as Error).message}`);
             }
         }
     }
@@ -294,7 +376,7 @@ class MigrationService {
     /**
      * Fallback to legacy tracking
      */
-    async fallbackToLegacy(reason) {
+    private async fallbackToLegacy(reason: string): Promise<void> {
         migrationFeatureFlags.updateFlag('gtmEnabled', false);
         migrationFeatureFlags.updateFlag('legacyTrackingFallback', true);
 
@@ -312,7 +394,7 @@ class MigrationService {
     /**
      * Get migration dashboard data
      */
-    getMigrationDashboard() {
+    getMigrationDashboard(): MigrationDashboard {
         return {
             migrationStatus: migrationFeatureFlags.getMigrationStatus(),
             monitoringDashboard: migrationMonitor.getMonitoringDashboard(),
@@ -329,15 +411,15 @@ class MigrationService {
     /**
      * Force health check
      */
-    async forceHealthCheck() {
+    async forceHealthCheck(): Promise<any> {
         return await migrationMonitor.forceHealthCheck();
     }
 
     /**
      * Test migration system
      */
-    async testMigrationSystem() {
-        const testResults = {
+    async testMigrationSystem(): Promise<MigrationTestResults> {
+        const testResults: MigrationTestResults = {
             timestamp: Date.now(),
             tests: {},
             overallSuccess: false
@@ -354,12 +436,17 @@ class MigrationService {
             testResults.tests.parallelValidation = this.testParallelValidation();
 
             // Test rollback system
-            testResults.tests.rollbackSystem = await rollbackManager.testRollbackSystem();
+            const rollbackTestResult = await rollbackManager.testRollbackSystem();
+            testResults.tests.rollbackSystem = {
+                success: rollbackTestResult.overallSuccess,
+                error: rollbackTestResult.error,
+                details: rollbackTestResult
+            };
 
-            testResults.overallSuccess = Object.values(testResults.tests).every(test => test.overallSuccess !== false);
+            testResults.overallSuccess = Object.values(testResults.tests).every(test => test.success !== false);
 
         } catch (error) {
-            testResults.error = error.message;
+            testResults.error = (error as Error).message;
         }
 
         return testResults;
@@ -368,7 +455,7 @@ class MigrationService {
     /**
      * Test feature flags functionality
      */
-    testFeatureFlags() {
+    private testFeatureFlags(): TestResult {
         try {
             const status = migrationFeatureFlags.getMigrationStatus();
             return {
@@ -382,7 +469,7 @@ class MigrationService {
         } catch (error) {
             return {
                 success: false,
-                error: error.message
+                error: (error as Error).message
             };
         }
     }
@@ -390,8 +477,8 @@ class MigrationService {
     /**
      * Test tracking methods
      */
-    async testTrackingMethods() {
-        const results = {
+    private async testTrackingMethods(): Promise<TestResult> {
+        const results: TrackingMethodTestResults = {
             legacy: { available: false, tested: false },
             gtm: { available: false, tested: false }
         };
@@ -431,7 +518,7 @@ class MigrationService {
         } catch (error) {
             return {
                 success: false,
-                error: error.message,
+                error: (error as Error).message,
                 details: results
             };
         }
@@ -440,7 +527,7 @@ class MigrationService {
     /**
      * Test parallel validation
      */
-    testParallelValidation() {
+    private testParallelValidation(): TestResult {
         try {
             const summary = parallelTrackingValidator.getValidationSummary();
             return {
@@ -454,7 +541,7 @@ class MigrationService {
         } catch (error) {
             return {
                 success: false,
-                error: error.message
+                error: (error as Error).message
             };
         }
     }
@@ -462,7 +549,7 @@ class MigrationService {
     /**
      * Clear all migration data
      */
-    clearMigrationData() {
+    clearMigrationData(): void {
         migrationFeatureFlags.clearMigrationEvents();
         parallelTrackingValidator.clearValidationData();
         migrationMonitor.clearMonitoringData();
@@ -476,7 +563,7 @@ class MigrationService {
     /**
      * Export migration data for analysis
      */
-    exportMigrationData() {
+    exportMigrationData(): MigrationExportData {
         return {
             timestamp: Date.now(),
             migrationEvents: migrationFeatureFlags.getMigrationEvents(),

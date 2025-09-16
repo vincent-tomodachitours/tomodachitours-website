@@ -1,34 +1,146 @@
 // Seasonal Performance Tracker
 // Tracks seasonal performance patterns for tour bookings
 
-import performanceDashboard from '../performanceDashboard.js';
-import { SEASONAL_FACTORS } from './constants.js';
+import performanceDashboard from '../performanceDashboard';
+import { SEASONAL_FACTORS } from './constants';
+
+interface TrackingOptions {
+    dateRange?: string;
+    tourTypes?: string[];
+    includeWeatherData?: boolean;
+    includePredictions?: boolean;
+}
+
+interface TourData {
+    tourType?: string;
+    timestamp?: string;
+    revenue?: number;
+    conversions?: number;
+    cost?: number;
+}
+
+interface HistoricalData {
+    tours?: TourData[];
+}
+
+interface MonthlyData {
+    revenue: number;
+    conversions: number;
+    cost: number;
+}
+
+interface MonthlyPerformance {
+    month: number;
+    monthName: string;
+    performance: number;
+    revenue: number;
+}
+
+interface SeasonalTrends {
+    monthlyPerformance: Record<number, MonthlyData>;
+    seasonalPatterns: SeasonalPatterns;
+    yearOverYearComparison: YearOverYearComparison;
+    peakSeasons: MonthlyPerformance[];
+    lowSeasons: MonthlyPerformance[];
+}
+
+interface SeasonalPatterns {
+    hasSeasonality: boolean;
+    strongSeasonality: boolean;
+    patterns: string;
+}
+
+interface YearOverYearComparison {
+    available: boolean;
+    message: string;
+}
+
+interface TourSeasonality {
+    bestMonths: Array<{
+        month: number;
+        monthName: string;
+        performance: number;
+    }>;
+    worstMonths: Array<{
+        month: number;
+        monthName: string;
+        performance: number;
+    }>;
+    seasonalVariation: number;
+}
+
+interface WeatherCorrelation {
+    available: boolean;
+    message: string;
+}
+
+interface SeasonalPrediction {
+    expectedRevenue?: number;
+    expectedBookings?: number;
+    recommendedBudget?: number;
+    confidence?: number;
+    demandMultiplier?: number;
+    competitionLevel?: string;
+    recommendedBudgetChange?: number;
+    topTours?: string[];
+}
+
+interface SeasonalPredictions {
+    nextMonth: SeasonalPrediction;
+    nextQuarter: SeasonalPrediction;
+    nextSeason: SeasonalPrediction;
+    yearEnd: SeasonalPrediction;
+}
+
+interface Recommendation {
+    type: string;
+    priority: 'low' | 'medium' | 'high';
+    title: string;
+    description: string;
+    action: string;
+    expectedImpact: string;
+}
+
+interface SeasonalAnalysis {
+    timestamp: string;
+    dateRange: string;
+    seasonalTrends: SeasonalTrends;
+    tourTypeSeasonality: Record<string, TourSeasonality>;
+    weatherCorrelation: WeatherCorrelation;
+    predictions: SeasonalPredictions;
+    recommendations: Recommendation[];
+}
+
+interface PerformanceData {
+    month: number;
+    performance: number;
+}
 
 class SeasonalPerformanceTracker {
+    private seasonalPatterns: Map<string, SeasonalAnalysis>;
+
     constructor() {
         this.seasonalPatterns = new Map();
     }
 
     /**
      * Track seasonal performance patterns
-     * @param {Object} options - Tracking options
-     * @returns {Promise<Object>} Seasonal performance analysis
      */
-    async trackPerformance(options = {}) {
+    async trackPerformance(options: TrackingOptions = {}): Promise<SeasonalAnalysis> {
         const {
             dateRange = 'last365days',
-            tourTypes = ['all'],
+            tourTypes: _tourTypes = ['all'],
             includeWeatherData = false,
             includePredictions = true
         } = options;
 
-        const seasonalAnalysis = {
+        const seasonalAnalysis: SeasonalAnalysis = {
             timestamp: new Date().toISOString(),
             dateRange,
-            seasonalTrends: {},
+            seasonalTrends: {} as SeasonalTrends,
             tourTypeSeasonality: {},
-            weatherCorrelation: {},
-            predictions: {},
+            weatherCorrelation: {} as WeatherCorrelation,
+            predictions: {} as SeasonalPredictions,
             recommendations: []
         };
 
@@ -65,14 +177,12 @@ class SeasonalPerformanceTracker {
 
     /**
      * Analyze seasonal trends in performance data
-     * @param {Object} historicalData - Historical performance data
-     * @returns {Object} Seasonal trend analysis
      */
-    analyzeSeasonalTrends(historicalData) {
-        const trends = {
+    private analyzeSeasonalTrends(historicalData: HistoricalData): SeasonalTrends {
+        const trends: SeasonalTrends = {
             monthlyPerformance: {},
-            seasonalPatterns: {},
-            yearOverYearComparison: {},
+            seasonalPatterns: {} as SeasonalPatterns,
+            yearOverYearComparison: {} as YearOverYearComparison,
             peakSeasons: [],
             lowSeasons: []
         };
@@ -120,18 +230,16 @@ class SeasonalPerformanceTracker {
 
     /**
      * Analyze tour type seasonality
-     * @param {Object} historicalData - Historical data
-     * @returns {Object} Tour type seasonal analysis
      */
-    analyzeTourTypeSeasonality(historicalData) {
-        const seasonality = {};
+    private analyzeTourTypeSeasonality(historicalData: HistoricalData): Record<string, TourSeasonality> {
+        const seasonality: Record<string, TourSeasonality> = {};
 
         if (!historicalData.tours) {
             return seasonality;
         }
 
         // Group tours by type and month
-        const toursByTypeAndMonth = {};
+        const toursByTypeAndMonth: Record<string, Record<number, MonthlyData>> = {};
 
         historicalData.tours.forEach(tour => {
             const tourType = tour.tourType || 'unknown';
@@ -188,11 +296,9 @@ class SeasonalPerformanceTracker {
 
     /**
      * Generate seasonal recommendations
-     * @param {Object} seasonalAnalysis - Seasonal analysis data
-     * @returns {Array} Seasonal recommendations
      */
-    generateSeasonalRecommendations(seasonalAnalysis) {
-        const recommendations = [];
+    private generateSeasonalRecommendations(seasonalAnalysis: SeasonalAnalysis): Recommendation[] {
+        const recommendations: Recommendation[] = [];
         const currentMonth = new Date().getMonth();
         const currentSeason = this.getCurrentSeason();
 
@@ -257,11 +363,9 @@ class SeasonalPerformanceTracker {
 
     /**
      * Generate seasonal predictions
-     * @param {Object} seasonalTrends - Seasonal trend data
-     * @returns {Object} Seasonal predictions
      */
-    generateSeasonalPredictions(seasonalTrends) {
-        const predictions = {
+    private generateSeasonalPredictions(seasonalTrends: SeasonalTrends): SeasonalPredictions {
+        const predictions: SeasonalPredictions = {
             nextMonth: {},
             nextQuarter: {},
             nextSeason: {},
@@ -300,19 +404,16 @@ class SeasonalPerformanceTracker {
 
     /**
      * Get current season
-     * @returns {string} Current season
      */
-    getCurrentSeason() {
+    private getCurrentSeason(): string {
         const month = new Date().getMonth();
         return this.getSeasonForMonth(month);
     }
 
     /**
      * Get season for specific month
-     * @param {number} month - Month number (0-11)
-     * @returns {string} Season name
      */
-    getSeasonForMonth(month) {
+    private getSeasonForMonth(month: number): string {
         for (const [season, data] of Object.entries(SEASONAL_FACTORS)) {
             if (data.months.includes(month)) {
                 return season;
@@ -323,10 +424,8 @@ class SeasonalPerformanceTracker {
 
     /**
      * Get month name from month number
-     * @param {number} month - Month number (0-11)
-     * @returns {string} Month name
      */
-    getMonthName(month) {
+    private getMonthName(month: number): string {
         const months = [
             'January', 'February', 'March', 'April', 'May', 'June',
             'July', 'August', 'September', 'October', 'November', 'December'
@@ -336,10 +435,8 @@ class SeasonalPerformanceTracker {
 
     /**
      * Calculate seasonal variation
-     * @param {Array} performances - Monthly performance data
-     * @returns {number} Seasonal variation coefficient
      */
-    calculateSeasonalVariation(performances) {
+    private calculateSeasonalVariation(performances: PerformanceData[]): number {
         if (performances.length < 2) return 0;
 
         const values = performances.map(p => p.performance);
@@ -351,8 +448,8 @@ class SeasonalPerformanceTracker {
     }
 
     // Placeholder methods for complex analysis functions
-    groupDataByMonth(historicalData) {
-        const monthlyData = {};
+    private groupDataByMonth(historicalData: HistoricalData): Record<number, MonthlyData> {
+        const monthlyData: Record<number, MonthlyData> = {};
 
         if (historicalData.tours) {
             historicalData.tours.forEach(tour => {
@@ -375,7 +472,7 @@ class SeasonalPerformanceTracker {
         return monthlyData;
     }
 
-    identifySeasonalPatterns(monthlyData) {
+    private identifySeasonalPatterns(monthlyData: Record<number, MonthlyData>): SeasonalPatterns {
         // Simplified pattern identification
         return {
             hasSeasonality: Object.keys(monthlyData).length > 6,
@@ -384,7 +481,7 @@ class SeasonalPerformanceTracker {
         };
     }
 
-    calculateYearOverYearComparison(monthlyData) {
+    private calculateYearOverYearComparison(_monthlyData: Record<number, MonthlyData>): YearOverYearComparison {
         // Simplified year-over-year comparison
         return {
             available: false,
@@ -392,7 +489,7 @@ class SeasonalPerformanceTracker {
         };
     }
 
-    async analyzeWeatherCorrelation(historicalData) {
+    private async analyzeWeatherCorrelation(_historicalData: HistoricalData): Promise<WeatherCorrelation> {
         // Placeholder for weather correlation analysis
         return {
             available: false,

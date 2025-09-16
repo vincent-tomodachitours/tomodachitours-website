@@ -5,12 +5,123 @@
  * for TripAdvisor API responses to ensure data integrity and security.
  */
 
+interface ValidationResult {
+    isValid: boolean;
+    sanitizedText?: string;
+    normalizedRating?: number;
+    formattedDate?: string;
+    isoDate?: string;
+    sanitizedUsername?: string;
+    normalizedVotes?: number;
+    errors: string[];
+}
+
+interface ValidationOptions {
+    maxLength?: number;
+    minLength?: number;
+    allowEmptyText?: boolean;
+    requireText?: boolean;
+    maxTextLength?: number;
+    minTextLength?: number;
+}
+
+interface ProcessedReview {
+    id: string;
+    title: string;
+    text: string;
+    rating: number;
+    author: string;
+    authorLocation: string;
+    date: string;
+    formattedDate: string;
+    helpfulVotes: number;
+    isVerified: boolean;
+    language: string;
+    _metadata: {
+        processedAt: string;
+        originalTextLength: number;
+        hasWarnings: boolean;
+        warnings: string[];
+    };
+}
+
+interface ProcessingResult {
+    reviews: ProcessedReview[];
+    statistics: {
+        totalReceived: number;
+        validReviews: number;
+        invalidReviews: number;
+        errors: string[];
+        warnings: string[];
+    };
+}
+
+interface TruncationResult {
+    truncated: string;
+    isTruncated: boolean;
+    originalLength: number;
+}
+
+interface ProcessedLocation {
+    locationId: string;
+    name: string;
+    overallRating: number;
+    totalReviews: number;
+    ranking: string;
+    tripAdvisorUrl: string;
+    address: {
+        street1: string;
+        city: string;
+        country: string;
+    } | null;
+}
+
+interface StarRatingOptions {
+    filledStar?: string;
+    emptyStar?: string;
+    showNumeric?: boolean;
+}
+
+interface ApiReview {
+    id?: string | number;
+    text?: string;
+    title?: string;
+    rating?: number;
+    published_date?: string;
+    user?: {
+        username?: string;
+        user_location?: {
+            name?: string;
+        };
+    };
+    helpful_votes?: number;
+    lang?: string;
+}
+
+interface ApiResponse {
+    data?: ApiReview[];
+}
+
+interface LocationResponse {
+    location_id?: string | number;
+    name?: string;
+    rating?: number;
+    num_reviews?: number;
+    ranking_data?: {
+        ranking_string?: string;
+    };
+    web_url?: string;
+    address_obj?: {
+        street1?: string;
+        city?: string;
+        country?: string;
+    };
+}
+
 /**
  * HTML sanitization utility to prevent XSS attacks
- * @param {string} text - Text to sanitize
- * @returns {string} Sanitized text
  */
-function sanitizeHtml(text) {
+function sanitizeHtml(text: string): string {
     if (typeof text !== 'string') {
         return '';
     }
@@ -63,18 +174,15 @@ function sanitizeHtml(text) {
 
 /**
  * Validate and sanitize review text content
- * @param {string} text - Review text to validate
- * @param {Object} options - Validation options
- * @returns {Object} Validation result with sanitized text
  */
-export function validateAndSanitizeReviewText(text, options = {}) {
+export function validateAndSanitizeReviewText(text: string, options: ValidationOptions = {}): ValidationResult {
     const {
         maxLength = 2000,
         minLength = 1,
         allowEmptyText = false
     } = options;
 
-    const result = {
+    const result: ValidationResult = {
         isValid: true,
         sanitizedText: '',
         errors: []
@@ -136,11 +244,9 @@ export function validateAndSanitizeReviewText(text, options = {}) {
 
 /**
  * Validate rating value
- * @param {*} rating - Rating value to validate
- * @returns {Object} Validation result with normalized rating
  */
-export function validateRating(rating) {
-    const result = {
+export function validateRating(rating: any): ValidationResult {
+    const result: ValidationResult = {
         isValid: true,
         normalizedRating: 0,
         errors: []
@@ -170,11 +276,9 @@ export function validateRating(rating) {
 
 /**
  * Validate and format date string
- * @param {*} date - Date to validate and format
- * @returns {Object} Validation result with formatted date
  */
-export function validateAndFormatDate(date) {
-    const result = {
+export function validateAndFormatDate(date: any): ValidationResult {
+    const result: ValidationResult = {
         isValid: true,
         formattedDate: '',
         isoDate: '',
@@ -187,7 +291,7 @@ export function validateAndFormatDate(date) {
         return result;
     }
 
-    let dateObj;
+    let dateObj: Date;
 
     // Try to parse the date
     try {
@@ -230,16 +334,14 @@ export function validateAndFormatDate(date) {
 
 /**
  * Format date for user display
- * @param {Date} date - Date object to format
- * @returns {string} Formatted date string
  */
-export function formatDateForDisplay(date) {
+export function formatDateForDisplay(date: Date): string {
     if (!(date instanceof Date) || isNaN(date.getTime())) {
         return '';
     }
 
     const now = new Date();
-    const diffTime = Math.abs(now - date);
+    const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     // Show relative dates for recent reviews
@@ -265,12 +367,8 @@ export function formatDateForDisplay(date) {
 
 /**
  * Truncate review text with proper word boundaries
- * @param {string} text - Text to truncate
- * @param {number} maxLength - Maximum length
- * @param {string} suffix - Suffix to add when truncated
- * @returns {Object} Truncation result
  */
-export function truncateReviewText(text, maxLength = 150, suffix = '...') {
+export function truncateReviewText(text: string, maxLength: number = 150, suffix: string = '...'): TruncationResult {
     if (typeof text !== 'string') {
         return {
             truncated: '',
@@ -308,11 +406,9 @@ export function truncateReviewText(text, maxLength = 150, suffix = '...') {
 
 /**
  * Validate username/author name
- * @param {*} username - Username to validate
- * @returns {Object} Validation result with sanitized username
  */
-export function validateUsername(username) {
-    const result = {
+export function validateUsername(username: any): ValidationResult {
+    const result: ValidationResult = {
         isValid: true,
         sanitizedUsername: 'Anonymous',
         errors: []
@@ -337,11 +433,9 @@ export function validateUsername(username) {
 
 /**
  * Validate helpful votes count
- * @param {*} votes - Votes count to validate
- * @returns {Object} Validation result with normalized votes
  */
-export function validateHelpfulVotes(votes) {
-    const result = {
+export function validateHelpfulVotes(votes: any): ValidationResult {
+    const result: ValidationResult = {
         isValid: true,
         normalizedVotes: 0,
         errors: []
@@ -372,11 +466,8 @@ export function validateHelpfulVotes(votes) {
 
 /**
  * Transform and validate a single review from TripAdvisor API response
- * @param {Object} apiReview - Raw review from TripAdvisor API
- * @param {Object} options - Processing options
- * @returns {Object} Processed and validated review or null if invalid
  */
-export function processAndValidateReview(apiReview, options = {}) {
+export function processAndValidateReview(apiReview: ApiReview, options: ValidationOptions = {}): ProcessedReview | null {
     if (!apiReview || typeof apiReview !== 'object') {
         return null;
     }
@@ -387,11 +478,11 @@ export function processAndValidateReview(apiReview, options = {}) {
         minTextLength = 1
     } = options;
 
-    const errors = [];
-    const warnings = [];
+    const errors: string[] = [];
+    const warnings: string[] = [];
 
     // Validate and process review text
-    const textValidation = validateAndSanitizeReviewText(apiReview.text, {
+    const textValidation = validateAndSanitizeReviewText(apiReview.text || '', {
         maxLength: maxTextLength,
         minLength: minTextLength,
         allowEmptyText: !requireText
@@ -439,16 +530,16 @@ export function processAndValidateReview(apiReview, options = {}) {
     const votesValidation = validateHelpfulVotes(apiReview.helpful_votes);
 
     // Create the processed review object
-    const processedReview = {
+    const processedReview: ProcessedReview = {
         id: String(apiReview.id || ''),
-        title: titleValidation.sanitizedText,
-        text: textValidation.sanitizedText,
-        rating: ratingValidation.normalizedRating,
-        author: usernameValidation.sanitizedUsername,
+        title: titleValidation.sanitizedText || '',
+        text: textValidation.sanitizedText || '',
+        rating: ratingValidation.normalizedRating || 0,
+        author: usernameValidation.sanitizedUsername || 'Anonymous',
         authorLocation: authorLocation,
-        date: dateValidation.isoDate,
-        formattedDate: dateValidation.formattedDate,
-        helpfulVotes: votesValidation.normalizedVotes,
+        date: dateValidation.isoDate || '',
+        formattedDate: dateValidation.formattedDate || '',
+        helpfulVotes: votesValidation.normalizedVotes || 0,
         isVerified: true, // TripAdvisor reviews are considered verified
         language: String(apiReview.lang || 'en'),
 
@@ -471,12 +562,9 @@ export function processAndValidateReview(apiReview, options = {}) {
 
 /**
  * Process and validate multiple reviews from TripAdvisor API response
- * @param {Object} apiResponse - Raw API response containing reviews
- * @param {Object} options - Processing options
- * @returns {Object} Processing result with valid reviews and statistics
  */
-export function processReviewsData(apiResponse, options = {}) {
-    const result = {
+export function processReviewsData(apiResponse: ApiResponse, options: ValidationOptions = {}): ProcessingResult {
+    const result: ProcessingResult = {
         reviews: [],
         statistics: {
             totalReceived: 0,
@@ -520,7 +608,7 @@ export function processReviewsData(apiResponse, options = {}) {
             }
         } catch (error) {
             result.statistics.invalidReviews++;
-            result.statistics.errors.push(`Error processing review ${i}: ${error.message}`);
+            result.statistics.errors.push(`Error processing review ${i}: ${(error as Error).message}`);
         }
     }
 
@@ -529,15 +617,13 @@ export function processReviewsData(apiResponse, options = {}) {
 
 /**
  * Process and validate location data from TripAdvisor API
- * @param {Object} locationResponse - Raw location API response
- * @returns {Object} Processed location data or null if invalid
  */
-export function processLocationData(locationResponse) {
+export function processLocationData(locationResponse: LocationResponse): ProcessedLocation | null {
     if (!locationResponse || typeof locationResponse !== 'object') {
         return null;
     }
 
-    const result = {
+    const result: ProcessedLocation = {
         locationId: String(locationResponse.location_id || ''),
         name: sanitizeHtml(locationResponse.name || ''),
         overallRating: 0,
@@ -551,7 +637,7 @@ export function processLocationData(locationResponse) {
     if (locationResponse.rating) {
         const ratingValidation = validateRating(locationResponse.rating);
         if (ratingValidation.isValid) {
-            result.overallRating = ratingValidation.normalizedRating;
+            result.overallRating = ratingValidation.normalizedRating || 0;
         }
     }
 
@@ -598,11 +684,8 @@ export function processLocationData(locationResponse) {
 
 /**
  * Generate star rating display string
- * @param {number} rating - Numeric rating (1-5)
- * @param {Object} options - Display options
- * @returns {string} Star rating string
  */
-export function generateStarRating(rating, options = {}) {
+export function generateStarRating(rating: number, options: StarRatingOptions = {}): string {
     const {
         filledStar = '★',
         emptyStar = '☆',
@@ -622,10 +705,8 @@ export function generateStarRating(rating, options = {}) {
 
 /**
  * Format helpful votes count for display
- * @param {number} votes - Number of helpful votes
- * @returns {string} Formatted votes string
  */
-export function formatHelpfulVotes(votes) {
+export function formatHelpfulVotes(votes: number): string {
     const numVotes = Number(votes);
     if (isNaN(numVotes) || numVotes <= 0) {
         return '';

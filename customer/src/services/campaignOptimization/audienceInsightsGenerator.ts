@@ -1,9 +1,109 @@
 // Audience Insights Generator
 // Creates audience insights for campaign targeting improvements
 
-import { calculateConfidenceScore } from './utils.js';
+interface AudienceData {
+    audienceId?: string;
+    name: string;
+    impressions?: number;
+    clicks?: number;
+    conversions?: number;
+    cost?: number;
+    conversionValue?: number;
+}
+
+interface CampaignData {
+    campaignId: string;
+    audienceData?: AudienceData[];
+}
+
+interface AudiencePerformance extends AudienceData {
+    roas: number;
+    conversionRate: number;
+    costPerConversion: number;
+    performanceScore: number;
+}
+
+interface AudienceMetrics {
+    totalAudiences: number;
+    avgRoas: number;
+    avgConversionRate: number;
+    totalImpressions: number;
+    totalConversions: number;
+    totalValue: number;
+}
+
+interface DemographicInsights {
+    topDemographic: string;
+    poorPerformingDemographics: Array<{
+        segment: string;
+        conversionRate: number;
+    }>;
+}
+
+interface BehavioralInsights {
+    topBehaviors: string[];
+    engagementPatterns: Record<string, any>;
+}
+
+interface InterestInsights {
+    topInterests: string[];
+    interestPerformance: Record<string, any>;
+}
+
+interface AudienceAnalysis {
+    topPerformingAudiences: AudiencePerformance[];
+    underperformingAudiences: AudiencePerformance[];
+    audienceMetrics: AudienceMetrics;
+    demographicInsights: DemographicInsights;
+    behavioralInsights: BehavioralInsights;
+    interestInsights: InterestInsights;
+}
+
+interface Recommendation {
+    type: string;
+    priority: 'low' | 'medium' | 'high';
+    title: string;
+    description: string;
+    action: string;
+    expectedImpact: string;
+}
+
+interface ExpansionOpportunity {
+    type: string;
+    title: string;
+    description: string;
+    potentialReach: string;
+    expectedPerformance: string;
+}
+
+interface ExclusionRecommendation {
+    type: string;
+    audienceId?: string;
+    audienceName?: string;
+    demographic?: string;
+    reason: string;
+    recommendation: string;
+}
+
+interface AudienceInsights {
+    timestamp: string;
+    campaignId: string;
+    audienceAnalysis: AudienceAnalysis;
+    targetingRecommendations: Recommendation[];
+    expansionOpportunities: ExpansionOpportunity[];
+    exclusionRecommendations: ExclusionRecommendation[];
+}
+
+interface Thresholds {
+    minConversions: number;
+    roasTarget: number;
+    conversionRateTarget: number;
+    confidenceLevel: number;
+}
 
 class AudienceInsightsGenerator {
+    private thresholds: Thresholds;
+
     constructor() {
         this.thresholds = {
             minConversions: 5,
@@ -15,14 +115,12 @@ class AudienceInsightsGenerator {
 
     /**
      * Generate audience insights for a campaign
-     * @param {Object} campaignData - Campaign data with audience information
-     * @returns {Promise<Object>} Audience insights and recommendations
      */
-    async generateInsights(campaignData) {
-        const insights = {
+    async generateInsights(campaignData: CampaignData): Promise<AudienceInsights> {
+        const insights: AudienceInsights = {
             timestamp: new Date().toISOString(),
             campaignId: campaignData.campaignId,
-            audienceAnalysis: {},
+            audienceAnalysis: {} as AudienceAnalysis,
             targetingRecommendations: [],
             expansionOpportunities: [],
             exclusionRecommendations: []
@@ -45,17 +143,15 @@ class AudienceInsightsGenerator {
 
     /**
      * Analyze audience performance
-     * @param {Object} campaignData - Campaign data
-     * @returns {Object} Audience performance analysis
      */
-    analyzeAudiencePerformance(campaignData) {
-        const analysis = {
+    private analyzeAudiencePerformance(campaignData: CampaignData): AudienceAnalysis {
+        const analysis: AudienceAnalysis = {
             topPerformingAudiences: [],
             underperformingAudiences: [],
-            audienceMetrics: {},
-            demographicInsights: {},
-            behavioralInsights: {},
-            interestInsights: {}
+            audienceMetrics: {} as AudienceMetrics,
+            demographicInsights: {} as DemographicInsights,
+            behavioralInsights: {} as BehavioralInsights,
+            interestInsights: {} as InterestInsights
         };
 
         if (!campaignData.audienceData) {
@@ -64,10 +160,10 @@ class AudienceInsightsGenerator {
 
         // Analyze each audience segment
         const audiences = campaignData.audienceData;
-        const audiencePerformance = audiences.map(audience => ({
+        const audiencePerformance: AudiencePerformance[] = audiences.map(audience => ({
             ...audience,
-            roas: audience.conversionValue / (audience.cost || 1),
-            conversionRate: (audience.conversions / (audience.clicks || 1)) * 100,
+            roas: (audience.conversionValue || 0) / (audience.cost || 1),
+            conversionRate: ((audience.conversions || 0) / (audience.clicks || 1)) * 100,
             costPerConversion: (audience.cost || 0) / (audience.conversions || 1),
             performanceScore: this.calculateAudiencePerformanceScore(audience)
         }));
@@ -99,12 +195,10 @@ class AudienceInsightsGenerator {
 
     /**
      * Calculate audience performance score
-     * @param {Object} audience - Audience data
-     * @returns {number} Performance score (0-100)
      */
-    calculateAudiencePerformanceScore(audience) {
-        const roas = audience.conversionValue / (audience.cost || 1);
-        const conversionRate = (audience.conversions / (audience.clicks || 1)) * 100;
+    private calculateAudiencePerformanceScore(audience: AudienceData): number {
+        const roas = (audience.conversionValue || 0) / (audience.cost || 1);
+        const conversionRate = ((audience.conversions || 0) / (audience.clicks || 1)) * 100;
         const volume = audience.impressions || 0;
 
         // Weighted score: ROAS (50%), Conversion Rate (30%), Volume (20%)
@@ -117,11 +211,9 @@ class AudienceInsightsGenerator {
 
     /**
      * Generate targeting recommendations
-     * @param {Object} audienceAnalysis - Audience analysis data
-     * @returns {Array} Targeting recommendations
      */
-    generateTargetingRecommendations(audienceAnalysis) {
-        const recommendations = [];
+    private generateTargetingRecommendations(audienceAnalysis: AudienceAnalysis): Recommendation[] {
+        const recommendations: Recommendation[] = [];
 
         // High-performing audience recommendations
         if (audienceAnalysis.topPerformingAudiences.length > 0) {
@@ -168,11 +260,9 @@ class AudienceInsightsGenerator {
 
     /**
      * Identify expansion opportunities
-     * @param {Object} audienceAnalysis - Audience analysis data
-     * @returns {Array} Expansion opportunities
      */
-    identifyExpansionOpportunities(audienceAnalysis) {
-        const opportunities = [];
+    private identifyExpansionOpportunities(audienceAnalysis: AudienceAnalysis): ExpansionOpportunity[] {
+        const opportunities: ExpansionOpportunity[] = [];
 
         // Similar audience expansion
         if (audienceAnalysis.topPerformingAudiences.length > 0) {
@@ -210,11 +300,9 @@ class AudienceInsightsGenerator {
 
     /**
      * Generate exclusion recommendations
-     * @param {Object} audienceAnalysis - Audience analysis data
-     * @returns {Array} Exclusion recommendations
      */
-    generateExclusionRecommendations(audienceAnalysis) {
-        const exclusions = [];
+    private generateExclusionRecommendations(audienceAnalysis: AudienceAnalysis): ExclusionRecommendation[] {
+        const exclusions: ExclusionRecommendation[] = [];
 
         // Low-performing audience exclusions
         audienceAnalysis.underperformingAudiences.forEach(audience => {
@@ -245,8 +333,8 @@ class AudienceInsightsGenerator {
     }
 
     // Placeholder methods for complex analysis functions
-    calculateOverallAudienceMetrics(audiencePerformance) {
-        if (audiencePerformance.length === 0) return {};
+    private calculateOverallAudienceMetrics(audiencePerformance: AudiencePerformance[]): AudienceMetrics {
+        if (audiencePerformance.length === 0) return {} as AudienceMetrics;
 
         const totalImpressions = audiencePerformance.reduce((sum, aud) => sum + (aud.impressions || 0), 0);
         const totalClicks = audiencePerformance.reduce((sum, aud) => sum + (aud.clicks || 0), 0);
@@ -264,7 +352,7 @@ class AudienceInsightsGenerator {
         };
     }
 
-    analyzeDemographicPerformance(audiencePerformance) {
+    private analyzeDemographicPerformance(_audiencePerformance: AudiencePerformance[]): DemographicInsights {
         // Simplified demographic analysis
         return {
             topDemographic: 'Adults 25-44',
@@ -272,7 +360,7 @@ class AudienceInsightsGenerator {
         };
     }
 
-    analyzeBehavioralPerformance(audiencePerformance) {
+    private analyzeBehavioralPerformance(_audiencePerformance: AudiencePerformance[]): BehavioralInsights {
         // Simplified behavioral analysis
         return {
             topBehaviors: ['Travel enthusiasts', 'Cultural interests'],
@@ -280,7 +368,7 @@ class AudienceInsightsGenerator {
         };
     }
 
-    analyzeInterestPerformance(audiencePerformance) {
+    private analyzeInterestPerformance(_audiencePerformance: AudiencePerformance[]): InterestInsights {
         // Simplified interest analysis
         return {
             topInterests: ['Travel', 'Culture', 'Photography'],

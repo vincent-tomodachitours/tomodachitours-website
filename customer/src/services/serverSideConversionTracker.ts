@@ -6,7 +6,124 @@ import offlineConversionService from './offlineConversionService';
 import { trackServerSideConversion, trackEnhancedConversion } from './googleAdsTracker';
 import privacyManager from './privacyManager';
 
+interface ConversionData {
+    event_type: string;
+    transaction_id: string;
+    value: number;
+    currency?: string;
+    tour_id?: string;
+    tour_name?: string;
+    tour_category?: string;
+    quantity?: number;
+    customer_email_hash?: string;
+    customer_phone_hash?: string;
+    customer_name_hash?: string;
+    booking_date?: string;
+    tour_date?: string;
+    payment_method?: string;
+    payment_provider?: string;
+    original_device_id?: string;
+    conversion_device_id?: string;
+    time_to_conversion?: number;
+}
+
+interface ServerConversionData extends ConversionData {
+    conversion_id: string;
+    timestamp: number;
+    gclid?: string;
+    attribution_source?: string;
+    attribution_medium?: string;
+    attribution_campaign?: string;
+    attribution_chain?: any[];
+    device_id?: string;
+    enhanced_conversion_data?: any;
+    validation_required: boolean;
+    client_timestamp: number;
+    user_agent: string;
+    page_url: string;
+    referrer: string;
+}
+
+interface PendingConversion {
+    data: ServerConversionData;
+    timestamp: number;
+    status: 'pending' | 'validated' | 'failed';
+    updated?: number;
+}
+
+interface ServerResponse {
+    success: boolean;
+    error?: string;
+    server_timestamp?: number;
+    validation_id?: string;
+}
+
+interface BookingData {
+    booking_id: string;
+    total_amount: number;
+    currency?: string;
+    tour_id?: string;
+    tour_name?: string;
+    tour_category?: string;
+    quantity?: number;
+    customer_email?: string;
+    customer_phone?: string;
+    customer_name?: string;
+    booking_date?: string;
+    tour_date?: string;
+}
+
+interface PaymentData {
+    payment_id: string;
+    amount: number;
+    currency?: string;
+    tour_id?: string;
+    tour_name?: string;
+    tour_category?: string;
+    quantity?: number;
+    customer_email?: string;
+    customer_phone?: string;
+    customer_name?: string;
+    payment_method?: string;
+    payment_provider?: string;
+}
+
+interface CrossDeviceData {
+    transactionId: string;
+    value: number;
+    currency?: string;
+    tourId?: string;
+    tourName?: string;
+    tourCategory?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    originalDeviceId?: string;
+    conversionDeviceId?: string;
+    timeToConversion?: number;
+    originalDeviceType?: string;
+    conversionDeviceType?: string;
+    userId?: string;
+}
+
+interface PendingConversionsStats {
+    total: number;
+    pending: number;
+    validated: number;
+    failed: number;
+    oldest: number | null;
+}
+
+declare global {
+    interface Window {
+        gtag?: (...args: any[]) => void;
+    }
+}
+
 class ServerSideConversionTracker {
+    private serverEndpoint: string;
+    private criticalEvents: string[];
+    private pendingConversions: Map<string, PendingConversion>;
+
     constructor() {
         this.serverEndpoint = process.env.REACT_APP_SERVER_CONVERSION_ENDPOINT || '/api/server-conversions';
         this.criticalEvents = ['purchase', 'booking_confirmation', 'payment_success'];
@@ -15,10 +132,8 @@ class ServerSideConversionTracker {
 
     /**
      * Track a critical conversion event with server-side validation
-     * @param {Object} conversionData - Conversion data
-     * @returns {Promise<boolean>} Success status
      */
-    async trackCriticalConversion(conversionData) {
+    async trackCriticalConversion(conversionData: ConversionData): Promise<boolean> {
         if (!privacyManager.canTrackMarketing()) {
             console.log('Server-side conversion tracking disabled due to privacy preferences');
             return false;
@@ -29,7 +144,7 @@ class ServerSideConversionTracker {
             const enhancedAttribution = attributionService.getEnhancedAttributionForAnalytics();
 
             // Prepare server-side conversion data
-            const serverConversionData = {
+            const serverConversionData: ServerConversionData = {
                 conversion_id: this.generateConversionId(),
                 timestamp: Date.now(),
                 event_type: conversionData.event_type,
@@ -99,51 +214,51 @@ class ServerSideConversionTracker {
 
     /**
      * Track a validated conversion after server confirmation
-     * @param {Object} conversionData - Original conversion data
-     * @param {Object} serverResponse - Server validation response
      */
-    async trackValidatedConversion(conversionData, serverResponse) {
+    private async trackValidatedConversion(conversionData: ServerConversionData, serverResponse: ServerResponse): Promise<void> {
         // Track enhanced conversion with server-validated data
         trackEnhancedConversion(conversionData.event_type, {
             value: conversionData.value,
-            currency: conversionData.currency,
+            currency: conversionData.currency || 'JPY',
             transaction_id: conversionData.transaction_id,
             tour_id: conversionData.tour_id,
-            tour_name: conversionData.tour_name,
-            server_validated: true,
-            server_timestamp: serverResponse.server_timestamp,
-            validation_id: serverResponse.validation_id
+            tour_name: conversionData.tour_name
         }, {
             gclid: conversionData.gclid,
             device_id: conversionData.device_id,
             email: conversionData.customer_email_hash,
             phone_number: conversionData.customer_phone_hash,
-            conversion_environment: conversionData.enhanced_conversion_data?.conversion_environment
+            conversion_environment: {
+                ...conversionData.enhanced_conversion_data?.conversion_environment,
+                server_validated: true,
+                server_timestamp: serverResponse.server_timestamp,
+                validation_id: serverResponse.validation_id
+            }
         });
 
-        // Also track server-side conversion
-        trackServerSideConversion({
-            value: conversionData.value,
-            currency: conversionData.currency,
-            transaction_id: conversionData.transaction_id,
-            gclid: conversionData.gclid,
-            conversion_date_time: new Date(serverResponse.server_timestamp).toISOString(),
-            enhanced_conversion_data: conversionData.enhanced_conversion_data,
-            attribution_source: conversionData.attribution_source,
-            attribution_medium: conversionData.attribution_medium,
-            attribution_campaign: conversionData.attribution_campaign,
-            tour_id: conversionData.tour_id,
-            tour_name: conversionData.tour_name,
-            tour_category: conversionData.tour_category
-        });
+        // Also track server-side conversion (only if tour data is available)
+        if (conversionData.tour_id && conversionData.tour_name) {
+            trackServerSideConversion({
+                value: conversionData.value,
+                currency: conversionData.currency,
+                transaction_id: conversionData.transaction_id,
+                gclid: conversionData.gclid,
+                conversion_date_time: new Date(serverResponse.server_timestamp!).toISOString(),
+                enhanced_conversion_data: conversionData.enhanced_conversion_data,
+                attribution_source: conversionData.attribution_source,
+                attribution_medium: conversionData.attribution_medium,
+                attribution_campaign: conversionData.attribution_campaign,
+                tour_id: conversionData.tour_id,
+                tour_name: conversionData.tour_name,
+                tour_category: conversionData.tour_category
+            });
+        }
     }
 
     /**
      * Track booking confirmation with enhanced validation
-     * @param {Object} bookingData - Booking confirmation data
-     * @returns {Promise<boolean>} Success status
      */
-    async trackBookingConfirmation(bookingData) {
+    async trackBookingConfirmation(bookingData: BookingData): Promise<boolean> {
         return await this.trackCriticalConversion({
             event_type: 'booking_confirmation',
             transaction_id: bookingData.booking_id,
@@ -163,10 +278,8 @@ class ServerSideConversionTracker {
 
     /**
      * Track payment success with server validation
-     * @param {Object} paymentData - Payment success data
-     * @returns {Promise<boolean>} Success status
      */
-    async trackPaymentSuccess(paymentData) {
+    async trackPaymentSuccess(paymentData: PaymentData): Promise<boolean> {
         return await this.trackCriticalConversion({
             event_type: 'payment_success',
             transaction_id: paymentData.payment_id,
@@ -186,12 +299,36 @@ class ServerSideConversionTracker {
 
     /**
      * Handle cross-device conversion with server validation
-     * @param {Object} crossDeviceData - Cross-device conversion data
-     * @returns {Promise<boolean>} Success status
      */
-    async trackCrossDeviceConversionWithValidation(crossDeviceData) {
-        // First record the cross-device conversion in offline service
-        await offlineConversionService.recordCrossDeviceConversion(crossDeviceData);
+    async trackCrossDeviceConversionWithValidation(crossDeviceData: CrossDeviceData): Promise<boolean> {
+        // First record the cross-device conversion in offline service (only if we have required data)
+        if (crossDeviceData.originalDeviceId &&
+            crossDeviceData.conversionDeviceId &&
+            crossDeviceData.tourId &&
+            crossDeviceData.tourName &&
+            crossDeviceData.customerEmail &&
+            crossDeviceData.customerPhone &&
+            crossDeviceData.timeToConversion !== undefined &&
+            crossDeviceData.originalDeviceType &&
+            crossDeviceData.conversionDeviceType &&
+            crossDeviceData.userId) {
+
+            await offlineConversionService.recordCrossDeviceConversion({
+                transactionId: crossDeviceData.transactionId,
+                value: crossDeviceData.value,
+                currency: crossDeviceData.currency,
+                tourId: crossDeviceData.tourId,
+                tourName: crossDeviceData.tourName,
+                originalDeviceId: crossDeviceData.originalDeviceId,
+                conversionDeviceId: crossDeviceData.conversionDeviceId,
+                timeToConversion: crossDeviceData.timeToConversion,
+                originalDeviceType: crossDeviceData.originalDeviceType,
+                conversionDeviceType: crossDeviceData.conversionDeviceType,
+                customerEmail: crossDeviceData.customerEmail,
+                customerPhone: crossDeviceData.customerPhone,
+                userId: crossDeviceData.userId
+            });
+        }
 
         // Then track with server validation
         return await this.trackCriticalConversion({
@@ -212,10 +349,8 @@ class ServerSideConversionTracker {
 
     /**
      * Send conversion data to server for validation
-     * @param {Object} conversionData - Conversion data to validate
-     * @returns {Promise<Object>} Server response
      */
-    async sendToServer(conversionData) {
+    private async sendToServer(conversionData: ServerConversionData): Promise<ServerResponse> {
         const response = await fetch(this.serverEndpoint, {
             method: 'POST',
             headers: {
@@ -233,10 +368,8 @@ class ServerSideConversionTracker {
 
     /**
      * Update pending conversion status
-     * @param {string} conversionId - Conversion ID
-     * @param {string} status - New status
      */
-    updatePendingConversion(conversionId, status) {
+    private updatePendingConversion(conversionId: string, status: 'pending' | 'validated' | 'failed'): void {
         const pending = this.pendingConversions.get(conversionId);
         if (pending) {
             pending.status = status;
@@ -246,9 +379,8 @@ class ServerSideConversionTracker {
 
     /**
      * Get pending conversions statistics
-     * @returns {Object} Pending conversions stats
      */
-    getPendingConversionsStats() {
+    getPendingConversionsStats(): PendingConversionsStats {
         const conversions = Array.from(this.pendingConversions.values());
 
         return {
@@ -263,53 +395,46 @@ class ServerSideConversionTracker {
     /**
      * Clean up old pending conversions
      */
-    cleanupPendingConversions() {
+    cleanupPendingConversions(): void {
         const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24 hours
 
-        for (const [conversionId, conversion] of this.pendingConversions.entries()) {
+        this.pendingConversions.forEach((conversion, conversionId) => {
             if (conversion.timestamp < cutoffTime) {
                 this.pendingConversions.delete(conversionId);
             }
-        }
+        });
     }
 
     /**
      * Generate unique conversion ID
-     * @returns {string} Unique conversion ID
      */
-    generateConversionId() {
-        return 'server_' + Date.now() + '_' + Math.random().toString(36).substr(2, 12);
+    private generateConversionId(): string {
+        return 'server_' + Date.now() + '_' + Math.random().toString(36).substring(2, 12);
     }
 
     /**
      * Hash email for privacy compliance
-     * @param {string} email - Email to hash
-     * @returns {string} Hashed email
      */
-    hashEmail(email) {
-        if (!email) return null;
+    private hashEmail(email?: string): string | undefined {
+        if (!email) return undefined;
         const normalized = email.toLowerCase().trim();
         return btoa(normalized).substring(0, 16);
     }
 
     /**
      * Hash phone number for privacy compliance
-     * @param {string} phoneNumber - Phone number to hash
-     * @returns {string} Hashed phone number
      */
-    hashPhoneNumber(phoneNumber) {
-        if (!phoneNumber) return null;
+    private hashPhoneNumber(phoneNumber?: string): string | undefined {
+        if (!phoneNumber) return undefined;
         const normalized = phoneNumber.replace(/\D/g, '');
         return btoa(normalized).substring(0, 16);
     }
 
     /**
      * Hash personal data for privacy compliance
-     * @param {string} data - Personal data to hash
-     * @returns {string} Hashed data
      */
-    hashPersonalData(data) {
-        if (!data) return null;
+    private hashPersonalData(data?: string): string | undefined {
+        if (!data) return undefined;
         const normalized = data.toLowerCase().trim();
         return btoa(normalized).substring(0, 12);
     }
@@ -317,7 +442,7 @@ class ServerSideConversionTracker {
     /**
      * Initialize server-side conversion tracker
      */
-    initialize() {
+    initialize(): void {
         // Set up periodic cleanup of pending conversions
         setInterval(() => {
             this.cleanupPendingConversions();

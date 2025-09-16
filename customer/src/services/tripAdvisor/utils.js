@@ -19,7 +19,10 @@ export function logApiMetrics(operation, metrics = {}) {
     };
 
     // In production, this could be sent to a logging service
-    // Metrics logging disabled
+    // For now, log in development mode
+    if (process.env.NODE_ENV === 'development') {
+        console.log('TripAdvisor API Metrics:', logData);
+    }
 }
 
 /**

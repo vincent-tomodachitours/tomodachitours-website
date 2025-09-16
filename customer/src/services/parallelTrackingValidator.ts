@@ -5,11 +5,102 @@
 
 import migrationFeatureFlags from './migrationFeatureFlags';
 
+interface ConversionData {
+    event?: string;
+    eventName?: string;
+    transaction_id?: string;
+    transactionId?: string;
+    value?: number;
+    currency?: string;
+    timestamp?: number;
+    [key: string]: any;
+}
+
+interface TrackingData {
+    system: 'legacy' | 'gtm';
+    timestamp: number;
+    conversionData: ConversionData;
+    success: boolean;
+    trackingId: string;
+    validationReason?: string;
+    validatedAt?: number;
+}
+
+interface TrackingEntry {
+    legacy?: TrackingData;
+    gtm?: TrackingData;
+}
+
+interface Discrepancy {
+    type: 'success_mismatch' | 'value_mismatch' | 'currency_mismatch' | 'timing_difference';
+    legacy?: any;
+    gtm?: any;
+    difference?: number;
+    severity: 'high' | 'medium' | 'low';
+}
+
+interface ComparisonResult {
+    trackingId: string;
+    timestamp: number;
+    legacy: {
+        success: boolean;
+        conversionType?: string;
+        value?: number;
+        currency?: string;
+    };
+    gtm: {
+        success: boolean;
+        conversionType?: string;
+        value?: number;
+        currency?: string;
+        validationReason?: string;
+    };
+    discrepancies: Discrepancy[];
+    hasDiscrepancies: boolean;
+    severity: 'high' | 'medium' | 'low' | 'none';
+}
+
+interface ValidationSummary {
+    totalComparisons: number;
+    successfulComparisons: number;
+    discrepancyRate: string;
+    severityBreakdown: {
+        high: number;
+        medium: number;
+        low: number;
+    };
+    commonDiscrepancies: Array<{
+        type: string;
+        count: number;
+    }>;
+}
+
+interface ValidationReport {
+    summary: ValidationSummary;
+    recentComparisons: ComparisonResult[];
+    migrationStatus: any;
+    validationEnabled: boolean;
+}
+
+interface StoredValidationData {
+    comparisonResults: ComparisonResult[];
+    lastUpdated: number;
+}
+
+declare global {
+    interface Window {
+        dataLayer?: any[];
+        gtag?: (...args: any[]) => void;
+    }
+}
+
 class ParallelTrackingValidator {
+    private validationData: Map<string, TrackingEntry> = new Map();
+    private comparisonResults: ComparisonResult[] = [];
+    public validationEnabled: boolean;
+
     constructor() {
-        this.validationData = new Map();
-        this.comparisonResults = [];
-        this.validationEnabled = migrationFeatureFlags.flags.conversionValidationEnabled;
+        this.validationEnabled = migrationFeatureFlags.getMigrationStatus().flags.conversionValidationEnabled;
 
         // Initialize validation storage
         this.initializeValidationStorage();
@@ -18,14 +109,14 @@ class ParallelTrackingValidator {
     /**
      * Initialize validation data storage
      */
-    initializeValidationStorage() {
+    private initializeValidationStorage(): void {
         // Load existing validation data from localStorage (browser only)
         if (typeof localStorage === 'undefined') return;
 
         const stored = localStorage.getItem('parallel_tracking_validation');
         if (stored) {
             try {
-                const data = JSON.parse(stored);
+                const data: StoredValidationData = JSON.parse(stored);
                 this.comparisonResults = data.comparisonResults || [];
             } catch (error) {
                 console.warn('[ParallelValidator] Failed to load stored validation data:', error);
@@ -36,12 +127,12 @@ class ParallelTrackingValidator {
     /**
      * Track conversion attempt from legacy system
      */
-    trackLegacyConversion(conversionData) {
+    trackLegacyConversion(conversionData: ConversionData): void {
         if (!this.validationEnabled) return;
 
         const trackingId = this.generateTrackingId(conversionData);
 
-        const legacyTracking = {
+        const legacyTracking: TrackingData = {
             system: 'legacy',
             timestamp: Date.now(),
             conversionData: { ...conversionData },
@@ -61,12 +152,12 @@ class ParallelTrackingValidator {
     /**
      * Track conversion attempt from GTM system
      */
-    trackGTMConversion(conversionData) {
+    trackGTMConversion(conversionData: ConversionData): void {
         if (!this.validationEnabled) return;
 
         const trackingId = this.generateTrackingId(conversionData);
 
-        const gtmTracking = {
+        const gtmTracking: TrackingData = {
             system: 'gtm',
             timestamp: Date.now(),
             conversionData: { ...conversionData },
@@ -91,7 +182,7 @@ class ParallelTrackingValidator {
     /**
      * Generate unique tracking ID for conversion comparison
      */
-    generateTrackingId(conversionData) {
+    private generateTrackingId(conversionData: ConversionData): string {
         const key = [
             conversionData.transaction_id || conversionData.transactionId,
             conversionData.event || conversionData.eventName,
@@ -104,15 +195,15 @@ class ParallelTrackingValidator {
     /**
      * Store tracking data for comparison
      */
-    storeTrackingData(trackingId, system, data) {
+    private storeTrackingData(trackingId: string, system: 'legacy' | 'gtm', data: TrackingData): void {
         if (!this.validationData.has(trackingId)) {
             this.validationData.set(trackingId, {});
         }
 
-        this.validationData.get(trackingId)[system] = data;
+        const trackingEntry = this.validationData.get(trackingId)!;
+        trackingEntry[system] = data;
 
         // Check if we have both systems tracked for comparison
-        const trackingEntry = this.validationData.get(trackingId);
         if (trackingEntry.legacy && trackingEntry.gtm) {
             this.compareTrackingData(trackingId);
         }
@@ -121,7 +212,7 @@ class ParallelTrackingValidator {
     /**
      * Validate GTM tag firing using dataLayer inspection
      */
-    validateGTMFiring(trackingId, conversionData) {
+    private validateGTMFiring(trackingId: string, conversionData: ConversionData): void {
         if (!window.dataLayer) {
             this.updateGTMTrackingSuccess(trackingId, false, 'dataLayer not available');
             return;
@@ -143,7 +234,7 @@ class ParallelTrackingValidator {
     /**
      * Update GTM tracking success status
      */
-    updateGTMTrackingSuccess(trackingId, success, reason) {
+    private updateGTMTrackingSuccess(trackingId: string, success: boolean, reason: string): void {
         const trackingEntry = this.validationData.get(trackingId);
         if (trackingEntry && trackingEntry.gtm) {
             trackingEntry.gtm.success = success;
@@ -160,16 +251,16 @@ class ParallelTrackingValidator {
     /**
      * Compare tracking data between legacy and GTM systems
      */
-    compareTrackingData(trackingId) {
+    private compareTrackingData(trackingId: string): void {
         const trackingEntry = this.validationData.get(trackingId);
-        if (!trackingEntry.legacy || !trackingEntry.gtm) {
+        if (!trackingEntry?.legacy || !trackingEntry?.gtm) {
             return;
         }
 
         const legacy = trackingEntry.legacy;
         const gtm = trackingEntry.gtm;
 
-        const comparison = {
+        const comparison: ComparisonResult = {
             trackingId,
             timestamp: Date.now(),
             legacy: {
@@ -185,7 +276,9 @@ class ParallelTrackingValidator {
                 currency: gtm.conversionData.currency,
                 validationReason: gtm.validationReason
             },
-            discrepancies: []
+            discrepancies: [],
+            hasDiscrepancies: false,
+            severity: 'none'
         };
 
         // Check for discrepancies
@@ -251,7 +344,7 @@ class ParallelTrackingValidator {
     /**
      * Calculate overall severity from discrepancies
      */
-    calculateOverallSeverity(discrepancies) {
+    private calculateOverallSeverity(discrepancies: Discrepancy[]): 'high' | 'medium' | 'low' | 'none' {
         if (discrepancies.some(d => d.severity === 'high')) {
             return 'high';
         }
@@ -267,7 +360,7 @@ class ParallelTrackingValidator {
     /**
      * Alert on high severity discrepancies
      */
-    alertHighSeverityDiscrepancy(comparison) {
+    private alertHighSeverityDiscrepancy(comparison: ComparisonResult): void {
         console.error('[ParallelValidator] High severity discrepancy detected:', comparison);
 
         // Track critical error
@@ -292,9 +385,9 @@ class ParallelTrackingValidator {
     /**
      * Save validation results to localStorage
      */
-    saveValidationResults() {
+    private saveValidationResults(): void {
         try {
-            const dataToSave = {
+            const dataToSave: StoredValidationData = {
                 comparisonResults: this.comparisonResults.slice(-50), // Keep last 50 results
                 lastUpdated: Date.now()
             };
@@ -310,14 +403,14 @@ class ParallelTrackingValidator {
     /**
      * Get validation summary statistics
      */
-    getValidationSummary(timeRange = 3600000) { // Default 1 hour
+    getValidationSummary(timeRange: number = 3600000): ValidationSummary { // Default 1 hour
         const cutoff = Date.now() - timeRange;
         const recentResults = this.comparisonResults.filter(r => r.timestamp > cutoff);
 
-        const summary = {
+        const summary: ValidationSummary = {
             totalComparisons: recentResults.length,
             successfulComparisons: recentResults.filter(r => !r.hasDiscrepancies).length,
-            discrepancyRate: 0,
+            discrepancyRate: '0',
             severityBreakdown: {
                 high: recentResults.filter(r => r.severity === 'high').length,
                 medium: recentResults.filter(r => r.severity === 'medium').length,
@@ -336,8 +429,8 @@ class ParallelTrackingValidator {
     /**
      * Get common discrepancy types
      */
-    getCommonDiscrepancies(results) {
-        const discrepancyTypes = {};
+    private getCommonDiscrepancies(results: ComparisonResult[]): Array<{ type: string; count: number }> {
+        const discrepancyTypes: Record<string, number> = {};
 
         results.forEach(result => {
             result.discrepancies.forEach(discrepancy => {
@@ -354,7 +447,7 @@ class ParallelTrackingValidator {
     /**
      * Get detailed validation report
      */
-    getValidationReport() {
+    getValidationReport(): ValidationReport {
         return {
             summary: this.getValidationSummary(),
             recentComparisons: this.comparisonResults.slice(-10),
@@ -366,7 +459,7 @@ class ParallelTrackingValidator {
     /**
      * Clear validation data
      */
-    clearValidationData() {
+    clearValidationData(): void {
         this.validationData.clear();
         this.comparisonResults = [];
         if (typeof localStorage !== 'undefined') {

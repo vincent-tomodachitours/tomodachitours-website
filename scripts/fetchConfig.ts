@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-const CONFIG_URL = process.env.APPS_SCRIPT_CONFIG_URL;
+const CONFIG_URL: string | undefined = process.env.APPS_SCRIPT_CONFIG_URL;
 if (!CONFIG_URL) {
     console.error("Error: APPS_SCRIPT_CONFIG_URL environment variable is not set");
     process.exit(1);
@@ -13,7 +13,7 @@ if (!CONFIG_URL) {
 
 const OUTPUT_PATH = "./src/config.json";
 
-async function fetchConfig() {
+async function fetchConfig(): Promise<void> {
     try {
         console.log("Fetching config from Google Sheets...");
 
@@ -22,7 +22,7 @@ async function fetchConfig() {
             throw new Error(`Failed to fetch: ${response.statusText}`);
         }
 
-        const configData = await response.json();
+        const configData: any = await response.json();
         console.log("Config fetched successfully:", configData);
 
         fs.writeFileSync(OUTPUT_PATH, JSON.stringify(configData, null, 2));

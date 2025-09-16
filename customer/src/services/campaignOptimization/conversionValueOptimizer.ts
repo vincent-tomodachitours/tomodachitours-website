@@ -1,31 +1,132 @@
 // Conversion Value Optimizer
 // Handles conversion value optimization tracking and recommendations
 
-import { calculateStandardDeviation, calculateConfidenceScore } from './utils.js';
-import { SEASONAL_FACTORS } from './constants.js';
+import { calculateStandardDeviation, calculateConfidenceScore } from './utils';
+import { SEASONAL_FACTORS } from './constants';
+
+interface ConversionData {
+    value?: number;
+    tourType?: string;
+    timestamp?: string;
+    date?: string;
+}
+
+interface CampaignData {
+    campaignId: string;
+    conversions?: ConversionData[];
+    clicks?: number;
+    impressions?: number;
+    deviceBreakdown?: Record<string, DeviceData>;
+    audienceData?: AudienceData[];
+    keywords?: KeywordData[];
+}
+
+interface DeviceData {
+    conversionValue?: number;
+    cost?: number;
+    conversions?: number;
+    clicks?: number;
+}
+
+interface AudienceData {
+    name: string;
+    conversionValue?: number;
+    cost?: number;
+    conversions?: number;
+}
+
+interface KeywordData {
+    keyword: string;
+    conversionValue?: number;
+    cost?: number;
+    conversions?: number;
+}
+
+interface ConversionValueMetrics {
+    totalConversionValue: number;
+    averageConversionValue: number;
+    conversionValuePerClick: number;
+    conversionValuePerImpression: number;
+    valuePerTour: Record<string, TourValueData>;
+    valueDistribution: ValueDistribution;
+    trendAnalysis: Record<string, any>;
+}
+
+interface TourValueData {
+    totalValue: number;
+    count: number;
+    averageValue: number;
+}
+
+interface ValueDistribution {
+    min: number;
+    max: number;
+    median: number;
+    q1: number;
+    q3: number;
+    standardDeviation: number;
+}
+
+interface ValuePatterns {
+    seasonalPatterns: Record<string, any>;
+    dayOfWeekPatterns: Record<string, any>;
+    timeOfDayPatterns: TimeOfDayPatterns;
+    devicePatterns: DevicePatterns;
+    audiencePatterns: AudiencePatterns;
+    keywordPatterns: KeywordPatterns;
+}
+
+interface TimeOfDayPatterns {
+    highValueHours?: number[];
+    valueIncrease?: number;
+}
+
+interface DevicePatterns {
+    highValueDevice?: string;
+    valueIncrease?: number;
+}
+
+interface AudiencePatterns {
+    highValueAudiences?: string[];
+}
+
+interface KeywordPatterns {
+    highValueKeywords?: string[];
+}
+
+interface Recommendation {
+    type: string;
+    priority: 'low' | 'medium' | 'high';
+    title: string;
+    description: string;
+    action: string;
+    expectedImpact: string;
+}
+
+interface ConversionValueOptimization {
+    timestamp: string;
+    campaignId: string;
+    currentMetrics: ConversionValueMetrics;
+    recommendations: Recommendation[];
+    valueOptimization: ValuePatterns;
+    confidenceScore: number;
+}
 
 class ConversionValueOptimizer {
     constructor() {
-        this.thresholds = {
-            minConversions: 10,
-            roasTarget: 3.0,
-            conversionRateTarget: 2.0,
-            costPerConversionTarget: 5000
-        };
+        // Constructor intentionally empty
     }
 
     /**
      * Optimize conversion value for a campaign
-     * @param {Object} campaignData - Campaign performance data
-     * @returns {Promise<Object>} Conversion value optimization insights
      */
-    async optimize(campaignData) {
-        const optimization = {
+    async optimize(campaignData: CampaignData): Promise<ConversionValueOptimization> {
+        const optimization: ConversionValueOptimization = {
             timestamp: new Date().toISOString(),
             campaignId: campaignData.campaignId,
-            currentMetrics: {},
+            currentMetrics: {} as ConversionValueMetrics,
             recommendations: [],
-            valueOptimization: {},
+            valueOptimization: {} as ValuePatterns,
             confidenceScore: 0
         };
 
@@ -43,24 +144,37 @@ class ConversionValueOptimizer {
         );
 
         // Calculate confidence score based on data quality
-        optimization.confidenceScore = calculateConfidenceScore(campaignData);
+        // Calculate total cost from device breakdown if available
+        let totalCost = 0;
+        if (campaignData.deviceBreakdown) {
+            totalCost = Object.values(campaignData.deviceBreakdown)
+                .reduce((sum, device) => sum + (device.cost || 0), 0);
+        }
+
+        const utilsCampaignData = {
+            campaignId: campaignData.campaignId,
+            impressions: campaignData.impressions,
+            clicks: campaignData.clicks,
+            conversions: campaignData.conversions?.length || 0,
+            cost: totalCost,
+            conversionValue: optimization.currentMetrics.totalConversionValue
+        };
+        optimization.confidenceScore = calculateConfidenceScore(utilsCampaignData);
 
         return optimization;
     }
 
     /**
      * Calculate conversion value metrics
-     * @param {Object} campaignData - Campaign data
-     * @returns {Object} Conversion value metrics
      */
-    calculateConversionValueMetrics(campaignData) {
-        const metrics = {
+    private calculateConversionValueMetrics(campaignData: CampaignData): ConversionValueMetrics {
+        const metrics: ConversionValueMetrics = {
             totalConversionValue: 0,
             averageConversionValue: 0,
             conversionValuePerClick: 0,
             conversionValuePerImpression: 0,
             valuePerTour: {},
-            valueDistribution: {},
+            valueDistribution: {} as ValueDistribution,
             trendAnalysis: {}
         };
 
@@ -71,10 +185,10 @@ class ConversionValueOptimizer {
             metrics.averageConversionValue = metrics.totalConversionValue / values.length;
 
             // Calculate value per interaction
-            if (campaignData.clicks > 0) {
+            if (campaignData.clicks && campaignData.clicks > 0) {
                 metrics.conversionValuePerClick = metrics.totalConversionValue / campaignData.clicks;
             }
-            if (campaignData.impressions > 0) {
+            if (campaignData.impressions && campaignData.impressions > 0) {
                 metrics.conversionValuePerImpression = metrics.totalConversionValue / campaignData.impressions;
             }
 
@@ -93,11 +207,9 @@ class ConversionValueOptimizer {
 
     /**
      * Analyze conversion value patterns
-     * @param {Object} campaignData - Campaign data
-     * @returns {Object} Value pattern analysis
      */
-    analyzeConversionValuePatterns(campaignData) {
-        const patterns = {
+    private analyzeConversionValuePatterns(campaignData: CampaignData): ValuePatterns {
+        const patterns: ValuePatterns = {
             seasonalPatterns: {},
             dayOfWeekPatterns: {},
             timeOfDayPatterns: {},
@@ -139,12 +251,9 @@ class ConversionValueOptimizer {
 
     /**
      * Generate value optimization recommendations
-     * @param {Object} metrics - Current metrics
-     * @param {Object} patterns - Value patterns
-     * @returns {Array} Optimization recommendations
      */
-    generateValueOptimizationRecommendations(metrics, patterns) {
-        const recommendations = [];
+    private generateValueOptimizationRecommendations(metrics: ConversionValueMetrics, patterns: ValuePatterns): Recommendation[] {
+        const recommendations: Recommendation[] = [];
 
         // High-value conversion time recommendations
         if (patterns.timeOfDayPatterns.highValueHours) {
@@ -225,15 +334,14 @@ class ConversionValueOptimizer {
 
     /**
      * Analyze value by tour type
-     * @param {Array} conversions - Conversion data
-     * @returns {Object} Tour type analysis
      */
-    analyzeValueByTourType(conversions) {
-        const tourTypes = {};
+    private analyzeValueByTourType(conversions: ConversionData[]): Record<string, TourValueData> {
+        const tourTypes: Record<string, TourValueData> = {};
+
         conversions.forEach(conv => {
             const tourType = conv.tourType || 'unknown';
             if (!tourTypes[tourType]) {
-                tourTypes[tourType] = { totalValue: 0, count: 0 };
+                tourTypes[tourType] = { totalValue: 0, count: 0, averageValue: 0 };
             }
             tourTypes[tourType].totalValue += conv.value || 0;
             tourTypes[tourType].count += 1;
@@ -248,28 +356,25 @@ class ConversionValueOptimizer {
 
     /**
      * Analyze value distribution
-     * @param {Array} values - Conversion values
-     * @returns {Object} Distribution analysis
      */
-    analyzeValueDistribution(values) {
-        values.sort((a, b) => a - b);
-        const length = values.length;
+    private analyzeValueDistribution(values: number[]): ValueDistribution {
+        const sortedValues = [...values].sort((a, b) => a - b);
+        const length = sortedValues.length;
 
         return {
-            min: values[0] || 0,
-            max: values[length - 1] || 0,
-            median: length > 0 ? values[Math.floor(length / 2)] : 0,
-            q1: length > 0 ? values[Math.floor(length * 0.25)] : 0,
-            q3: length > 0 ? values[Math.floor(length * 0.75)] : 0,
+            min: sortedValues[0] || 0,
+            max: sortedValues[length - 1] || 0,
+            median: length > 0 ? sortedValues[Math.floor(length / 2)] : 0,
+            q1: length > 0 ? sortedValues[Math.floor(length * 0.25)] : 0,
+            q3: length > 0 ? sortedValues[Math.floor(length * 0.75)] : 0,
             standardDeviation: calculateStandardDeviation(values)
         };
     }
 
     /**
      * Get current season based on month
-     * @returns {string} Current season
      */
-    getCurrentSeason() {
+    private getCurrentSeason(): string {
         const month = new Date().getMonth();
 
         for (const [season, data] of Object.entries(SEASONAL_FACTORS)) {
@@ -282,13 +387,33 @@ class ConversionValueOptimizer {
     }
 
     // Placeholder methods for complex analysis functions
-    analyzeValueTrends() { return {}; }
-    analyzeSeasonalValuePatterns() { return {}; }
-    analyzeDayOfWeekValuePatterns() { return {}; }
-    analyzeTimeOfDayValuePatterns() { return {}; }
-    analyzeDeviceValuePatterns() { return {}; }
-    analyzeAudienceValuePatterns() { return {}; }
-    analyzeKeywordValuePatterns() { return {}; }
+    private analyzeValueTrends(_conversions: ConversionData[]): Record<string, any> {
+        return {};
+    }
+
+    private analyzeSeasonalValuePatterns(_conversions: ConversionData[]): Record<string, any> {
+        return {};
+    }
+
+    private analyzeDayOfWeekValuePatterns(_conversions: ConversionData[]): Record<string, any> {
+        return {};
+    }
+
+    private analyzeTimeOfDayValuePatterns(_conversions: ConversionData[]): TimeOfDayPatterns {
+        return {};
+    }
+
+    private analyzeDeviceValuePatterns(_campaignData: CampaignData): DevicePatterns {
+        return {};
+    }
+
+    private analyzeAudienceValuePatterns(_campaignData: CampaignData): AudiencePatterns {
+        return {};
+    }
+
+    private analyzeKeywordValuePatterns(_campaignData: CampaignData): KeywordPatterns {
+        return {};
+    }
 }
 
 export default ConversionValueOptimizer;
