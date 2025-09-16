@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis';
-import { SecurityLogEntry, LogSeverity } from './SecurityLogger';
+import { SecurityLogEntry } from './SecurityLogger';
+import { LogSeverity } from './types';
 import { SecurityEventTypes } from './SecurityEventTypes';
 
 interface AnalysisResult {
@@ -11,11 +12,11 @@ interface AnalysisResult {
     metadata: Record<string, any>;
 }
 
-interface PatternConfig {
-    timeWindowMs: number;
-    threshold: number;
-    severity: LogSeverity;
-}
+// interface PatternConfig { // Unused interface removed
+//     timeWindowMs: number;
+//     threshold: number;
+//     severity: LogSeverity;
+// }
 
 export class LogAnalyzer {
     private readonly redis: Redis;

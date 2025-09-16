@@ -3,8 +3,8 @@
  * Handles synchronizing bookings between local database and Bokun system
  */
 
-import { supabase } from '../../lib/supabase.js';
-import { BokunAPI } from './secure-api-client.js';
+import { supabase } from '../../lib/supabase';
+import { BokunAPI } from './secure-api-client';
 
 export class BokunBookingService {
     constructor() {

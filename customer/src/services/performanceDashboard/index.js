@@ -5,7 +5,7 @@ import MetricsCollector from './metricsCollector.js';
 import AttributionAnalyzer from './attributionAnalyzer.js';
 import InsightsGenerator from './insightsGenerator.js';
 import CacheManager from './cacheManager.js';
-import performanceMonitor from '../performanceMonitor.js';
+import performanceMonitor from '../performanceMonitor';
 
 class PerformanceDashboard {
     constructor() {

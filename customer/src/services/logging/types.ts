@@ -1,5 +1,11 @@
-import { Redis } from '@upstash/redis';
-import { LogSeverity } from './SecurityLogger';
+// import { Redis } from '@upstash/redis'; // Unused import removed
+
+export enum LogSeverity {
+    INFO = 'INFO',
+    WARNING = 'WARNING',
+    ERROR = 'ERROR',
+    CRITICAL = 'CRITICAL'
+}
 
 export interface LogEntry {
     id: string;

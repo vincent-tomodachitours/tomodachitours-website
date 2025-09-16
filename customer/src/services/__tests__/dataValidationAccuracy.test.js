@@ -4,7 +4,7 @@
  * Requirements: 1.1, 2.1, 4.3 (Task 14)
  */
 
-const { trackPurchase, trackBeginCheckout, trackTourView } = require('../analytics.js');
+const { trackPurchase, trackBeginCheckout, trackTourView } = require('../analytics');
 const dataValidator = require('../dataValidator.js');
 const performanceMonitor = require('../performanceMonitor.js');
 const { ERROR_TYPES } = require('../performanceMonitor.js');

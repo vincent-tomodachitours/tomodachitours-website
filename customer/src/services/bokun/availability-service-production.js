@@ -3,8 +3,8 @@
  * Automatically switches between secure API and fallback mode
  */
 
-import { SecureBokunAPI } from './secure-api-client.js';
-import { supabase } from '../../lib/supabase.js';
+import { SecureBokunAPI } from './secure-api-client';
+import { supabase } from '../../lib/supabase';
 
 export class BokunAvailabilityService {
     constructor() {

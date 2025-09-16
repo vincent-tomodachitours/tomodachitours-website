@@ -1,18 +1,18 @@
 // Campaign analytics and conversion tracking
 // Main tracking functions for tour-specific conversions and campaign analysis
 
-import { trackCustomGoogleAdsConversion } from '../googleAdsTracker.js';
-import { getTourCategory, getTourDuration, getTourLocation, getPriceRange } from '../analytics/helpers.js';
-import attributionService from '../attributionService.js';
-import privacyManager from '../privacyManager.js';
-import { getTourSpecificLabel } from './conversionLabels.js';
+import { trackCustomGoogleAdsConversion } from '../googleAdsTracker';
+import { getTourCategory, getTourDuration, getTourLocation, getPriceRange } from '../analytics/helpers';
+import attributionService from '../attributionService';
+import privacyManager from '../privacyManager';
+import { getTourSpecificLabel } from './conversionLabels';
 import {
     getCustomerSegmentation,
     getSegmentValueMultiplier,
     getSegmentConversionProbability,
     CUSTOMER_SEGMENTS
-} from './customerSegmentation.js';
-import { storeTourPerformanceData } from './performanceAnalytics.js';
+} from './customerSegmentation';
+import { storeTourPerformanceData } from './performanceAnalytics';
 
 /**
  * Track tour-specific conversion with enhanced parameters

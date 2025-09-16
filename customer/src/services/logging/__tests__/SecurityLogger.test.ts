@@ -128,7 +128,7 @@ describe('SecurityLogger', () => {
             }
         ];
 
-        testCases.forEach(({ method, severity, eventType }) => {
+        testCases.forEach(({ method, severity: _severity, eventType }) => {
             it(`should correctly log ${method} level events`, async () => {
                 const message = `Test ${method} message`;
                 const metadata = { test: 'data' };

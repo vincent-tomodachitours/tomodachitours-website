@@ -21,7 +21,6 @@
     "googleapis": "^133.0.0",
     "node-fetch": "^3.3.2",
     "nth-check": "^2.1.1",
-    "payjp": "^2.3.0",
     "postcss": "^8.5.4",
     "react": "^18.2.0",
     "react-calendar": "^4.8.0",

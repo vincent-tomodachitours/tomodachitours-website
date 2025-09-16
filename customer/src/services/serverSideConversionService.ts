@@ -26,19 +26,19 @@ interface ConversionData {
     }
 }
 
-interface ReconciliationResult {
-    date_range: string
-    client_side_conversions: number
-    server_side_conversions: number
-    matched_conversions: number
-    discrepancies: Array<{
-        booking_id: string
-        client_tracked: boolean
-        server_tracked: boolean
-        issue: string
-    }>
-    accuracy_percentage: number
-}
+// interface ReconciliationResult { // Unused interface removed
+//     date_range: string
+//     client_side_conversions: number
+//     server_side_conversions: number
+//     matched_conversions: number
+//     discrepancies: Array<{
+//         booking_id: string
+//         client_tracked: boolean
+//         server_tracked: boolean
+//         issue: string
+//     }>
+//     accuracy_percentage: number
+// }
 
 /**
  * Server-side conversion service for backup conversion tracking

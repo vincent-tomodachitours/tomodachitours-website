@@ -79,11 +79,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Determine payment provider and check if payment exists
-    const paymentProvider = booking.payment_provider || 'payjp'
-    const hasPayJPCharge = booking.charge_id
-    const hasStripePayment = booking.stripe_payment_intent_id
+    const paymentProvider = booking.payment_provider || 'stripe'
+    const hasStripePayment = booking.stripe_payment_intent_id || booking.charge_id
 
-    if (!hasPayJPCharge && !hasStripePayment) {
+    if (!hasStripePayment) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -99,63 +98,29 @@ const handler = async (req: Request): Promise<Response> => {
     let refund: RefundInfo | null = null
     let refundResponse: any = null
 
-    // Process refund based on payment provider
-    if (paymentProvider === 'stripe' && hasStripePayment) {
-      // Process Stripe refund
-      try {
-        const stripeService = new StripeService()
-        const stripeRefund = await stripeService.createRefund(booking.stripe_payment_intent_id)
+    // Process Stripe refund
+    try {
+      const stripeService = new StripeService()
+      const paymentIntentId = booking.stripe_payment_intent_id || booking.charge_id
+      const stripeRefund = await stripeService.createRefund(paymentIntentId)
 
-        refund = {
-          id: stripeRefund.id,
-          amount: stripeRefund.amount,
-          status: stripeRefund.status,
-          created: stripeRefund.created
-        }
-
-        refundResponse = { ok: true }
-        console.log('Stripe refund processed successfully:', refund)
-      } catch (error) {
-        console.error('Stripe refund error:', error)
-        if (error.message.includes('already refunded') || error.message.includes('cannot refund')) {
-          console.log('Stripe payment already refunded, updating booking status...')
-          refundResponse = { ok: false, error: { code: 'already_refunded' } }
-        } else {
-          throw new Error('Failed to process Stripe refund')
-        }
-      }
-    } else {
-      // Process PayJP refund (existing logic)
-      const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
-      if (!secretKey) {
-        throw new Error('PayJP secret key not configured')
+      refund = {
+        id: stripeRefund.id,
+        amount: stripeRefund.amount,
+        status: stripeRefund.status,
+        created: stripeRefund.created
       }
 
-      const payjpResponse = await fetch(`https://api.pay.jp/v1/charges/${booking.charge_id}/refund`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      })
-
-      const payjpRefundResult = await payjpResponse.json()
-
-      // Handle the case where the charge has already been refunded
-      if (!payjpResponse.ok) {
-        console.error('PayJP refund error:', payjpRefundResult)
-
-        // If the charge was already refunded, we should still update the booking status
-        if (payjpRefundResult.error?.code === 'already_refunded') {
-          console.log('PayJP charge already refunded, updating booking status...')
-          // Continue to update booking status below
-        } else {
-          throw new Error('Failed to process PayJP refund')
-        }
+      refundResponse = { ok: true }
+      console.log('Stripe refund processed successfully:', refund)
+    } catch (error) {
+      console.error('Stripe refund error:', error)
+      if (error.message.includes('already refunded') || error.message.includes('cannot refund')) {
+        console.log('Stripe payment already refunded, updating booking status...')
+        refundResponse = { ok: false, error: { code: 'already_refunded' } }
+      } else {
+        throw new Error('Failed to process Stripe refund')
       }
-
-      refund = payjpRefundResult as RefundInfo
-      refundResponse = payjpResponse
     }
 
     // Update booking status (this runs whether the refund was successful OR already_refunded)
@@ -164,7 +129,7 @@ const handler = async (req: Request): Promise<Response> => {
       .update({
         status: 'CANCELLED'
         // Note: Using 'CANCELLED' instead of 'REFUNDED' to match database constraint
-        // Refund information is tracked in PayJP and can be retrieved using charge_id
+        // Refund information is tracked in Stripe and can be retrieved using payment intent ID
       })
       .eq('id', data.bookingId)
 

@@ -247,16 +247,6 @@ async function sendBookingEmails(supabase: any, booking: any) {
   }
 }
 
-interface PayJPCharge {
-  id: string
-  amount: number
-  status: string
-  paid: boolean
-  error?: {
-    message: string
-  }
-}
-
 /**
  * Trigger Bokun sync via separate Edge Function (async, non-blocking)
  */
@@ -327,42 +317,6 @@ async function processStripePayment(data: any): Promise<any> {
   }
 }
 
-/**
- * Process payment with PayJP (legacy fallback)
- */
-async function processPayJPPayment(data: any): Promise<PayJPCharge> {
-  const secretKey = Deno.env.get('PAYJP_SECRET_KEY')
-  if (!secretKey) {
-    throw new Error('PayJP secret key not configured')
-  }
-
-  const payjpResponse = await fetch('https://api.pay.jp/v1/charges', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${btoa(`${secretKey}:`)}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      amount: data.amount.toString(),
-      currency: 'jpy',
-      card: data.token,
-      capture: 'true',
-      'metadata[booking_id]': data.bookingId.toString(),
-      'metadata[discount_code]': data.discountCode || '',
-      'metadata[original_amount]': (data.originalAmount || data.amount).toString()
-    }).toString()
-  })
-
-  const charge: PayJPCharge = await payjpResponse.json()
-
-  if (!payjpResponse.ok || !charge.paid) {
-    console.error('PayJP error:', charge.error || charge)
-    throw new Error(charge.error?.message || 'Payment failed')
-  }
-
-  return charge
-}
-
 const handler = async (req: Request): Promise<Response> => {
   try {
     // Handle CORS preflight requests
@@ -413,8 +367,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (primaryProvider === 'stripe') {
         paymentResult = await processStripePayment(data)
       } else {
-        // Fallback to PayJP
-        paymentResult = await processPayJPPayment(data)
+        throw new Error('Only Stripe payment provider is supported')
       }
 
       await paymentService.logPaymentAttempt(data.bookingId, primaryProvider, data.amount, 'success', undefined, 1)
@@ -433,9 +386,7 @@ const handler = async (req: Request): Promise<Response> => {
       paid_amount: data.amount // Store the actual amount paid (after discounts)
     }
 
-    if (primaryProvider === 'payjp') {
-      updateData.charge_id = paymentResult.id
-    } else if (primaryProvider === 'stripe') {
+    if (primaryProvider === 'stripe') {
       updateData.charge_id = paymentResult.id // Store Stripe payment intent ID in charge_id for compatibility
       updateData.stripe_payment_intent_id = paymentResult.id // Also store in specific Stripe field for future use
     }

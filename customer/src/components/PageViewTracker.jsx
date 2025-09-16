@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { getShouldTrack } from '../services/analytics/config.js';
+import { getShouldTrack } from '../services/analytics/config';
 
 /**
  * PageViewTracker Component

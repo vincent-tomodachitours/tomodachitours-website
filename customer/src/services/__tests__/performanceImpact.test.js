@@ -4,7 +4,7 @@
  * Requirements: 1.1, 2.2, 4.3 (Task 14)
  */
 
-const { trackPurchase, trackTourView, initializeAnalytics } = require('../analytics.js');
+const { trackPurchase, trackTourView, initializeAnalytics } = require('../analytics');
 const performanceMonitor = require('../performanceMonitor.js');
 const { ERROR_TYPES, METRIC_TYPES } = require('../performanceMonitor.js');
 const privacyManager = require('../privacyManager.js');

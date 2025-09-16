@@ -4,7 +4,7 @@
  * Requirements: 6.1, 6.2, 6.3, 6.4 (Task 14)
  */
 
-const { trackPurchase, trackBeginCheckout, trackTourView } = require('../analytics.js');
+const { trackPurchase, trackBeginCheckout, trackTourView } = require('../analytics');
 const privacyManager = require('../privacyManager.js');
 const { CONSENT_TYPES } = require('../privacyManager.js');
 const attributionService = require('../attributionService.js');

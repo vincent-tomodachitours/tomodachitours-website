@@ -21,7 +21,7 @@ export class PaymentProviderService {
      */
     getPrimaryProvider(): string {
         const primaryOverride = Deno.env.get('PAYMENT_PROVIDER_PRIMARY');
-        return primaryOverride === 'stripe' ? 'stripe' : 'payjp';
+        return primaryOverride || 'stripe'; // Default to Stripe
     }
 
     /**

@@ -39,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.error('Get payment provider error:', error)
         return new Response(
             JSON.stringify({
-                primary: 'payjp', // Safe fallback
+                primary: 'stripe', // Safe fallback
                 backup: null,
                 backup_enabled: false,
                 auto_fallback_enabled: false,

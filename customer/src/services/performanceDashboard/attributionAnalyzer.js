@@ -1,7 +1,7 @@
 // Attribution Analyzer - Handles attribution analysis and conversion path tracking
 // Analyzes first-touch, last-touch, and multi-touch attribution
 
-import attributionService from '../attributionService.js';
+import attributionService from '../attributionService';
 
 class AttributionAnalyzer {
     constructor() {

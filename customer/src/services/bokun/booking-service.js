@@ -3,8 +3,8 @@
  * Handles fetching bookings from both local database and Bokun API
  */
 
-import { supabase } from '../../lib/supabase.js';
-import { SecureBokunAPI } from './secure-api-client.js';
+import { supabase } from '../../lib/supabase';
+import { SecureBokunAPI } from './secure-api-client';
 
 export class BokunBookingService {
     constructor() {

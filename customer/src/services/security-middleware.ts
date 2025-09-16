@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { SecurityLogger } from './logging/SecurityLogger';
-import { SecurityEventTypes } from './logging/SecurityEventTypes';
+// import { SecurityEventTypes } from './logging/SecurityEventTypes'; // Unused import removed
 
 interface SecurityMiddlewareConfig {
     logger?: SecurityLogger;
@@ -61,7 +61,7 @@ export class SecurityMiddleware {
     };
 
     // Response sanitization middleware
-    sanitizeResponse = (req: Request, res: Response, next: NextFunction): void => {
+    sanitizeResponse = (_req: Request, res: Response, next: NextFunction): void => {
         if (!this.config.enableSanitization) {
             return next();
         }
@@ -77,7 +77,7 @@ export class SecurityMiddleware {
     };
 
     // Security headers middleware
-    addSecurityHeaders = (req: Request, res: Response, next: NextFunction): void => {
+    addSecurityHeaders = (_req: Request, res: Response, next: NextFunction): void => {
         if (!this.config.enableSecurityHeaders) {
             return next();
         }

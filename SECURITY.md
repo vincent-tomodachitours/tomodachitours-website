@@ -29,7 +29,7 @@ This document outlines the security measures implemented in the Tomodachi Tours 
 - Referrer Policy
 
 ## Payment Security
-- PayJP integration with 3D Secure support
+- Stripe integration with 3D Secure support
 - Secure handling of payment tokens
 - No storage of sensitive payment data
 - Automatic refund processing with validation

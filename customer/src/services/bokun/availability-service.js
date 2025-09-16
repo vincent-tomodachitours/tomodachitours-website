@@ -3,7 +3,7 @@
  * Manages tour availability and timeslots from Bokun API with caching
  */
 
-import { supabase } from '../../lib/supabase.js';
+import { supabase } from '../../lib/supabase';
 
 export class BokunAvailabilityService {
     constructor() {

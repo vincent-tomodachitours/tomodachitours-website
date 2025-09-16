@@ -3,17 +3,17 @@
  * Verifies that both old and new tracking systems can work together during migration
  */
 
-import { trackPurchase, trackBeginCheckout, trackTourView } from '../ecommerceTracking.js';
+import { trackPurchase, trackBeginCheckout, trackTourView } from '../ecommerceTracking';
 import gtmService from '../../gtmService.js';
 
 // Mock GTM service
 jest.mock('../../gtmService.js');
-jest.mock('../config.js', () => ({
+jest.mock('../config', () => ({
     getShouldTrack: () => true,
     getShouldTrackMarketing: () => true,
     isTestEnvironment: false
 }));
-jest.mock('../helpers.js', () => ({
+jest.mock('../helpers', () => ({
     getTourCategory: () => 'cultural',
     getTourDuration: () => '3-hours',
     getTourLocation: () => 'kyoto',
@@ -21,7 +21,7 @@ jest.mock('../helpers.js', () => ({
     getUserEngagementLevel: () => 'high',
     storeUserInteraction: jest.fn()
 }));
-jest.mock('../cartTracking.js', () => ({
+jest.mock('../cartTracking', () => ({
     storeCartData: jest.fn(),
     clearCartData: jest.fn()
 }));
@@ -37,7 +37,7 @@ jest.mock('../../attributionService.js', () => ({
 jest.mock('../../tourSpecificTracking/index.js', () => ({
     trackTourSpecificConversion: jest.fn()
 }));
-jest.mock('../../remarketingManager.js', () => ({
+jest.mock('../../remarketingManager', () => ({
     processPurchaseCompletion: jest.fn(),
     processTourView: jest.fn()
 }));

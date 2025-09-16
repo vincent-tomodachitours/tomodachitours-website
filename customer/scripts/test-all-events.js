@@ -371,7 +371,7 @@ async function testGoogleAdsEvents() {
     console.log('\n=== Testing Google Ads Conversion Events ===');
 
     try {
-        const googleAdsTracker = await import('../src/services/googleAdsTracker.js');
+        const googleAdsTracker = await import('../src/services/googleAdsTracker.ts');
 
         const results = [];
 
@@ -386,7 +386,7 @@ async function testGoogleAdsEvents() {
         };
         await googleAdsTracker.trackGoogleAdsPurchase(transactionData);
         eventLog.forEach(event => {
-            results.push(validateEvent(event.eventName, event.parameters, { source: 'googleAdsTracker.js' }));
+            results.push(validateEvent(event.eventName, event.parameters, { source: 'googleAdsTracker.ts' }));
         });
 
         // Test begin checkout
@@ -398,21 +398,21 @@ async function testGoogleAdsEvents() {
         };
         await googleAdsTracker.trackGoogleAdsBeginCheckout(tourData);
         eventLog.forEach(event => {
-            results.push(validateEvent(event.eventName, event.parameters, { source: 'googleAdsTracker.js' }));
+            results.push(validateEvent(event.eventName, event.parameters, { source: 'googleAdsTracker.ts' }));
         });
 
         // Test view item
         eventLog = [];
         await googleAdsTracker.trackGoogleAdsViewItem(tourData);
         eventLog.forEach(event => {
-            results.push(validateEvent(event.eventName, event.parameters, { source: 'googleAdsTracker.js' }));
+            results.push(validateEvent(event.eventName, event.parameters, { source: 'googleAdsTracker.ts' }));
         });
 
         // Test add to cart
         eventLog = [];
         await googleAdsTracker.trackGoogleAdsAddToCart(tourData);
         eventLog.forEach(event => {
-            results.push(validateEvent(event.eventName, event.parameters, { source: 'googleAdsTracker.js' }));
+            results.push(validateEvent(event.eventName, event.parameters, { source: 'googleAdsTracker.ts' }));
         });
 
         return results;

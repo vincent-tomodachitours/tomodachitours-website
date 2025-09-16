@@ -3,19 +3,19 @@
  * Verifies that analytics events are properly migrated to use GTM dataLayer structure
  */
 
-import { trackPurchase, trackBeginCheckout, trackTourView, trackAddToCart } from '../ecommerceTracking.js';
+import { trackPurchase, trackBeginCheckout, trackTourView, trackAddToCart } from '../ecommerceTracking';
 import gtmService from '../../gtmService.js';
 import bookingFlowManager from '../../bookingFlowManager.js';
 
 // Mock dependencies
 jest.mock('../../gtmService.js');
 jest.mock('../../bookingFlowManager.js');
-jest.mock('../config.js', () => ({
+jest.mock('../config', () => ({
     getShouldTrack: () => true,
     getShouldTrackMarketing: () => true,
     isTestEnvironment: true
 }));
-jest.mock('../helpers.js', () => ({
+jest.mock('../helpers', () => ({
     getTourCategory: () => 'cultural',
     getTourDuration: () => '3-hours',
     getTourLocation: () => 'kyoto',
@@ -23,7 +23,7 @@ jest.mock('../helpers.js', () => ({
     getUserEngagementLevel: () => 'high',
     storeUserInteraction: jest.fn()
 }));
-jest.mock('../cartTracking.js', () => ({
+jest.mock('../cartTracking', () => ({
     storeCartData: jest.fn(),
     clearCartData: jest.fn()
 }));
@@ -37,7 +37,7 @@ jest.mock('../../attributionService.js', () => ({
 jest.mock('../../tourSpecificTracking/index.js', () => ({
     trackTourSpecificConversion: jest.fn()
 }));
-jest.mock('../../remarketingManager.js', () => ({
+jest.mock('../../remarketingManager', () => ({
     processPurchaseCompletion: jest.fn(),
     processTourView: jest.fn()
 }));

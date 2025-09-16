@@ -105,8 +105,9 @@ export async function logSecurityEvent(
         tags.push(eventType);
     }
 
-    await securityLogger.log(severity, eventType, details, {
+    await securityLogger.log(severity, eventType, JSON.stringify(details), {
         ...options,
+        ...details,
         tags
     });
 }
@@ -116,7 +117,7 @@ export async function logSecurityEvent(
  */
 function getSeverityForEvent(eventType: SecurityEventType): LogSeverity {
     if (eventType.startsWith('system.error')) {
-        return 'ERROR';
+        return LogSeverity.ERROR;
     }
 
     if (
@@ -124,7 +125,7 @@ function getSeverityForEvent(eventType: SecurityEventType): LogSeverity {
         eventType.startsWith('payment.suspicious') ||
         eventType === SecurityEventTypes.PAYMENT_REVIEW_REQUIRED
     ) {
-        return 'WARNING';
+        return LogSeverity.WARNING;
     }
 
     if (
@@ -132,12 +133,12 @@ function getSeverityForEvent(eventType: SecurityEventType): LogSeverity {
         eventType.includes('.denied') ||
         eventType === SecurityEventTypes.PAYMENT_BLOCKED
     ) {
-        return 'ERROR';
+        return LogSeverity.ERROR;
     }
 
     if (eventType.includes('.failure')) {
-        return 'WARNING';
+        return LogSeverity.WARNING;
     }
 
-    return 'INFO';
+    return LogSeverity.INFO;
 } 

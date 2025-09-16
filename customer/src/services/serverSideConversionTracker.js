@@ -1,10 +1,10 @@
 // Server-side Conversion Tracking Service
 // Handles critical booking events that need server-side validation and tracking
 
-import attributionService from './attributionService.js';
-import offlineConversionService from './offlineConversionService.js';
-import { trackServerSideConversion, trackEnhancedConversion } from './googleAdsTracker.js';
-import privacyManager from './privacyManager.js';
+import attributionService from './attributionService';
+import offlineConversionService from './offlineConversionService';
+import { trackServerSideConversion, trackEnhancedConversion } from './googleAdsTracker';
+import privacyManager from './privacyManager';
 
 class ServerSideConversionTracker {
     constructor() {

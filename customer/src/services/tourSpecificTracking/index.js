@@ -7,14 +7,14 @@ import {
     trackTourPerformance,
     trackSegmentSpecificConversion,
     trackCrossTourCampaignConversion
-} from './campaignAnalytics.js';
+} from './campaignAnalytics';
 
 import {
     getTourPerformanceAnalytics,
     clearTourPerformanceData
-} from './performanceAnalytics.js';
+} from './performanceAnalytics';
 
-import { CUSTOMER_SEGMENTS } from './customerSegmentation.js';
+import { CUSTOMER_SEGMENTS } from './customerSegmentation';
 
 // Export statements
 export {
@@ -22,20 +22,20 @@ export {
     trackTourPerformance,
     trackSegmentSpecificConversion,
     trackCrossTourCampaignConversion
-} from './campaignAnalytics.js';
+} from './campaignAnalytics';
 
 export {
     getTourPerformanceAnalytics,
     clearTourPerformanceData
-} from './performanceAnalytics.js';
+} from './performanceAnalytics';
 
 export {
     CUSTOMER_SEGMENTS
-} from './customerSegmentation.js';
+} from './customerSegmentation';
 
 export {
     TOUR_SPECIFIC_CONVERSION_LABELS
-} from './conversionLabels.js';
+} from './conversionLabels';
 
 const tourSpecificTracking = {
     trackTourSpecificConversion,

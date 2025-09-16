@@ -1,12 +1,7 @@
 import { Redis } from '@upstash/redis';
-import { LoggerConfig } from './types';
+import { LoggerConfig, LogSeverity } from './types';
 
-export enum LogSeverity {
-    INFO = 'INFO',
-    WARNING = 'WARNING',
-    ERROR = 'ERROR',
-    CRITICAL = 'CRITICAL'
-}
+export { LogSeverity };
 
 export interface SecurityLogEntry {
     timestamp: number;

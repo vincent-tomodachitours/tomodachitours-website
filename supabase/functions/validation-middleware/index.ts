@@ -27,30 +27,18 @@ export const bookingSchema = z.object({
     discount_code: discountCodeSchema,
 })
 
-// Payment validation schema - updated to handle both PayJP and Stripe
+// Payment validation schema - Stripe only
 export const paymentSchema = z.object({
-    // PayJP fields
-    token: z.string().optional(),
-
     // Stripe fields
-    payment_method_id: z.string().optional(),
+    payment_method_id: z.string().min(1, "Payment method ID is required"),
 
     // Common fields
-    provider: z.enum(['payjp', 'stripe']).optional(),
+    provider: z.enum(['stripe']).optional(),
     amount: priceSchema,
     bookingId: idSchema,
     discountCode: discountCodeSchema,
     originalAmount: priceSchema.optional(),
-}).refine(
-    (data) => {
-        // Either token (PayJP) or payment_method_id (Stripe) must be provided
-        return data.token || data.payment_method_id;
-    },
-    {
-        message: "Either 'token' (for PayJP) or 'payment_method_id' (for Stripe) must be provided",
-        path: ["payment"]
-    }
-);
+});
 
 // Refund validation schema
 export const refundSchema = z.object({
@@ -102,11 +90,11 @@ export const addSecurityHeaders = (headers: Headers): Headers => {
     // Content Security Policy
     headers.set('Content-Security-Policy', [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.pay.jp",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https:",
         "font-src 'self' data:",
-        "connect-src 'self' https://api.pay.jp",
+        "connect-src 'self'",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'"

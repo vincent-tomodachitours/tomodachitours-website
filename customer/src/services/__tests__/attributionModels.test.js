@@ -4,7 +4,7 @@
  * Requirements: 1.1, 1.4, 3.3 (Task 14)
  */
 
-const { trackPurchase, trackTourView } = require('../analytics.js');
+const { trackPurchase, trackTourView } = require('../analytics');
 const attributionService = require('../attributionService.js');
 const privacyManager = require('../privacyManager.js');
 
