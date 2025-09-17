@@ -55,7 +55,9 @@ export class EventTrackingService {
     }
 
     /**
-     * Track GA4 purchase event with proper ecommerce structure
+     * Track GA4 purchase event with dual-path approach:
+     * 1. Direct to GA4 via gtag (for ecommerce reporting)
+     * 2. To GTM dataLayer as purchase_conversion (for Google Ads only)
      */
     trackGA4Purchase(transactionData: TransactionData, tourData: TourData = {}): boolean {
         if (!transactionData) {
@@ -73,33 +75,69 @@ export class EventTrackingService {
                 price: transactionData.value
             }];
 
-            // Create proper GA4 ecommerce purchase event
-            const ga4PurchaseEvent = {
-                event: 'purchase',
-                ecommerce: {
+            let directGA4Success = false;
+            let gtmConversionSuccess = false;
+
+            // PATH 1: Send directly to GA4 for ecommerce reporting
+            if (typeof window !== 'undefined' && window.gtag) {
+                try {
+                    window.gtag('event', 'purchase', {
+                        transaction_id: transactionData.transactionId || transactionData.transaction_id,
+                        value: transactionData.value,
+                        currency: transactionData.currency || BUSINESS_CONFIG.CURRENCY,
+                        items: items,
+                        // Custom parameters
+                        custom_parameters: {
+                            tour_id: tourData.tourId || transactionData.tour_id,
+                            tour_name: tourData.tourName || transactionData.tour_name,
+                            booking_date: tourData.bookingDate || transactionData.booking_date,
+                            payment_provider: tourData.paymentProvider || transactionData.payment_provider
+                        }
+                    });
+                    directGA4Success = true;
+
+                    if (this.debugMode) {
+                        console.log('✅ Direct GA4 purchase event sent via gtag');
+                    }
+                } catch (error) {
+                    console.warn('❌ Failed to send direct GA4 purchase event:', error);
+                }
+            }
+
+            // PATH 2: Send to GTM dataLayer for Google Ads conversion tracking only
+            try {
+                const gtmConversionEvent = {
+                    event: 'purchase_conversion',
                     transaction_id: transactionData.transactionId || transactionData.transaction_id,
                     value: transactionData.value,
                     currency: transactionData.currency || BUSINESS_CONFIG.CURRENCY,
-                    items: items
-                },
-                // Custom parameters (outside of ecommerce object)
-                tour_id: tourData.tourId || transactionData.tour_id,
-                tour_name: tourData.tourName || transactionData.tour_name,
-                tour_category: tourData.tourCategory,
-                tour_location: tourData.tourLocation,
-                tour_duration: tourData.tourDuration,
-                booking_date: tourData.bookingDate || transactionData.booking_date,
-                payment_provider: tourData.paymentProvider || transactionData.payment_provider,
-                price_range: tourData.priceRange,
-                // Enhanced conversion data (if available)
-                ...(transactionData.userData && { user_data: transactionData.userData })
-            };
+                    items: items,
+                    // Custom parameters for GTM
+                    tour_id: tourData.tourId || transactionData.tour_id,
+                    tour_name: tourData.tourName || transactionData.tour_name,
+                    booking_date: tourData.bookingDate || transactionData.booking_date,
+                    payment_provider: tourData.paymentProvider || transactionData.payment_provider,
+                    // Enhanced conversion data (if available)
+                    ...(transactionData.userData && { user_data: transactionData.userData })
+                };
 
-            // Send only the standard GA4 purchase event
-            const success = dataLayerService.pushEvent(ga4PurchaseEvent);
+                gtmConversionSuccess = dataLayerService.pushEvent(gtmConversionEvent);
 
-            if (success && this.debugMode) {
-                console.log('GTM GA4 Events: Standard purchase event tracked:', ga4PurchaseEvent);
+                if (gtmConversionSuccess && this.debugMode) {
+                    console.log('✅ GTM purchase_conversion event sent to dataLayer');
+                }
+            } catch (error) {
+                console.warn('❌ Failed to send GTM conversion event:', error);
+            }
+
+            const success = directGA4Success || gtmConversionSuccess;
+
+            if (this.debugMode) {
+                console.log('📊 Purchase tracking results:', {
+                    directGA4: directGA4Success,
+                    gtmConversion: gtmConversionSuccess,
+                    overallSuccess: success
+                });
             }
 
             return success;

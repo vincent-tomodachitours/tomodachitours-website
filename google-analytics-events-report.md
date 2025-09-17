@@ -8,39 +8,54 @@ This document provides a complete reference of all Google Analytics events imple
 
 ## Core E-commerce Events
 
-### 1. **purchase**
-- **Event Name**: `purchase`
+### 1. **purchase** (Dual-Path Tracking)
+- **Event Names**: 
+  - `purchase` (Direct to GA4)
+  - `purchase_conversion` (GTM dataLayer for Google Ads)
 - **Location**: `customer/src/Pages/Thankyou.tsx`
 - **Trigger**: Thank you page load after successful payment completion
 - **Data Structure**:
   ```javascript
-  {
-    event: 'purchase',
-    ecommerce: {
-      transaction_id: string,
-      value: number,
-      currency: 'JPY',
-      items: [{
-        item_id: string,
-        item_name: string,
-        item_category: 'tour',
-        quantity: number,
-        price: number
-      }]
-    },
+  // Direct to GA4 via gtag
+  gtag('event', 'purchase', {
+    transaction_id: string,
+    value: number,
+    currency: 'JPY',
+    items: [{
+      item_id: string,
+      item_name: string,
+      item_category: 'tour',
+      quantity: number,
+      price: number
+    }],
+    custom_parameters: {
+      tour_id: string,
+      tour_name: string,
+      booking_date: string,
+      payment_provider: string
+    }
+  });
+
+  // To GTM dataLayer for Google Ads
+  dataLayer.push({
+    event: 'purchase_conversion',
+    transaction_id: string,
+    value: number,
+    currency: 'JPY',
+    items: array,
     tour_id: string,
     tour_name: string,
-    booking_date: string,
-    payment_provider: string,
     user_data: object // Enhanced conversion data
-  }
+  });
   ```
 - **Services**: GTM Service (Event Tracking Service), Google Ads Tracker, Server-side Conversion Tracker
 - **Notes**: 
-  - Uses proper GA4 ecommerce structure with `ecommerce` object
-  - Includes duplicate prevention and fallback tracking
-  - Enhanced with debug logging for troubleshooting
-  - Supports both `transaction_id` and `transactionId` formats for compatibility
+  - **Dual-path approach**: Direct GA4 + GTM separation
+  - **GA4 Path**: Standard ecommerce reporting via direct gtag calls
+  - **GTM Path**: Google Ads conversion tracking via dataLayer
+  - **No duplicate events**: Each path serves different purpose
+  - **Future-proof**: Easy to remove GTM while keeping GA4 analytics
+  - Enhanced with debug logging and fallback tracking
 
 ### 2. **begin_checkout**
 - **Event Name**: `begin_checkout`

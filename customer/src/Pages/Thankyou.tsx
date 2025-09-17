@@ -87,14 +87,17 @@ const Thankyou: React.FC = () => {
                 setTimeout(() => {
                     console.log('📋 DataLayer after purchase tracking:', window.dataLayer?.slice(-5));
 
-                    // Check if standard purchase event was sent
-                    const purchaseEvents = window.dataLayer?.filter(event => event.event === 'purchase') || [];
-                    console.log('🔍 Purchase events found in dataLayer:', purchaseEvents);
+                    // Check for purchase_conversion events (GTM path)
+                    const conversionEvents = window.dataLayer?.filter(event => event.event === 'purchase_conversion') || [];
+                    console.log('🔍 Purchase conversion events found in dataLayer:', conversionEvents.length);
 
-                    if (purchaseEvents.length === 0) {
-                        console.warn('⚠️ No standard purchase events found in dataLayer!');
+                    // Note: Direct GA4 purchase events won't appear in dataLayer
+                    console.log('ℹ️ Direct GA4 purchase events are sent via gtag (not visible in dataLayer)');
+
+                    if (conversionEvents.length === 0) {
+                        console.warn('⚠️ No purchase_conversion events found in dataLayer!');
                     } else {
-                        console.log('✅ Standard purchase event(s) found:', purchaseEvents.length);
+                        console.log('✅ Purchase conversion event(s) found for GTM:', conversionEvents.length);
                     }
                 }, 1000);
 
