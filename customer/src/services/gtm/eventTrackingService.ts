@@ -95,6 +95,7 @@ export class EventTrackingService {
                 ...(transactionData.userData && { user_data: transactionData.userData })
             };
 
+            // Send only the standard GA4 purchase event
             const success = dataLayerService.pushEvent(ga4PurchaseEvent);
 
             if (success && this.debugMode) {
