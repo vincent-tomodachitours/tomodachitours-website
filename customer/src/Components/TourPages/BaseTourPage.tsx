@@ -213,10 +213,18 @@ const BaseTourPage: React.FC<BaseTourPageProps> = ({
     const tourReviews = tourData['reviews'];
     const availableTimes = tourData['time-slots'];
     const maxSlots = tourData['max-participants'];
+    const minSlots = tourData['min-participants'] || 1;
     const cancellationCutoffHours = tourData['cancellation-cutoff-hours'];
     const cancellationCutoffHoursWithParticipant = tourData['cancellation-cutoff-hours-with-participant'];
     const nextDayCutoffTime = tourData['next-day-cutoff-time'];
     const apiMeetingPoint = tourData['meeting-point'];
+
+    console.log(`🎯 BaseTourPage for ${tourId}:`, {
+        minSlots,
+        maxSlots,
+        'min-participants': tourData['min-participants'],
+        'max-participants': tourData['max-participants']
+    });
 
     console.log('Final tourDuration for', tourId, ':', tourDuration);
     console.log('API meeting point for', tourId, ':', apiMeetingPoint, 'type:', typeof apiMeetingPoint);
@@ -392,6 +400,7 @@ const BaseTourPage: React.FC<BaseTourPageProps> = ({
                                 originalPrice={originalPrice || undefined}
                                 availableTimes={availableTimes}
                                 maxSlots={maxSlots}
+                                minParticipants={minSlots}
                                 cancellationCutoffHours={cancellationCutoffHours}
                                 cancellationCutoffHoursWithParticipant={cancellationCutoffHoursWithParticipant}
                                 nextDayCutoffTime={nextDayCutoffTime}
@@ -434,6 +443,7 @@ const BaseTourPage: React.FC<BaseTourPageProps> = ({
                             originalPrice={originalPrice || undefined}
                             availableTimes={availableTimes}
                             maxSlots={maxSlots}
+                            minParticipants={minSlots}
                             cancellationCutoffHours={cancellationCutoffHours}
                             cancellationCutoffHoursWithParticipant={cancellationCutoffHoursWithParticipant}
                             nextDayCutoffTime={nextDayCutoffTime}

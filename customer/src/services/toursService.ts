@@ -14,6 +14,7 @@ export interface TourConfig {
     reviews: number;
     'time-slots': string[];
     'max-participants': number;
+    'min-participants': number;
     'cancellation-cutoff-hours': number;
     'cancellation-cutoff-hours-with-participant': number;
     'next-day-cutoff-time'?: string;
@@ -30,6 +31,7 @@ interface StaticTourConfig {
     reviews: number;
     'time-slots': string[];
     'max-participants': number;
+    'min-participants'?: number;
     updated_at?: string;
 }
 
@@ -54,6 +56,7 @@ export interface TourFromDB {
     reviews: number | null;
     time_slots: Array<{ start_time: string; is_active: boolean }> | null;
     max_participants: number;
+    min_participants: number;
     cancellation_cutoff_hours: number | null;
     cancellation_cutoff_hours_with_participant: number | null;
     next_day_cutoff_time: string | null;
@@ -69,7 +72,7 @@ export interface BookingFromDB {
 // Cache for tour data to avoid repeated API calls
 let toursCache: Record<string, TourConfig> | null = null;
 let cacheTimestamp: number | null = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 30 * 1000; // 30 seconds for testing, will increase later
 
 /**
  * Fetch all tours from Supabase with caching
@@ -78,8 +81,11 @@ export async function fetchTours(): Promise<Record<string, TourConfig>> {
     try {
         // Check cache first
         if (toursCache && cacheTimestamp && (Date.now() - cacheTimestamp) < CACHE_DURATION) {
+            console.log('🔄 Using cached tour data');
             return toursCache;
         }
+
+        console.log('🔍 Fetching fresh tour data from database');
 
         const { data: tours, error } = await supabase
             .from('tours')
@@ -87,13 +93,21 @@ export async function fetchTours(): Promise<Record<string, TourConfig>> {
             .order('type');
 
         if (error) {
+            console.error('❌ Error fetching tours from database:', error);
             throw error;
         }
+
+        console.log('✅ Tours fetched from database:', tours);
 
         const transformedTours: Record<string, TourConfig> = {};
 
         (tours as TourFromDB[]).forEach(tour => {
             const key = getConfigKey(tour.type);
+            console.log(`🔍 Processing tour ${tour.type} (${key}):`, {
+                min_participants: tour.min_participants,
+                max_participants: tour.max_participants
+            });
+
             transformedTours[key] = {
                 'tour-title': tour.name,
                 'tour-description': tour.description,
@@ -103,6 +117,7 @@ export async function fetchTours(): Promise<Record<string, TourConfig>> {
                 'reviews': tour.reviews ?? 0,
                 'time-slots': extractTimeSlots(tour.time_slots),
                 'max-participants': tour.max_participants,
+                'min-participants': tour.min_participants,
                 'cancellation-cutoff-hours': tour.cancellation_cutoff_hours ?? 24,
                 'cancellation-cutoff-hours-with-participant': tour.cancellation_cutoff_hours_with_participant ?? tour.cancellation_cutoff_hours ?? 24,
                 'next-day-cutoff-time': tour.next_day_cutoff_time ?? undefined,
@@ -121,7 +136,22 @@ export async function fetchTours(): Promise<Record<string, TourConfig>> {
 
     } catch (error) {
         // Fall back to static config
-        return getStaticTours() as any;
+        const staticTours = await getStaticTours();
+        const transformedStaticTours: Record<string, TourConfig> = {};
+
+        Object.entries(staticTours).forEach(([key, tour]) => {
+            transformedStaticTours[key] = {
+                ...tour,
+                'min-participants': tour['min-participants'] || 1, // Default to 1 if not specified
+                'cancellation-cutoff-hours': 24,
+                'cancellation-cutoff-hours-with-participant': 24,
+                'meeting-point': 'TBD',
+                id: key,
+                type: convertConfigKeyToTourType(key) as TourType
+            } as TourConfig;
+        });
+
+        return transformedStaticTours;
     }
 }
 
@@ -137,6 +167,7 @@ export async function getTour(configKey: string): Promise<TourConfig | null> {
  * Clear the tours cache (useful for testing or when data is updated)
  */
 export function clearToursCache(): void {
+    console.log('🗑️ Clearing tours cache');
     toursCache = null;
     cacheTimestamp = null;
 }
@@ -284,12 +315,18 @@ async function checkLocalAvailability(tourType: string, date: string, timeSlot: 
         // Get tour configuration
         const { data: tour, error: tourError } = await supabase
             .from('tours')
-            .select('max_participants')
+            .select('max_participants, min_participants')
             .eq('type', dbTourType)
             .single();
 
         if (tourError || !tour) {
             console.error('Error fetching tour for availability check:', tourError);
+            return false;
+        }
+
+        // Check minimum participants requirement
+        if (participantCount < tour.min_participants) {
+            console.log(`Minimum ${tour.min_participants} participants required, got ${participantCount}`);
             return false;
         }
 

@@ -20,6 +20,7 @@ export interface TourData {
     reviews: number;
     'time-slots': string[];
     'max-participants': number;
+    'min-participants': number;
     'cancellation-cutoff-hours': number;
     'cancellation-cutoff-hours-with-participant': number;
     'next-day-cutoff-time'?: string;
@@ -357,6 +358,7 @@ export interface DatePickerProps {
     className?: string;
     tourName: string;
     maxSlots: number;
+    minParticipants?: number;
     availableTimes: string[];
     sheetId: string;
     tourId: string;
@@ -522,10 +524,12 @@ export interface TimeSlotSelectorProps {
     cancellationCutoffHours: number;
     cancellationCutoffHoursWithParticipant: number;
     tourName: string;
+    tourId: string;
     adultParticipants: number;
     childParticipants: number;
     infantParticipants: number;
     totalPrice: number;
+    minParticipants?: number;
     handleGoBack: () => void;
     handleOpenCheckout: () => void;
 }
@@ -537,7 +541,7 @@ export interface PeopleSelectorProps {
     participants: number;
     value: number;
     onChange: (value: number) => void;
-    ageRange: string;
+    ageRange?: string;
     price?: number;
 }
 

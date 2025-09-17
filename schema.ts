@@ -160,6 +160,7 @@ export type Database = {
           duration_minutes: number
           id: string
           max_participants: number
+          min_participants: number
           name: string
           next_day_cutoff_time: string | null
           original_price: number | null
@@ -177,6 +178,7 @@ export type Database = {
           duration_minutes: number
           id?: string
           max_participants: number
+          min_participants: number
           name: string
           next_day_cutoff_time?: string | null
           original_price?: number | null
@@ -194,6 +196,7 @@ export type Database = {
           duration_minutes?: number
           id?: string
           max_participants?: number
+          min_participants?: number
           name?: string
           next_day_cutoff_time?: string | null
           original_price?: number | null

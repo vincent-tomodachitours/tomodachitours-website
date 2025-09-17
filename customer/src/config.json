@@ -10,7 +10,8 @@
       "18:00",
       "19:00"
     ],
-    "max-participants": 12
+    "max-participants": 12,
+    "min-participants": 1
   },
   "morning-tour": {
     "tour-title": "Kyoto Early Bird English Tour: Fushimi-Inari and Arashiyama",
@@ -24,7 +25,8 @@
       "8:00",
       "8:45"
     ],
-    "max-participants": 9
+    "max-participants": 9,
+    "min-participants": 1
   },
   "uji-tour": {
     "tour-title": "Matcha Grinding Experience and Walking Tour in Uji Kyoto",
@@ -35,7 +37,8 @@
     "time-slots": [
       "9:30"
     ],
-    "max-participants": 6
+    "max-participants": 6,
+    "min-participants": 2
   },
   "uji-walking-tour": {
     "tour-title": "Uji Walking Tour",
@@ -47,7 +50,8 @@
       "9:30",
       "13:30"
     ],
-    "max-participants": 8
+    "max-participants": 8,
+    "min-participants": 1
   },
   "gion-tour": {
     "tour-title": "Kyoto Gion Early Morning Walking Tour",
@@ -60,7 +64,8 @@
       "7:15",
       "8:00"
     ],
-    "max-participants": 12
+    "max-participants": 12,
+    "min-participants": 1
   },
   "music-tour": {
     "tour-title": "Tofukuji Zen Tour: Traditional Music Performance & Tea Ceremony",
@@ -73,6 +78,7 @@
       "14:00",
       "16:00"
     ],
-    "max-participants": 8
+    "max-participants": 8,
+    "min-participants": 1
   }
 }

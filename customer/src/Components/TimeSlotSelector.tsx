@@ -12,10 +12,12 @@ const TimeSlotSelector = ({
     cancellationCutoffHours,
     cancellationCutoffHoursWithParticipant,
     tourName,
+    tourId,
     adultParticipants,
     childParticipants,
     infantParticipants,
     totalPrice,
+    minParticipants = 1,
     handleGoBack,
     handleOpenCheckout
 }: TimeSlotSelectorProps) => {
@@ -141,9 +143,30 @@ const TimeSlotSelector = ({
                 {/* Participants and Total */}
                 <div className="flex justify-between items-end">
                     <div className="text-sm text-gray-600 space-y-1">
-                        <div>Adults: {adultParticipants}</div>
-                        {childParticipants !== 0 && <div>Children: {childParticipants}</div>}
-                        {infantParticipants !== 0 && <div>Infants: {infantParticipants}</div>}
+                        <div>{tourId === 'uji-tour' ? 'Participants' : 'Adults'}: {adultParticipants}</div>
+                        {tourId !== 'uji-tour' && childParticipants !== 0 && <div>Children: {childParticipants}</div>}
+                        {tourId !== 'uji-tour' && infantParticipants !== 0 && <div>Infants: {infantParticipants}</div>}
+                        <div className="text-xs">
+                            {tourId === 'uji-tour' ? (
+                                <>
+                                    Total: {adultParticipants}
+                                    {minParticipants > 1 && (
+                                        <span className={`ml-1 ${adultParticipants < minParticipants ? 'text-red-600' : 'text-green-600'}`}>
+                                            (Min: {minParticipants})
+                                        </span>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    Total: {adultParticipants + childParticipants + infantParticipants}
+                                    {minParticipants > 1 && (
+                                        <span className={`ml-1 ${(adultParticipants + childParticipants + infantParticipants) < minParticipants ? 'text-red-600' : 'text-green-600'}`}>
+                                            (Min: {minParticipants})
+                                        </span>
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
                     <div className="text-right">
                         <div className="text-sm text-gray-600">Total</div>
@@ -169,9 +192,38 @@ const TimeSlotSelector = ({
                     </svg>
                     Go back
                 </button>
+                {(() => {
+                    const totalParticipants = tourId === 'uji-tour'
+                        ? adultParticipants
+                        : adultParticipants + childParticipants + infantParticipants;
+
+                    return totalParticipants < minParticipants && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                            <div className="flex items-center">
+                                <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                </svg>
+                                Minimum {minParticipants} {tourId === 'uji-tour' ? 'adults' : 'participants'} required for this tour.
+                            </div>
+                        </div>
+                    );
+                })()}
                 <button
-                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-ubuntu font-semibold transition-colors duration-200 shadow-sm hover:shadow-md"
+                    className={`w-full h-12 rounded-xl font-ubuntu font-semibold transition-colors duration-200 shadow-sm ${(() => {
+                        const totalParticipants = tourId === 'uji-tour'
+                            ? adultParticipants
+                            : adultParticipants + childParticipants + infantParticipants;
+                        return totalParticipants >= minParticipants
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed';
+                    })()}`}
                     onClick={handleOpenCheckout}
+                    disabled={(() => {
+                        const totalParticipants = tourId === 'uji-tour'
+                            ? adultParticipants
+                            : adultParticipants + childParticipants + infantParticipants;
+                        return totalParticipants < minParticipants;
+                    })()}
                 >
                     Checkout
                 </button>

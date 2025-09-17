@@ -5,6 +5,7 @@ import PeopleSelector from "./PeopleSelector";
 
 interface CalendarViewProps {
     maxSlots: number;
+    minParticipants?: number;
     price: number;
     participants: number;
     adultParticipants: number;
@@ -27,6 +28,7 @@ interface CalendarViewProps {
 
 const CalendarView: React.FC<CalendarViewProps> = ({
     maxSlots,
+    minParticipants = 1,
     price,
     participants,
     adultParticipants,
@@ -51,26 +53,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <div className="mb-4">
                 <div className="space-y-2">
                     <PeopleSelector
-                        min={1}
+                        min={minParticipants}
                         max={maxSlots}
-                        title={"Adults"}
-                        ageRange="18 - 90"
+                        title={tourId === 'uji-tour' ? "Participants" : "Adults"}
+                        ageRange={tourId === 'uji-tour' ? undefined : "18 - 90"}
                         price={price}
                         participants={participants}
                         value={adultParticipants}
                         onChange={handleAdultParticipantsChange}
                     />
-                    <PeopleSelector
-                        min={0}
-                        max={maxSlots}
-                        title={"Children"}
-                        ageRange={tourId === 'music-tour' ? "6 - 17" : "3 - 17"}
-                        price={price}
-                        participants={participants}
-                        value={childParticipants}
-                        onChange={handleChildParticipantsChange}
-                    />
-                    {tourId !== 'music-tour' && (
+                    {tourId !== 'uji-tour' && (
+                        <PeopleSelector
+                            min={0}
+                            max={maxSlots}
+                            title={"Children"}
+                            ageRange={tourId === 'music-tour' ? "6 - 17" : "3 - 17"}
+                            price={price}
+                            participants={participants}
+                            value={childParticipants}
+                            onChange={handleChildParticipantsChange}
+                        />
+                    )}
+                    {tourId !== 'music-tour' && tourId !== 'uji-tour' && (
                         <PeopleSelector
                             min={0}
                             max={maxSlots}

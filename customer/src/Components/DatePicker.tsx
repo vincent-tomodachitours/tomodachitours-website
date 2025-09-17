@@ -11,6 +11,7 @@ import { DatePickerProps } from '../types';
 function DatePicker({
     tourName = "noTourName",
     maxSlots,
+    minParticipants = 1,
     availableTimes,
     sheetId,
     tourId,
@@ -27,6 +28,14 @@ function DatePicker({
     const [adultParticipants, setAdultParticipants] = useState<number>(1);
     const [childParticipants, setChildParticipants] = useState<number>(0);
     const [infantParticipants, setInfantParticipants] = useState<number>(0);
+
+    // Set initial adult participants to minimum required
+    useEffect(() => {
+        if (minParticipants > adultParticipants) {
+            console.log(`🔧 Setting initial adult participants to minimum: ${minParticipants}`);
+            setAdultParticipants(minParticipants);
+        }
+    }, [minParticipants, adultParticipants]);
     const [tourTime, setTourTime] = useState<string>(availableTimes[0]);
     const [userSetTourTime, setUserSetTourTime] = useState<boolean>(false);
     const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date>(new Date());
@@ -59,6 +68,13 @@ function DatePicker({
 
     // Checkout handlers
     const handleOpenCheckout = () => {
+        // Validate minimum participants (for Uji tour, only count adults)
+        const totalParticipants = tourId === 'uji-tour' ? adultParticipants : participants;
+        if (totalParticipants < minParticipants) {
+            const participantType = tourId === 'uji-tour' ? 'adults' : 'participants';
+            alert(`Minimum ${minParticipants} ${participantType} required for this tour.`);
+            return;
+        }
         setCheckout(true);
     };
 
@@ -417,6 +433,7 @@ function DatePicker({
             return (
                 <CalendarView
                     maxSlots={maxSlots}
+                    minParticipants={minParticipants}
                     price={price}
                     participants={participants}
                     adultParticipants={adultParticipants}
@@ -449,10 +466,12 @@ function DatePicker({
                     cancellationCutoffHours={cancellationCutoffHours}
                     cancellationCutoffHoursWithParticipant={cancellationCutoffHoursWithParticipant}
                     tourName={tourName}
+                    tourId={tourId}
                     adultParticipants={adultParticipants}
                     childParticipants={childParticipants}
                     infantParticipants={infantParticipants}
                     totalPrice={totalPrice}
+                    minParticipants={minParticipants}
                     handleGoBack={handleGoBack}
                     handleOpenCheckout={handleOpenCheckout}
                 />
