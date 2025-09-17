@@ -24,6 +24,11 @@ import { initializeAnalytics } from './services/analytics';
 import MusicTour from './Pages/MusicTour';
 import KyotoItinerary from './Pages/KyotoItinerary';
 
+// Load development helpers in development mode
+if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEBUG_MODE === 'true') {
+    import('./utils/devHelpers');
+}
+
 const App: React.FC = () => {
     // Initialize Google Analytics 4
     React.useEffect(() => {

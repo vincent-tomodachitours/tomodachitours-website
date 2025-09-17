@@ -49,7 +49,14 @@ export interface TransactionData {
 
 export interface CheckoutData {
     value?: number;
+    currency?: string;
     items?: any[];
+    userData?: any;
+    tour_id?: string;
+    tour_name?: string;
+    booking_date?: string;
+    payment_provider?: string;
+    quantity?: number;
 }
 
 export interface ItemData {

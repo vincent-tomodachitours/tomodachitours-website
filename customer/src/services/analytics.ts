@@ -5,6 +5,7 @@ export {
     trackPurchase,
     trackBeginCheckout,
     trackTourView,
+    trackViewItem,
     trackAddToCart,
     trackCartAbandonment,
     trackCheckoutAbandonment,

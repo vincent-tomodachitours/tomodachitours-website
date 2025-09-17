@@ -28,6 +28,7 @@ export interface AnalyticsService {
     // E-commerce tracking
     trackPurchase(transactionData: TransactionData): Promise<boolean>;
     trackBeginCheckout(tourData: TrackingData): Promise<boolean>;
+    trackTourView(tourData: TrackingData): Promise<boolean>;
     trackAddToCart(tourData: TrackingData): Promise<boolean>;
     trackViewItem(tourData: TrackingData): Promise<boolean>;
 

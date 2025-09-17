@@ -124,7 +124,8 @@ export class EventTrackingService {
     }
 
     /**
-     * Track GA4 begin checkout event
+     * Track GA4 begin checkout event with proper ecommerce structure
+     * Single event sent to GTM dataLayer - GTM handles forwarding to both GA4 and Google Ads
      */
     trackGA4BeginCheckout(checkoutData: CheckoutData, tourData: TourData = {}): boolean {
         if (!checkoutData) {
@@ -132,13 +133,58 @@ export class EventTrackingService {
             return false;
         }
 
-        return this.trackGA4EcommerceEvent(GA4_EVENTS.BEGIN_CHECKOUT, {
-            value: checkoutData.value,
-            currency: BUSINESS_CONFIG.CURRENCY,
-            items: checkoutData.items || [],
-            checkout_step: 1,
-            checkout_option: 'tour_booking'
-        }, tourData);
+        // Validate critical checkout data
+        if (!checkoutData.value || checkoutData.value <= 0) {
+            console.error('GTM GA4 Events: Invalid checkout value:', checkoutData.value);
+            return false;
+        }
+
+        try {
+            // Prepare items array with proper structure and consistent values
+            const items = checkoutData.items || [{
+                item_id: tourData.tourId || checkoutData.tour_id || 'tour-booking',
+                item_name: tourData.tourName || checkoutData.tour_name || 'Tour Booking',
+                item_category: 'tour',
+                quantity: checkoutData.quantity || 1,
+                price: checkoutData.value // Ensure price matches checkout value
+            }];
+
+            // Create standard GA4 begin_checkout event with proper ecommerce structure
+            const beginCheckoutEvent = {
+                event: 'begin_checkout',
+                ecommerce: {
+                    value: checkoutData.value,
+                    currency: checkoutData.currency || BUSINESS_CONFIG.CURRENCY,
+                    items: items
+                },
+                // Custom parameters for tour business
+                tour_id: tourData.tourId || checkoutData.tour_id,
+                tour_name: tourData.tourName || checkoutData.tour_name,
+                tour_category: tourData.tourCategory,
+                tour_location: tourData.tourLocation,
+                tour_duration: tourData.tourDuration,
+                booking_date: tourData.bookingDate || checkoutData.booking_date,
+                payment_provider: tourData.paymentProvider || checkoutData.payment_provider,
+                price_range: tourData.priceRange,
+                checkout_step: 1,
+                checkout_option: 'tour_booking',
+                // Enhanced conversion data (if available)
+                ...(checkoutData.userData && { user_data: checkoutData.userData })
+            };
+
+            const success = dataLayerService.pushEvent(beginCheckoutEvent);
+
+            if (success && this.debugMode) {
+                console.log('✅ Standard GA4 begin_checkout event sent to GTM dataLayer:', beginCheckoutEvent);
+                console.log('ℹ️ GTM will handle forwarding to both GA4 and Google Ads');
+            }
+
+            return success;
+
+        } catch (error) {
+            console.error('GTM GA4 Events: Failed to track begin checkout event:', error);
+            return false;
+        }
     }
 
     /**

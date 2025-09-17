@@ -2,7 +2,7 @@
 // This maintains backward compatibility with the original analytics.js
 
 // Import statements first
-import { trackPurchase, trackBeginCheckout, trackAddToCart, trackViewItem } from './ecommerceTracking';
+import { trackPurchase, trackBeginCheckout, trackAddToCart, trackViewItem, trackTourView } from './ecommerceTracking';
 import { trackCartAbandonment, trackCheckoutAbandonment, trackFunnelStep } from './abandonmentTracking';
 import {
     trackEvent,
@@ -72,6 +72,7 @@ const analyticsService: AnalyticsService & {
     // Ecommerce tracking
     trackPurchase,
     trackBeginCheckout,
+    trackTourView,
     trackAddToCart,
     trackViewItem,
 
