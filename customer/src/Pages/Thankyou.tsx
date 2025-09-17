@@ -87,17 +87,26 @@ const Thankyou: React.FC = () => {
                 setTimeout(() => {
                     console.log('📋 DataLayer after purchase tracking:', window.dataLayer?.slice(-5));
 
-                    // Check for purchase_conversion events (GTM path)
-                    const conversionEvents = window.dataLayer?.filter(event => event.event === 'purchase_conversion') || [];
-                    console.log('🔍 Purchase conversion events found in dataLayer:', conversionEvents.length);
+                    // Check for standard purchase events
+                    const purchaseEvents = window.dataLayer?.filter(event => event.event === 'purchase') || [];
+                    console.log('🔍 Standard purchase events found in dataLayer:', purchaseEvents.length);
 
-                    // Note: Direct GA4 purchase events won't appear in dataLayer
-                    console.log('ℹ️ Direct GA4 purchase events are sent via gtag (not visible in dataLayer)');
-
-                    if (conversionEvents.length === 0) {
-                        console.warn('⚠️ No purchase_conversion events found in dataLayer!');
+                    if (purchaseEvents.length === 0) {
+                        console.warn('⚠️ No purchase events found in dataLayer!');
                     } else {
-                        console.log('✅ Purchase conversion event(s) found for GTM:', conversionEvents.length);
+                        console.log('✅ Standard purchase event(s) found:', purchaseEvents.length);
+                        console.log('ℹ️ GTM will forward this to both GA4 and Google Ads');
+
+                        // Show the structure of the latest purchase event
+                        const latestPurchase = purchaseEvents[purchaseEvents.length - 1];
+                        console.log('📊 Latest purchase event structure:', {
+                            event: latestPurchase.event,
+                            transaction_id: latestPurchase.ecommerce?.transaction_id,
+                            value: latestPurchase.ecommerce?.value,
+                            currency: latestPurchase.ecommerce?.currency,
+                            items_count: latestPurchase.ecommerce?.items?.length,
+                            tour_id: latestPurchase.tour_id
+                        });
                     }
                 }, 1000);
 

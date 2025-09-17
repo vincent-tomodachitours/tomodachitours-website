@@ -101,8 +101,7 @@ export const GTM_EVENTS = {
 };
 
 export const GA4_EVENTS = {
-    PURCHASE: 'purchase', // Direct to GA4 via gtag
-    PURCHASE_CONVERSION: 'purchase_conversion', // To GTM dataLayer for Google Ads
+    PURCHASE: 'purchase', // Standard GA4 purchase event - GTM handles forwarding
     BEGIN_CHECKOUT: 'begin_checkout',
     VIEW_ITEM: 'view_item',
     ADD_PAYMENT_INFO: 'add_payment_info',

@@ -8,53 +8,47 @@ This document provides a complete reference of all Google Analytics events imple
 
 ## Core E-commerce Events
 
-### 1. **purchase** (Dual-Path Tracking)
-- **Event Names**: 
-  - `purchase` (Direct to GA4)
-  - `purchase_conversion` (GTM dataLayer for Google Ads)
+### 1. **purchase** (Standard GA4 Event via GTM)
+- **Event Name**: `purchase`
 - **Location**: `customer/src/Pages/Thankyou.tsx`
 - **Trigger**: Thank you page load after successful payment completion
 - **Data Structure**:
   ```javascript
-  // Direct to GA4 via gtag
-  gtag('event', 'purchase', {
-    transaction_id: string,
-    value: number,
-    currency: 'JPY',
-    items: [{
-      item_id: string,
-      item_name: string,
-      item_category: 'tour',
-      quantity: number,
-      price: number
-    }],
-    custom_parameters: {
-      tour_id: string,
-      tour_name: string,
-      booking_date: string,
-      payment_provider: string
-    }
-  });
-
-  // To GTM dataLayer for Google Ads
+  // Single event to GTM dataLayer - GTM handles all forwarding
   dataLayer.push({
-    event: 'purchase_conversion',
-    transaction_id: string,
-    value: number,
-    currency: 'JPY',
-    items: array,
+    event: 'purchase',
+    ecommerce: {
+      transaction_id: string,
+      value: number,
+      currency: 'JPY',
+      items: [{
+        item_id: string,
+        item_name: string,
+        item_category: 'tour',
+        quantity: number,
+        price: number
+      }]
+    },
     tour_id: string,
     tour_name: string,
+    tour_category: string,
+    tour_location: string,
+    tour_duration: string,
+    booking_date: string,
+    payment_provider: string,
+    price_range: string,
     user_data: object // Enhanced conversion data
   });
   ```
 - **Services**: GTM Service (Event Tracking Service), Google Ads Tracker, Server-side Conversion Tracker
 - **Notes**: 
-  - **Dual-path approach**: Direct GA4 + GTM separation
-  - **GA4 Path**: Standard ecommerce reporting via direct gtag calls
-  - **GTM Path**: Google Ads conversion tracking via dataLayer
-  - **No duplicate events**: Each path serves different purpose
-  - **Future-proof**: Easy to remove GTM while keeping GA4 analytics
+  - **Single standard event**: Uses GA4's standard `purchase` event structure
+  - **GTM handles everything**: GTM forwards to both GA4 and Google Ads from one event
+  - **Proper ecommerce structure**: Includes `ecommerce` object for GA4 reporting
+  - **Enhanced conversion data**: Includes user data for better attribution
+  - **Clean & maintainable**: Single event to manage instead of multiple
+  - **Future-proof**: Standard GA4 structure, easy to migrate away from GTM
+  - **GTM Configuration**: GTM must be configured to forward `purchase` events to both GA4 and Google Ads
   - Enhanced with debug logging and fallback tracking
 
 ### 2. **begin_checkout**
