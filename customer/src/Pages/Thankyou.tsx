@@ -26,8 +26,13 @@ const Thankyou: React.FC = () => {
                 // Prepare transaction data for GTM
                 const purchaseData = {
                     transaction_id: transactionId,
+                    transactionId: transactionId, // Support both formats
                     value: value,
                     currency: 'JPY',
+                    tour_id: tourId,
+                    tour_name: tourName,
+                    booking_date: sessionStorage.getItem('booking_date'),
+                    payment_provider: sessionStorage.getItem('booking_payment_provider') || 'stripe',
                     items: [{
                         item_id: tourId,
                         item_name: tourName,
@@ -69,15 +74,39 @@ const Thankyou: React.FC = () => {
                     return;
                 }
 
+                // Enable debug mode for purchase tracking
+                gtmService.enableDebugMode(true);
+
+                // Log dataLayer before tracking
+                console.log('📋 DataLayer before purchase tracking:', window.dataLayer?.slice(-5));
+
                 // Track purchase conversion via GTM service (this handles the Google Ads conversion)
                 const gtmSuccess = gtmService.trackPurchaseConversion(purchaseData, customerData || undefined);
 
+                // Log dataLayer after tracking
+                setTimeout(() => {
+                    console.log('📋 DataLayer after purchase tracking:', window.dataLayer?.slice(-5));
+
+                    // Check if standard purchase event was sent
+                    const purchaseEvents = window.dataLayer?.filter(event => event.event === 'purchase') || [];
+                    console.log('🔍 Purchase events found in dataLayer:', purchaseEvents);
+
+                    if (purchaseEvents.length === 0) {
+                        console.warn('⚠️ No standard purchase events found in dataLayer!');
+                    } else {
+                        console.log('✅ Standard purchase event(s) found:', purchaseEvents.length);
+                    }
+                }, 1000);
+
                 if (gtmSuccess) {
                     console.log('✅ GTM purchase conversion tracked successfully');
+                    console.log('📊 Purchase data sent:', purchaseData);
+                    console.log('👤 Customer data sent:', customerData);
                     // Mark as tracked to prevent duplicates
                     sessionStorage.setItem('purchase_tracked', 'true');
                 } else {
                     console.warn('⚠️ GTM purchase conversion tracking failed');
+                    console.log('📊 Failed purchase data:', purchaseData);
                 }
 
                 // Clean up session storage after successful tracking
