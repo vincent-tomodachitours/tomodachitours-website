@@ -64,21 +64,33 @@ export class EventTrackingService {
             return false;
         }
 
+        // Validate critical purchase data
+        if (!transactionData.value || transactionData.value <= 0) {
+            console.error('GTM GA4 Events: Invalid purchase value:', transactionData.value);
+            return false;
+        }
+
+        const transactionId = transactionData.transactionId || transactionData.transaction_id;
+        if (!transactionId) {
+            console.error('GTM GA4 Events: Transaction ID is required for purchase tracking');
+            return false;
+        }
+
         try {
-            // Prepare items array with proper structure
+            // Prepare items array with proper structure and consistent values
             const items = transactionData.items || [{
                 item_id: tourData.tourId || transactionData.tour_id || 'tour-booking',
                 item_name: tourData.tourName || transactionData.tour_name || 'Tour Booking',
                 item_category: 'tour',
                 quantity: transactionData.quantity || 1,
-                price: transactionData.value
+                price: transactionData.value // Ensure price matches transaction value
             }];
 
             // Create standard GA4 purchase event with proper ecommerce structure
             const purchaseEvent = {
                 event: 'purchase',
                 ecommerce: {
-                    transaction_id: transactionData.transactionId || transactionData.transaction_id,
+                    transaction_id: transactionId, // Use validated transaction ID
                     value: transactionData.value,
                     currency: transactionData.currency || BUSINESS_CONFIG.CURRENCY,
                     items: items

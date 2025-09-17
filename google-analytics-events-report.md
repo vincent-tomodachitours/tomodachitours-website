@@ -8,7 +8,7 @@ This document provides a complete reference of all Google Analytics events imple
 
 ## Core E-commerce Events
 
-### 1. **purchase** (Standard GA4 Event via GTM)
+### 1(DONE). **purchase** (Standard GA4 Event via GTM)
 - **Event Name**: `purchase`
 - **Location**: `customer/src/Pages/Thankyou.tsx`
 - **Trigger**: Thank you page load after successful payment completion

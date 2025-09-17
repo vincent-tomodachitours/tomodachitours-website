@@ -12,18 +12,34 @@ import gtmService from '../services/gtmService'
 const Thankyou: React.FC = () => {
     useEffect(() => {
         const trackPurchaseConversion = async () => {
+            // Get transaction data from sessionStorage (set during payment) - moved outside try block for catch block access
+            const transactionId = sessionStorage.getItem('booking_transaction_id') || `txn_${Date.now()}`;
+
+            // Safely parse booking value with better error handling
+            const bookingValueStr = sessionStorage.getItem('booking_value');
+            let value = 7000; // Default fallback
+            if (bookingValueStr && bookingValueStr !== 'undefined' && bookingValueStr !== 'null') {
+                const parsedValue = parseFloat(bookingValueStr);
+                if (!isNaN(parsedValue) && parsedValue > 0) {
+                    value = parsedValue;
+                }
+            }
+
+            const tourId = sessionStorage.getItem('booking_tour_id') || 'tour-booking';
+            const tourName = sessionStorage.getItem('booking_tour_name') || 'Kyoto Tour';
+            const customerEmail = sessionStorage.getItem('booking_customer_email') || '';
+            const customerPhone = sessionStorage.getItem('booking_customer_phone') || '';
+
             try {
                 console.log('🎯 Starting purchase conversion tracking on thank you page');
 
-                // Get transaction data from sessionStorage (set during payment)
-                const transactionId = sessionStorage.getItem('booking_transaction_id') || `txn_${Date.now()}`;
-                const value = parseFloat(sessionStorage.getItem('booking_value') || '0') || 7000;
-                const tourId = sessionStorage.getItem('booking_tour_id') || 'tour-booking';
-                const tourName = sessionStorage.getItem('booking_tour_name') || 'Kyoto Tour';
-                const customerEmail = sessionStorage.getItem('booking_customer_email') || '';
-                const customerPhone = sessionStorage.getItem('booking_customer_phone') || '';
+                // Validate required data before proceeding
+                if (!transactionId || !value || !tourId) {
+                    console.error('❌ Critical purchase data missing:', { transactionId, value, tourId });
+                    throw new Error('Missing required purchase data');
+                }
 
-                // Prepare transaction data for GTM
+                // Prepare transaction data for GTM with consistent values
                 const purchaseData = {
                     transaction_id: transactionId,
                     transactionId: transactionId, // Support both formats
@@ -31,13 +47,14 @@ const Thankyou: React.FC = () => {
                     currency: 'JPY',
                     tour_id: tourId,
                     tour_name: tourName,
-                    booking_date: sessionStorage.getItem('booking_date'),
+                    booking_date: sessionStorage.getItem('booking_date') || new Date().toISOString().split('T')[0],
                     payment_provider: sessionStorage.getItem('booking_payment_provider') || 'stripe',
+                    quantity: 1, // Add explicit quantity
                     items: [{
                         item_id: tourId,
                         item_name: tourName,
                         item_category: 'tour',
-                        price: value,
+                        price: value, // Use same value as ecommerce.value
                         quantity: 1
                     }]
                 };
@@ -73,6 +90,9 @@ const Thankyou: React.FC = () => {
                     console.log('🚫 Purchase already tracked, skipping duplicate');
                     return;
                 }
+
+                // Set tracking flag immediately to prevent race conditions
+                sessionStorage.setItem('purchase_tracked', 'processing');
 
                 // Enable debug mode for purchase tracking
                 gtmService.enableDebugMode(true);
@@ -114,11 +134,13 @@ const Thankyou: React.FC = () => {
                     console.log('✅ GTM purchase conversion tracked successfully');
                     console.log('📊 Purchase data sent:', purchaseData);
                     console.log('👤 Customer data sent:', customerData);
-                    // Mark as tracked to prevent duplicates
+                    // Mark as successfully tracked
                     sessionStorage.setItem('purchase_tracked', 'true');
                 } else {
                     console.warn('⚠️ GTM purchase conversion tracking failed');
                     console.log('📊 Failed purchase data:', purchaseData);
+                    // Reset tracking flag so it can be retried
+                    sessionStorage.setItem('purchase_tracked', 'failed');
                 }
 
                 // Clean up session storage after successful tracking
@@ -141,6 +163,9 @@ const Thankyou: React.FC = () => {
                             'booking_payment_provider',
                             'booking_date',
                             'booking_time',
+                            'booking_customer_email',
+                            'booking_customer_phone',
+                            'booking_customer_name',
                             'payment_completed',
                             'payment_completion_time',
                             'purchase_tracked'
@@ -159,26 +184,32 @@ const Thankyou: React.FC = () => {
             } catch (error) {
                 console.error('❌ Error in purchase conversion tracking:', error);
 
-                // Fallback: Push a basic purchase event
+                // Reset tracking flag on error so it can be retried
+                sessionStorage.setItem('purchase_tracked', 'error');
+
+                // Fallback: Push a basic purchase event with available data
                 try {
                     window.dataLayer = window.dataLayer || [];
                     window.dataLayer.push({
                         event: 'purchase',
                         ecommerce: {
-                            transaction_id: `fallback_${Date.now()}`,
-                            value: 7000,
+                            transaction_id: transactionId || `fallback_${Date.now()}`,
+                            value: value || 7000,
                             currency: 'JPY',
                             items: [{
-                                item_id: 'tour-booking',
-                                item_name: 'Kyoto Tour Booking',
+                                item_id: tourId || 'tour-booking',
+                                item_name: tourName || 'Kyoto Tour Booking',
                                 item_category: 'tour',
-                                price: 7000,
+                                price: value || 7000,
                                 quantity: 1
                             }]
                         },
+                        tour_id: tourId,
+                        tour_name: tourName,
                         custom_parameters: {
                             conversion_page: 'thank_you',
-                            fallback_tracking: true
+                            fallback_tracking: true,
+                            error_message: error instanceof Error ? error.message : 'Unknown error'
                         }
                     });
                     console.log('🔄 Fallback purchase tracking completed');

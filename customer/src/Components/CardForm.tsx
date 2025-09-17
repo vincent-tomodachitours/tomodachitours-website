@@ -246,6 +246,7 @@ const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, ap
                 sessionStorage.setItem('booking_date', legacyTransactionData.bookingDate || '');
                 sessionStorage.setItem('booking_time', legacyTransactionData.bookingTime || '');
                 sessionStorage.setItem('booking_customer_email', legacyTransactionData.customerEmail || '');
+                sessionStorage.setItem('booking_customer_phone', legacyTransactionData.customerPhone || '');
                 sessionStorage.setItem('booking_customer_name', legacyTransactionData.customerName || '');
             } catch (error) {
                 console.warn('Failed to store transaction data for thank you page:', error);
