@@ -1,4 +1,4 @@
-// Use Supabase Edge Functions built-in serve or latest std versios";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -38,6 +38,8 @@ serve(async (req) => {
             }
         );
     }
+
+
 
     try {
         // Get the raw body and signature
@@ -191,13 +193,32 @@ async function handlePaymentSucceeded(paymentIntent: any) {
         console.log(`Payment succeeded for booking ${bookingId}, payment_intent: ${paymentIntent.id}`);
 
         // Update booking status if it's not already confirmed
+        // First get the current booking to preserve paid_amount
+        const { data: currentBooking } = await supabase
+            .from('bookings')
+            .select('paid_amount')
+            .eq('id', parseInt(bookingId))
+            .single();
+
+        const updateData: any = {
+            status: 'CONFIRMED',
+            stripe_payment_intent_id: paymentIntent.id,
+            payment_provider: 'stripe'
+        };
+
+        // Preserve paid_amount if it exists, otherwise set from payment intent
+        if (currentBooking?.paid_amount) {
+            // Keep existing paid_amount
+            console.log(`Preserving existing paid_amount: ${currentBooking.paid_amount}`);
+        } else {
+            // Set paid_amount from payment intent amount (convert from cents to yen)
+            updateData.paid_amount = paymentIntent.amount;
+            console.log(`Setting paid_amount from payment intent: ${paymentIntent.amount}`);
+        }
+
         const { error } = await supabase
             .from('bookings')
-            .update({
-                status: 'CONFIRMED',
-                stripe_payment_intent_id: paymentIntent.id,
-                payment_provider: 'stripe'
-            })
+            .update(updateData)
             .eq('id', parseInt(bookingId))
             .eq('status', 'PENDING_PAYMENT'); // Only update if still pending
 

@@ -86,6 +86,17 @@ async function getTourName(supabase: any, tourType: string): Promise<{ name: str
 
 async function sendBookingEmails(supabase: any, booking: any) {
   try {
+    // Helper function to escape special characters for Handlebars
+    const escapeHandlebars = (str: string) => {
+      if (!str) return str;
+      return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+
     // Format date and time
     const bookingDate = new Date(booking.booking_date);
     const formattedDate = bookingDate.toLocaleDateString('en-US', {
@@ -97,6 +108,26 @@ async function sendBookingEmails(supabase: any, booking: any) {
 
     // Get proper tour name and meeting point from database
     const { name: tourName, meetingPoint } = await getTourName(supabase, booking.tour_type);
+
+    // Ensure we have a valid paid amount - use paid_amount if available, otherwise calculate from tour pricing
+    let paidAmount = booking.paid_amount;
+
+    if (!paidAmount || paidAmount <= 0) {
+      console.error(`ERROR: Invalid paid_amount for booking ${booking.id}: ${paidAmount}`);
+      console.error('Full booking data:', JSON.stringify(booking, null, 2));
+
+      // Calculate fallback amount from tour pricing (6500 yen per adult/child)
+      const fallbackAmount = 6500 * (booking.adults + (booking.children || 0));
+      const discountedAmount = booking.discount_amount ? fallbackAmount - booking.discount_amount : fallbackAmount;
+
+      console.error(`Using fallback calculation: ${fallbackAmount} - ${booking.discount_amount || 0} = ${discountedAmount}`);
+      paidAmount = Math.max(discountedAmount, 0); // Ensure it's not negative
+
+      // Log this critical issue for investigation
+      console.error(`CRITICAL: Booking ${booking.id} has invalid paid_amount. Using fallback: ${paidAmount} yen`);
+    }
+
+    const totalAmountFormatted = paidAmount.toLocaleString();
 
     // Try SendGrid first, then fallback to simple email if it fails
     let emailSent = false;
@@ -116,7 +147,7 @@ async function sendBookingEmails(supabase: any, booking: any) {
             adults: booking.adults,
             children: booking.children || 0,
             infants: booking.infants || 0,
-            totalAmount: escapeHandlebars((booking.paid_amount || 0).toLocaleString()),
+            totalAmount: escapeHandlebars(totalAmountFormatted),
             meetingPoint: {
               location: escapeHandlebars(meetingPoint.location),
               google_maps_url: meetingPoint.google_maps_url,
@@ -132,17 +163,6 @@ async function sendBookingEmails(supabase: any, booking: any) {
           'contact@tomodachitours.com',
           'yutaka.m@tomodachitours.com'
         ];
-
-        // Helper function to escape special characters for Handlebars
-        const escapeHandlebars = (str: string) => {
-          if (!str) return str;
-          return str.toString()
-            .replace(/&/g, '&amp;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#x27;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-        };
 
         const notificationData = {
           bookingId: booking.id,
@@ -161,7 +181,7 @@ async function sendBookingEmails(supabase: any, booking: any) {
           infants: booking.infants || 0,
           createdDate: escapeHandlebars(now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' })),
           createdTime: escapeHandlebars(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })),
-          totalAmount: escapeHandlebars((booking.paid_amount || 0).toLocaleString()),
+          totalAmount: escapeHandlebars(totalAmountFormatted),
           meetingPoint: {
             location: escapeHandlebars(meetingPoint.location),
             google_maps_url: meetingPoint.google_maps_url, // URLs don't need escaping
@@ -212,7 +232,7 @@ async function sendBookingEmails(supabase: any, booking: any) {
       console.log(`- Tour: ${tourName}`);
       console.log(`- Date: ${formattedDate} at ${booking.booking_time}`);
       console.log(`- Participants: ${booking.adults} adults, ${booking.children || 0} children`);
-      console.log(`- Amount: ¥${(booking.paid_amount || 0).toLocaleString()}`);
+      console.log(`- Amount: ¥${totalAmountFormatted}`);
       console.log('- Meeting Point:', meetingPoint.location);
 
       // Store failed email attempt in database for follow-up
@@ -230,7 +250,7 @@ async function sendBookingEmails(supabase: any, booking: any) {
               tourTime: booking.booking_time,
               adults: booking.adults,
               children: booking.children || 0,
-              totalAmount: (booking.paid_amount || 0).toLocaleString(),
+              totalAmount: totalAmountFormatted,
               meetingPoint
             },
             created_at: new Date().toISOString()
@@ -391,6 +411,8 @@ const handler = async (req: Request): Promise<Response> => {
       updateData.stripe_payment_intent_id = paymentResult.id // Also store in specific Stripe field for future use
     }
 
+    console.log(`Updating booking ${data.bookingId} with paid_amount: ${data.amount}`);
+
     const { error: bookingError } = await supabase
       .from('bookings')
       .update(updateData)
@@ -423,6 +445,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.error('Failed to fetch booking details:', fetchError)
       // Don't throw error as payment was successful
     } else {
+      console.log(`Fetched booking for email - paid_amount: ${booking.paid_amount}, status: ${booking.status}`);
       // Send confirmation emails
       await sendBookingEmails(supabase, booking)
 
