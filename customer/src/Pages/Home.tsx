@@ -131,9 +131,10 @@ interface TourCardProps {
     link: string;
     badge?: string;
     showOriginalPrice: boolean;
+    duration?: string;
 }
 
-const TourCard: React.FC<TourCardProps> = ({ image, imageAlt, title, description, price, originalPrice, link, badge, showOriginalPrice }) => (
+const TourCard: React.FC<TourCardProps> = ({ image, imageAlt, title, description, price, originalPrice, link, badge, showOriginalPrice, duration }) => (
     <Link
         to={link}
         className='group bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full'
@@ -156,29 +157,44 @@ const TourCard: React.FC<TourCardProps> = ({ image, imageAlt, title, description
             )}
         </div>
         <div className='p-6 flex flex-col flex-grow'>
-            <h3 className='text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300 mb-4'>
-                {title}
-            </h3>
-            <p className='text-gray-600 line-clamp-3 mb-6'>
-                {description}
-            </p>
-            <div className='flex items-center justify-between mt-auto'>
-                <div className='flex flex-col'>
-                    {showOriginalPrice && originalPrice && originalPrice > 0 && (
-                        <span className='text-lg text-red-500 line-through mb-1'>
+            <div className='flex-grow'>
+                <h3 className='text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300 mb-4'>
+                    {title}
+                </h3>
+                <p className='text-gray-600 line-clamp-3 mb-4'>
+                    {description}
+                </p>
+
+                {duration && (
+                    <div className='flex items-center text-sm text-gray-600 mb-2'>
+                        <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className='font-medium'>Duration:</span>
+                        <span className='ml-1'>{duration}</span>
+                    </div>
+                )}
+            </div>
+
+            <div className='mt-2'>
+                {showOriginalPrice && originalPrice && originalPrice > 0 && (
+                    <div className='mb-1'>
+                        <span className='text-lg text-red-500 line-through'>
                             ¥ {originalPrice.toLocaleString('en-US')}
                         </span>
-                    )}
+                    </div>
+                )}
+                <div className='flex items-center justify-between'>
                     <span className='text-2xl font-bold text-blue-600'>
                         {price}
                     </span>
+                    <span className='inline-flex items-center text-blue-600 font-semibold group-hover:translate-x-1 transition-transform duration-300'>
+                        Learn More
+                        <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </span>
                 </div>
-                <span className='inline-flex items-center text-blue-600 font-semibold group-hover:translate-x-1 transition-transform duration-300'>
-                    Learn More
-                    <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                </span>
             </div>
         </div>
     </Link>
@@ -302,6 +318,7 @@ const Home: React.FC = () => {
                             originalPrice={tours['night-tour']['original-price']}
                             showOriginalPrice={true}
                             link="/tours/kyoto-fushimi-inari-night-walking-tour"
+                            duration={tours['night-tour']['tour-duration']}
                         />
                         <TourCard
                             image={morningTour}
@@ -313,6 +330,7 @@ const Home: React.FC = () => {
                             showOriginalPrice={true}
                             link="/tours/kyoto-early-bird-english-tour"
                             badge="Best Seller"
+                            duration={tours['morning-tour']['tour-duration']}
                         />
                         <TourCard
                             image={musicTour}
@@ -324,6 +342,7 @@ const Home: React.FC = () => {
                             showOriginalPrice={tours['music-tour']['original-price'] !== tours['music-tour']['tour-price']}
                             link="/tours/kyoto-music-culture-walking-tour"
                             badge="NEW TOUR"
+                            duration={tours['music-tour']['tour-duration']}
                         />
                         <TourCard
                             image={ujiTour}
@@ -334,6 +353,7 @@ const Home: React.FC = () => {
                             originalPrice={tours['uji-tour']['original-price']}
                             showOriginalPrice={false}
                             link="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto"
+                            duration={tours['uji-tour']['tour-duration']}
                         />
                         <TourCard
                             image={gionTour}
@@ -344,6 +364,7 @@ const Home: React.FC = () => {
                             originalPrice={tours['gion-tour']['original-price']}
                             showOriginalPrice={false}
                             link="/tours/kyoto-gion-early-morning-walking-tour"
+                            duration={tours['gion-tour']['tour-duration']}
                         />
                     </div>
                 </div>

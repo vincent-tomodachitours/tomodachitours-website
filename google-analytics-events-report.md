@@ -51,7 +51,7 @@ This document provides a complete reference of all Google Analytics events imple
   - **GTM Configuration**: GTM must be configured to forward `purchase` events to both GA4 and Google Ads
   - Enhanced with debug logging and fallback tracking
 
-### 2. **begin_checkout**
+### 2(DONE). **begin_checkout**
 - **Event Name**: `begin_checkout`
 - **Location**: 
   - `customer/src/Components/TourPages/BaseTourPage.tsx` (Mobile Book Now button)

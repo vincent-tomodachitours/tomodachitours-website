@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// Use Supabase Edge Functions built-in serve or latest std versios";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -72,6 +72,12 @@ serve(async (req) => {
 
         // Process different event types
         switch (event.type) {
+            case 'checkout.session.completed':
+                await handleCheckoutCompleted(event.data.object);
+                break;
+            case 'checkout.session.expired':
+                await handleCheckoutExpired(event.data.object);
+                break;
             case 'payment_intent.succeeded':
                 await handlePaymentSucceeded(event.data.object);
                 break;
@@ -80,6 +86,12 @@ serve(async (req) => {
                 break;
             case 'payment_intent.requires_action':
                 await handlePaymentRequiresAction(event.data.object);
+                break;
+            case 'charge.dispute.created':
+                await handleDisputeCreated(event.data.object);
+                break;
+            case 'refund.created':
+                await handleRefundCreated(event.data.object);
                 break;
             default:
                 console.log(`Unhandled Stripe webhook event type: ${event.type}`);
@@ -249,5 +261,155 @@ async function handlePaymentRequiresAction(paymentIntent: any) {
         // For now, just log it
     } catch (error) {
         console.error('Error handling payment requires action:', error);
+    }
+}
+
+/**
+ * Handle checkout session completed
+ */
+async function handleCheckoutCompleted(session: any) {
+    try {
+        const bookingId = session.metadata?.booking_id;
+        if (!bookingId) {
+            console.error('No booking_id in checkout session metadata');
+            return;
+        }
+
+        console.log(`Checkout completed for booking ${bookingId}, session: ${session.id}`);
+
+        // Update booking status to confirmed
+        const { error } = await supabase
+            .from('bookings')
+            .update({
+                status: 'CONFIRMED',
+                stripe_session_id: session.id,
+                payment_provider: 'stripe'
+            })
+            .eq('id', parseInt(bookingId))
+            .eq('status', 'PENDING_PAYMENT');
+
+        if (error) {
+            console.error('Error updating booking after checkout completion:', error);
+        } else {
+            console.log(`Booking ${bookingId} confirmed via checkout session`);
+        }
+    } catch (error) {
+        console.error('Error handling checkout completed:', error);
+    }
+}
+
+/**
+ * Handle checkout session expired
+ */
+async function handleCheckoutExpired(session: any) {
+    try {
+        const bookingId = session.metadata?.booking_id;
+        if (!bookingId) {
+            console.error('No booking_id in checkout session metadata');
+            return;
+        }
+
+        console.log(`Checkout expired for booking ${bookingId}, session: ${session.id}`);
+
+        // Log the expired session
+        const { error } = await supabase
+            .from('payment_attempts')
+            .insert({
+                booking_id: parseInt(bookingId),
+                provider_attempted: 'stripe',
+                amount: session.amount_total,
+                status: 'expired',
+                error_message: 'Checkout session expired',
+                attempt_order: 1
+            });
+
+        if (error) {
+            console.error('Error logging expired checkout session:', error);
+        }
+    } catch (error) {
+        console.error('Error handling checkout expired:', error);
+    }
+}
+
+/**
+ * Handle dispute created
+ */
+async function handleDisputeCreated(dispute: any) {
+    try {
+        const chargeId = dispute.charge;
+        console.log(`Dispute created for charge ${chargeId}, dispute: ${dispute.id}`);
+
+        // Find booking by charge ID
+        const { data: booking, error: findError } = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('charge_id', chargeId)
+            .single();
+
+        if (findError || !booking) {
+            console.error('Could not find booking for disputed charge:', chargeId);
+            return;
+        }
+
+        // Log the dispute
+        const { error } = await supabase
+            .from('disputes')
+            .insert({
+                booking_id: booking.id,
+                stripe_dispute_id: dispute.id,
+                charge_id: chargeId,
+                amount: dispute.amount,
+                reason: dispute.reason,
+                status: dispute.status,
+                created_at: new Date(dispute.created * 1000).toISOString()
+            });
+
+        if (error) {
+            console.error('Error logging dispute:', error);
+        } else {
+            console.log(`Dispute logged for booking ${booking.id}`);
+        }
+    } catch (error) {
+        console.error('Error handling dispute created:', error);
+    }
+}
+
+/**
+ * Handle refund created
+ */
+async function handleRefundCreated(refund: any) {
+    try {
+        const chargeId = refund.charge;
+        console.log(`Refund created for charge ${chargeId}, refund: ${refund.id}`);
+
+        // Find booking by charge ID or payment intent ID
+        const { data: booking, error: findError } = await supabase
+            .from('bookings')
+            .select('id')
+            .or(`charge_id.eq.${chargeId},stripe_payment_intent_id.eq.${refund.payment_intent}`)
+            .single();
+
+        if (findError || !booking) {
+            console.error('Could not find booking for refunded charge:', chargeId);
+            return;
+        }
+
+        // Update booking status to refunded
+        const { error } = await supabase
+            .from('bookings')
+            .update({
+                status: 'CANCELLED', // Using CANCELLED to match your constraint
+                refund_amount: refund.amount,
+                refund_date: new Date(refund.created * 1000).toISOString()
+            })
+            .eq('id', booking.id);
+
+        if (error) {
+            console.error('Error updating booking after refund:', error);
+        } else {
+            console.log(`Booking ${booking.id} marked as refunded`);
+        }
+    } catch (error) {
+        console.error('Error handling refund created:', error);
     }
 } 

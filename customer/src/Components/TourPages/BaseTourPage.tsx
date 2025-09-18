@@ -231,10 +231,7 @@ const BaseTourPage: React.FC<BaseTourPageProps> = ({
 
     // Use API description if available, otherwise fall back to provided overviewContent
     const finalOverviewContent = tourDescription
-        ? tourDescription.split('✅').map(part => part.trim()).filter(part => part.length > 0).map((part, index) => {
-            // Add back the ✅ symbol for all parts except the first one (which is the intro)
-            return index === 0 ? part : `✅ ${part}`;
-        })
+        ? tourDescription.split('\\n').map(part => part.trim()).filter(part => part.length > 0)
         : overviewContent;
 
     // Use API meeting point if available, otherwise fall back to provided meetingPointData
