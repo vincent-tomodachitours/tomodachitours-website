@@ -251,8 +251,9 @@ const BaseTourPage: React.FC<BaseTourPageProps> = ({
             } else if (typeof apiMeetingPoint === 'object' && apiMeetingPoint !== null) {
                 const meetingPointObj = apiMeetingPoint as any;
                 locationText = meetingPointObj.location || meetingPointObj.name || JSON.stringify(apiMeetingPoint);
-                googleMapsUrl = meetingPointObj.googleMapsUrl || meetingPointObj.google_maps_url || meetingPointData?.googleMapsUrl || "";
-                instructions = meetingPointObj.instructions || meetingPointObj.meeting_instructions || meetingPointData?.instructions || "";
+                googleMapsUrl = meetingPointObj.google_maps_url || meetingPointObj.googleMapsUrl || meetingPointData?.googleMapsUrl || "";
+                // Use additional_info from the database meeting point object as the instructions
+                instructions = meetingPointObj.additional_info || meetingPointObj.instructions || meetingPointObj.meeting_instructions || meetingPointData?.instructions || "";
             }
 
             finalMeetingPointData = {

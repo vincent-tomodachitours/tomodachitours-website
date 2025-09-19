@@ -134,26 +134,29 @@ async function sendBookingEmails(supabase: any, booking: any) {
 
     if (SENDGRID_API_KEY) {
       try {
-        // Send customer confirmation email with escaped data
+        // Send customer confirmation email using the same format as refund emails
         await sgMail.send({
           to: booking.customer_email,
           from: SENDGRID_FROM,
-          templateId: SENDGRID_TEMPLATES.BOOKING_CONFIRMATION,
-          dynamicTemplateData: {
-            bookingId: booking.id,
-            tourName: escapeHandlebars(tourName),
-            tourDate: escapeHandlebars(formattedDate),
-            tourTime: escapeHandlebars(booking.booking_time),
-            adults: booking.adults,
-            children: booking.children || 0,
-            infants: booking.infants || 0,
-            totalAmount: escapeHandlebars(totalAmountFormatted),
-            meetingPoint: {
-              location: escapeHandlebars(meetingPoint.location),
-              google_maps_url: meetingPoint.google_maps_url,
-              additional_info: escapeHandlebars(meetingPoint.additional_info || '')
+          template_id: SENDGRID_TEMPLATES.BOOKING_CONFIRMATION,
+          personalizations: [{
+            to: [{ email: booking.customer_email }],
+            dynamic_template_data: {
+              bookingId: booking.id.toString(),
+              tourName: escapeHandlebars(tourName),
+              tourDate: escapeHandlebars(formattedDate),
+              tourTime: escapeHandlebars(booking.booking_time),
+              adults: booking.adults,
+              children: booking.children || 0,
+              infants: booking.infants || 0,
+              totalAmount: `¥${totalAmountFormatted}`,
+              meetingPoint: {
+                location: escapeHandlebars(meetingPoint.location),
+                google_maps_url: meetingPoint.google_maps_url,
+                additional_info: escapeHandlebars(meetingPoint.additional_info || '')
+              }
             }
-          }
+          }]
         });
 
         // Send company notification emails to all three addresses
@@ -165,7 +168,7 @@ async function sendBookingEmails(supabase: any, booking: any) {
         ];
 
         const notificationData = {
-          bookingId: booking.id,
+          bookingId: booking.id.toString(),
           productBookingRef: '',
           extBookingRef: '',
           productId: booking.tour_type,
@@ -181,7 +184,6 @@ async function sendBookingEmails(supabase: any, booking: any) {
           infants: booking.infants || 0,
           createdDate: escapeHandlebars(now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' })),
           createdTime: escapeHandlebars(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })),
-          totalAmount: escapeHandlebars(totalAmountFormatted),
           meetingPoint: {
             location: escapeHandlebars(meetingPoint.location),
             google_maps_url: meetingPoint.google_maps_url, // URLs don't need escaping
@@ -189,23 +191,27 @@ async function sendBookingEmails(supabase: any, booking: any) {
           }
         };
 
-        // Send notification to each company email with detailed error handling
-        for (const email of companyEmails) {
-          try {
-            console.log(`Attempting to send notification to: ${email}`);
-            await sgMail.send({
-              to: email,
-              from: SENDGRID_FROM,
-              templateId: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
-              dynamicTemplateData: notificationData
-            });
-            console.log(`✅ Successfully sent notification to: ${email}`);
-          } catch (emailError) {
-            console.error(`❌ Failed to send notification to ${email}:`, emailError);
-            if (emailError.response) {
-              console.error(`Response body for ${email}:`, emailError.response.body);
-            }
-            // Continue with other emails even if one fails
+        // Send company notification emails using the same format as refund emails
+        const personalizations = companyEmails.map(email => ({
+          to: [{ email: email }],
+          dynamic_template_data: {
+            ...notificationData,
+            totalAmount: `¥${totalAmountFormatted}`
+          }
+        }));
+
+        try {
+          console.log(`Attempting to send notifications to company emails`);
+          await sgMail.send({
+            from: SENDGRID_FROM,
+            template_id: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
+            personalizations: personalizations
+          });
+          console.log(`✅ Successfully sent notifications to all company emails`);
+        } catch (emailError) {
+          console.error(`❌ Failed to send company notifications:`, emailError);
+          if (emailError.response) {
+            console.error(`Response body:`, emailError.response.body);
           }
         }
 
@@ -250,7 +256,7 @@ async function sendBookingEmails(supabase: any, booking: any) {
               tourTime: booking.booking_time,
               adults: booking.adults,
               children: booking.children || 0,
-              totalAmount: totalAmountFormatted,
+              totalAmount: `¥${totalAmountFormatted}`,
               meetingPoint
             },
             created_at: new Date().toISOString()
