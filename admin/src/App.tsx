@@ -12,6 +12,7 @@ import EmployeeList from './pages/employees/EmployeeList';
 import { ShiftCalendar } from './pages/schedule';
 import AnalyticsDashboard from './pages/analytics/AnalyticsDashboard';
 import { TourList } from './pages/tours';
+import { TimesheetDashboard, TimesheetTable } from './pages/timesheet';
 
 // Conditional Bookings component based on user role
 const BookingsPage: React.FC = () => {
@@ -161,6 +162,36 @@ function App() {
                                             <div className="py-6">
                                                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                                                     <AnalyticsDashboard />
+                                                </div>
+                                            </div>
+                                        </AdminLayout>
+                                    </ProtectedRoute>
+                                }
+                            />
+
+                            <Route
+                                path="/timesheet"
+                                element={
+                                    <ProtectedRoute>
+                                        <AdminLayout>
+                                            <div className="py-6">
+                                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                                    <TimesheetDashboard />
+                                                </div>
+                                            </div>
+                                        </AdminLayout>
+                                    </ProtectedRoute>
+                                }
+                            />
+
+                            <Route
+                                path="/timesheet/manage"
+                                element={
+                                    <ProtectedRoute requiredPermission="manage_employees">
+                                        <AdminLayout>
+                                            <div className="py-6">
+                                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                                    <TimesheetTable />
                                                 </div>
                                             </div>
                                         </AdminLayout>

@@ -98,6 +98,8 @@ export type Permission =
     | 'manage_employees'
     | 'view_analytics'
     | 'manage_own_availability'
+    | 'view_timesheets'
+    | 'manage_timesheets'
     | 'system_admin';
 
 // Auth context types
@@ -206,5 +208,51 @@ export interface Tour {
 export interface TourFilters {
     status?: ('active' | 'inactive' | 'draft')[];
     tourType?: TourType[];
+    searchQuery?: string;
+}
+
+// Timesheet interfaces
+export interface Timesheet {
+    id: string;
+    employee_id: string;
+    clock_in: string;
+    todo?: string;
+    clock_out?: string;
+    note?: string;
+    hours_worked?: number;
+    created_at: string;
+    updated_at: string;
+    employee?: Employee;
+}
+
+export interface TimesheetFormData {
+    todo?: string;
+    note?: string;
+}
+
+export interface TimesheetEntry {
+    date: string;
+    clock_in: string;
+    clock_out?: string;
+    hours_worked?: number;
+    todo?: string;
+    note?: string;
+}
+
+export interface PayrollSummary {
+    employee_id: string;
+    employee_name: string;
+    month: string;
+    year: number;
+    total_hours: number;
+    total_shifts: number;
+    average_shift_length: number;
+    shifts: TimesheetEntry[];
+}
+
+export interface TimesheetFilters {
+    dateRange?: { start: Date; end: Date };
+    employeeId?: string;
+    status?: 'active' | 'completed' | 'all';
     searchQuery?: string;
 } 

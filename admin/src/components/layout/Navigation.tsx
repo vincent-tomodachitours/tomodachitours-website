@@ -9,7 +9,8 @@ import {
     ChartBarIcon,
     Cog6ToothIcon,
     ArrowRightOnRectangleIcon,
-    CheckCircleIcon
+    CheckCircleIcon,
+    DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { clsx } from 'clsx';
 
@@ -42,6 +43,12 @@ const Navigation: React.FC = () => {
             permission: 'manage_own_availability' as const,
         },
         {
+            name: 'Timesheet',
+            href: '/timesheet',
+            icon: DocumentTextIcon,
+            permission: null, // Available to all authenticated users
+        },
+        {
             name: 'Employees',
             href: '/employees',
             icon: UsersIcon,
@@ -51,6 +58,12 @@ const Navigation: React.FC = () => {
             name: 'Schedule',
             href: '/schedule',
             icon: ClockIcon,
+            permission: 'manage_employees' as const,
+        },
+        {
+            name: 'Timesheet Management',
+            href: '/timesheet/manage',
+            icon: DocumentTextIcon,
             permission: 'manage_employees' as const,
         },
         {
@@ -92,7 +105,8 @@ const Navigation: React.FC = () => {
                         </div>
                         <nav className="hidden md:ml-8 md:flex md:space-x-8">
                             {filteredNavigation.map((item) => {
-                                const isActive = location.pathname === item.href;
+                                const isActive = location.pathname === item.href ||
+                                    (item.href === '/timesheet' && location.pathname.startsWith('/timesheet'));
                                 return (
                                     <Link
                                         key={item.name}
@@ -135,7 +149,8 @@ const Navigation: React.FC = () => {
             <div className="md:hidden">
                 <div className="pt-2 pb-3 space-y-1">
                     {filteredNavigation.map((item) => {
-                        const isActive = location.pathname === item.href;
+                        const isActive = location.pathname === item.href ||
+                            (item.href === '/timesheet' && location.pathname.startsWith('/timesheet'));
                         return (
                             <Link
                                 key={item.name}
