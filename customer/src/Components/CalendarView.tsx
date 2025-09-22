@@ -67,14 +67,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             min={0}
                             max={maxSlots}
                             title={"Children"}
-                            ageRange={tourId === 'music-tour' ? "6 - 17" : "3 - 17"}
+                            ageRange={tourId === 'music-tour' || tourId === 'music-performance' ? "6 - 17" : "3 - 17"}
                             price={price}
                             participants={participants}
                             value={childParticipants}
                             onChange={handleChildParticipantsChange}
                         />
                     )}
-                    {tourId !== 'music-tour' && tourId !== 'uji-tour' && (
+                    {tourId !== 'music-tour' && tourId !== 'music-performance' && tourId !== 'uji-tour' && (
                         <PeopleSelector
                             min={0}
                             max={maxSlots}

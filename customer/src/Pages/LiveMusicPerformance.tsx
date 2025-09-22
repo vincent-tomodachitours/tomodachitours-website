@@ -16,13 +16,13 @@ import photo7 from '../IMG/Music-Tour/7.webp'
 
 const LiveMusicPerformance: React.FC = () => {
     const images = [
-        { src: photo1 },
-        { src: photo2 },
-        { src: photo3 },
-        { src: photo4 },
         { src: photo5 },
-        { src: photo6 },
+        { src: photo2 },
         { src: photo7 },
+        { src: photo1 },
+        { src: photo4 },
+        { src: photo6 },
+        { src: photo3 },
     ];
 
     // Overview content will now come from the API (tour description)
@@ -34,13 +34,12 @@ const LiveMusicPerformance: React.FC = () => {
     const tourDetails = {
         included: [
             "English speaking guide",
-            "Live Music Performance Experience",
-            "Traditional Instrument Demonstration",
-            "Cultural Venue Access"
+            "Traditional Music Performance",
+            "Japanese Tea Ceremony Experience",
+            "Tofukuji Entrance Fare (1000 yen)"
         ],
         notIncluded: [
-            "Food and Beverages",
-            "Personal expenses"
+            "Food and Beverages"
         ],
         accessibility: [
             "Not wheelchair accessible",
@@ -50,15 +49,14 @@ const LiveMusicPerformance: React.FC = () => {
     };
 
     const itineraryStops = [
-        { title: "Traditional Music Venue", duration: "1.5 hours", description: "Visit an authentic venue showcasing traditional Japanese musical performances" },
-        { title: "Live Performance Experience", duration: "1 hour", description: "Enjoy an intimate live music performance featuring local artists" },
-        { title: "Cultural Music Walk", duration: "1.5 hours", description: "Explore Kyoto's music districts and learn about the city's musical heritage" }
+        { title: "Live Performance", duration: "1 hour", description: "Enjoy an intimate live music performance featuring local artists" }
     ];
 
+    // Meeting point data will be fetched from the database via BaseTourPage
     const meetingPointData = {
-        location: "Kyoto Station Central Exit",
-        googleMapsUrl: "https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9",
-        instructions: "Meet near the central information desk inside Kyoto Station."
+        location: "Kyoto Station Central Exit", // Fallback only
+        googleMapsUrl: "https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9", // Fallback only
+        instructions: "Meet near the central information desk inside Kyoto Station." // Fallback only
     };
 
     const SEOComponent = (
