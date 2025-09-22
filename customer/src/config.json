@@ -80,5 +80,17 @@
     ],
     "max-participants": 8,
     "min-participants": 1
+  },
+  "music-performance": {
+    "tour-title": "Kyoto Live Music Performance Experience",
+    "tour-description": "Experience the vibrant live music scene of Kyoto on this immersive cultural journey. Discover intimate venues, traditional performances, and the modern music culture that thrives in Japan's ancient capital.",
+    "tour-price": 26600,
+    "tour-duration": "4 hours",
+    "reviews": 0,
+    "time-slots": [
+      "18:00"
+    ],
+    "max-participants": 12,
+    "min-participants": 1
   }
 }

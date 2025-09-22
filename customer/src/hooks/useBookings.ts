@@ -22,12 +22,14 @@ export const useBookings = (sheetId: string, availableTimes: string[]): Bookings
             'uji-walking-tour': 'UJI_TOUR',
             'gion-tour': 'GION_TOUR',
             'music-tour': 'MUSIC_TOUR',
+            'music-performance': 'MUSIC_PERFORMANCE',
             // Keep backwards compatibility
             'Night tour': 'NIGHT_TOUR',
             'Morning tour': 'MORNING_TOUR',
             'Uji tour': 'UJI_TOUR',
             'Gion tour': 'GION_TOUR',
-            'Music tour': 'MUSIC_TOUR'
+            'Music tour': 'MUSIC_TOUR',
+            'Music performance': 'MUSIC_PERFORMANCE'
         };
         const tourType = tourTypeMap[sheetId];
 

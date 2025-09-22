@@ -66,6 +66,7 @@ function generatePageTitle(pathname) {
         '/': 'Home - Tomodachi Tours',
         '/tours/kyoto-fushimi-inari-night-walking-tour': 'Fushimi Inari Night Tour - Tomodachi Tours',
         '/tours/kyoto-music-culture-walking-tour': 'Music Culture Tour - Tomodachi Tours',
+        '/tours/kyoto-live-music-performance': 'Live Music Performance - Tomodachi Tours',
         '/tours/kyoto-early-bird-english-tour': 'Early Bird Morning Tour - Tomodachi Tours',
         '/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto': 'Uji Matcha Tour - Tomodachi Tours',
         '/tours/uji-walking-tour': 'Uji Walking Tour - Tomodachi Tours',

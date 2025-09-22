@@ -91,6 +91,12 @@ export const seoData: SeoData = {
         keywords: "Kyoto music tour, traditional Japanese music, cultural tour Kyoto, music walking tour, Kyoto entertainment, Japanese music culture, English guide Kyoto, cultural experience Kyoto"
     },
 
+    musicPerformance: {
+        title: "Kyoto Live Music Performance | Intimate Venues & Cultural Experience | Tomodachi Tours",
+        description: "Experience Kyoto's vibrant live music scene with intimate performances and cultural venues. Discover traditional and modern music in Japan's ancient capital with English guide.",
+        keywords: "Kyoto live music performance, live performance Kyoto, music venues Kyoto, cultural music experience, Japanese live music, intimate music venues, English guide Kyoto, Kyoto entertainment"
+    },
+
     tours: {
         title: "All Kyoto Walking Tours | Small Groups | English Guides | Avoid Crowds | Tomodachi Tours",
         description: "Browse all our authentic Kyoto walking tours. Fushimi Inari night tours, Arashiyama bamboo grove, Gion geisha district, Uji matcha experiences. Small groups, English guides.",

@@ -34,7 +34,8 @@ export type TourType =
     | 'UJI_TOUR'
     | 'UJI_WALKING_TOUR'
     | 'GION_TOUR'
-    | 'MUSIC_TOUR';
+    | 'MUSIC_TOUR'
+    | 'MUSIC_PERFORMANCE';
 
 export type TourConfigKey =
     | 'night-tour'
@@ -42,7 +43,8 @@ export type TourConfigKey =
     | 'uji-tour'
     | 'uji-walking-tour'
     | 'gion-tour'
-    | 'music-tour';
+    | 'music-tour'
+    | 'music-performance';
 
 export interface TourAvailability {
     time: string;

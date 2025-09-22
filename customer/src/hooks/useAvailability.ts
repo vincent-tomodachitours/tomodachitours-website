@@ -35,7 +35,8 @@ export const useAvailability = (
             'uji-tour': 'UJI_TOUR',
             'gion-tour': 'GION_TOUR',
             'uji-walking-tour': 'UJI_TOUR', // Walking tour uses same availability as main Uji tour
-            'music-tour': 'MUSIC_TOUR'
+            'music-tour': 'MUSIC_TOUR',
+            'music-performance': 'MUSIC_PERFORMANCE'
         };
 
         // Convert to database format first
@@ -54,15 +55,21 @@ export const useAvailability = (
      */
     const getDatabaseAvailabilityForMusicTour = useCallback(async (dateStr: string): Promise<HookAvailabilityData | null> => {
         try {
+            // Determine which tour type to query based on sheetId
+            let tourType = 'MUSIC_TOUR';
+            if (sheetId === 'music-performance' || sheetId === 'MUSIC_PERFORMANCE') {
+                tourType = 'MUSIC_PERFORMANCE';
+            }
+
             // Get tour data from database
             const { data: tour, error: tourError } = await supabase
                 .from('tours')
                 .select('time_slots, max_participants')
-                .eq('type', 'MUSIC_TOUR')
+                .eq('type', tourType)
                 .single();
 
             if (tourError || !tour) {
-                console.warn('Could not fetch music tour data:', tourError);
+                console.warn(`Could not fetch ${tourType} tour data:`, tourError);
                 return null;
             }
 
@@ -91,7 +98,7 @@ export const useAvailability = (
             console.error('Error fetching database availability for music tour:', error);
             return null;
         }
-    }, []);
+    }, [sheetId]);
 
     /**
      * Find the next available date for the tour
@@ -110,8 +117,8 @@ export const useAvailability = (
             const dateStr = currentDate.toLocaleDateString("en-CA");
 
             try {
-                // Check if this is the music tour - use database availability
-                if (sheetId === 'music-tour' || sheetId === 'MUSIC_TOUR') {
+                // Check if this is a music tour - use database availability
+                if (sheetId === 'music-tour' || sheetId === 'MUSIC_TOUR' || sheetId === 'music-performance' || sheetId === 'MUSIC_PERFORMANCE') {
                     const dbAvailability = await getDatabaseAvailabilityForMusicTour(dateStr);
                     if (dbAvailability && dbAvailability.hasAvailability) {
                         return new Date(currentDate);
@@ -170,8 +177,8 @@ export const useAvailability = (
                     try {
                         const dateStr = date.toLocaleDateString("en-CA");
 
-                        // Check if this is the music tour - use database availability
-                        if (sheetId === 'music-tour' || sheetId === 'MUSIC_TOUR') {
+                        // Check if this is a music tour - use database availability
+                        if (sheetId === 'music-tour' || sheetId === 'MUSIC_TOUR' || sheetId === 'music-performance' || sheetId === 'MUSIC_PERFORMANCE') {
                             const dbAvailability = await getDatabaseAvailabilityForMusicTour(dateStr);
                             if (dbAvailability) {
                                 return dbAvailability;
