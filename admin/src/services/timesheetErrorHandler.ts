@@ -4,7 +4,7 @@
  */
 
 import { QueryClient } from '@tanstack/react-query';
-import { getUserFriendlyErrorMessage, shouldRetryOperation } from '../utils/timesheetValidation';
+import { getUserFriendlyErrorMessage } from '../utils/timesheetValidation';
 
 export interface ErrorContext {
     operation: 'clock_in' | 'clock_out' | 'fetch_timesheet' | 'sync_data';

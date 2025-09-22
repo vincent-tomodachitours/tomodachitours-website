@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { TimesheetService, TimesheetRealtimeManager } from '../../services/timesheetService';
 import { EmployeeService } from '../../services/employeeService';
-import { Timesheet, TimesheetFilters, Employee } from '../../types';
+import { Timesheet, TimesheetFilters } from '../../types';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';

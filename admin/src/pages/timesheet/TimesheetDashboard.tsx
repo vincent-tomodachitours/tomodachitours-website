@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClockIcon, CalendarDaysIcon, ChartBarIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, CalendarDaysIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import { TimesheetService, TimesheetRealtimeManager } from '../../services/timesheetService';
 import { ClockInOutWidget } from '../../components/timesheet/ClockInOutWidget';
@@ -9,13 +9,12 @@ import { Timesheet } from '../../types';
 export const TimesheetDashboard: React.FC = () => {
     const { employee } = useAdminAuth();
     const queryClient = useQueryClient();
-    const [isClockInOutActive, setIsClockInOutActive] = useState(false);
     const subscriptionRef = useRef<any>(null);
     const [connectionState, setConnectionState] = useState<'connected' | 'disconnected' | 'reconnecting'>('connected');
-    const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+    const [, setLastUpdateTime] = useState<Date>(new Date());
 
     // Get recent timesheet entries
-    const { data: recentTimesheets, isLoading: isLoadingRecent, error: recentError, refetch: refetchRecent } = useQuery({
+    const { data: recentTimesheets, isLoading: isLoadingRecent, error: recentError } = useQuery({
         queryKey: ['recentTimesheets', employee?.id],
         queryFn: () => employee ? TimesheetService.getRecentTimesheets(employee.id, 10) : [],
         enabled: !!employee?.id,
@@ -25,7 +24,7 @@ export const TimesheetDashboard: React.FC = () => {
     });
 
     // Get timesheet statistics
-    const { data: stats, isLoading: isLoadingStats, refetch: refetchStats } = useQuery({
+    const { data: stats, isLoading: isLoadingStats } = useQuery({
         queryKey: ['timesheetStats'],
         queryFn: () => TimesheetService.getTimesheetStats(),
         staleTime: 60000, // Consider data stale after 1 minute
@@ -94,8 +93,7 @@ export const TimesheetDashboard: React.FC = () => {
     }, [recentError]);
 
     // Handle clock in/out status changes
-    const handleStatusChange = (isActive: boolean) => {
-        setIsClockInOutActive(isActive);
+    const handleStatusChange = () => {
         // Additional logic can be added here if needed
     };
 

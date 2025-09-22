@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Timesheet, TimesheetFormData, TimesheetFilters, PayrollSummary, TimesheetEntry, Employee } from '../types';
+import { Timesheet, TimesheetFilters, PayrollSummary, TimesheetEntry, Employee } from '../types';
 
 // Real-time subscription management
 export class TimesheetRealtimeManager {
@@ -133,7 +133,7 @@ export class TimesheetService {
     static async clockIn(employeeId: string, todo?: string): Promise<Timesheet> {
         try {
             // Use the enhanced safe_clock_in database function
-            const { data, error } = await supabase
+            const { data: timesheetId, error } = await supabase
                 .rpc('safe_clock_in', {
                     p_employee_id: employeeId,
                     p_todo: todo || undefined
@@ -151,7 +151,7 @@ export class TimesheetService {
                     *,
                     employee:employees(*)
                 `)
-                .eq('id', data)
+                .eq('id', timesheetId)
                 .single();
 
             if (fetchError) {
@@ -190,7 +190,7 @@ export class TimesheetService {
     static async clockOut(timesheetId: string, note?: string): Promise<Timesheet> {
         try {
             // Use the enhanced safe_clock_out database function
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .rpc('safe_clock_out', {
                     p_timesheet_id: timesheetId,
                     p_note: note || undefined

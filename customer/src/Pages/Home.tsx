@@ -24,6 +24,7 @@ import morningTour from "../IMG/Morning-Tour/IMG_7260 2.webp"
 import ujiTour from "../IMG/Uji-Tour/icecream.webp"
 import gionTour from "../IMG/Gion-Tour/geisha.webp"
 import musicTour from "../IMG/Music-Tour/1.webp"
+import musicPerformance from "../IMG/Music-Tour/5.webp"
 
 interface LoadingOrErrorStateProps {
     isLoading: boolean;
@@ -146,7 +147,7 @@ const TourCard: React.FC<TourCardProps> = ({ image, imageAlt, title, description
                 className='w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110'
             />
             {badge && (
-                <div className='absolute top-4 left-4 z-10'>
+                <div className='absolute top-4 right-4 z-10'>
                     <span className={`px-3 py-1.5 rounded-full text-base font-bold shadow-lg ${badge === 'NEW TOUR'
                         ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
                         : 'bg-white text-emerald-700'
@@ -343,6 +344,18 @@ const Home: React.FC = () => {
                             link="/tours/kyoto-music-culture-walking-tour"
                             badge="NEW TOUR"
                             duration={tours['music-tour']['tour-duration']}
+                        />
+                        <TourCard
+                            image={musicPerformance}
+                            imageAlt="Live music performance experience in Kyoto"
+                            title={tours['music-performance']['tour-title']}
+                            description={tours['music-performance']['tour-description']}
+                            price={`¥ ${tours['music-performance']['tour-price'].toLocaleString('en-US')}`}
+                            originalPrice={tours['music-performance']['original-price']}
+                            showOriginalPrice={tours['music-performance']['original-price'] !== tours['music-performance']['tour-price']}
+                            link="/tours/kyoto-live-music-performance"
+                            badge="NEW TOUR"
+                            duration={tours['music-performance']['tour-duration']}
                         />
                         <TourCard
                             image={ujiTour}

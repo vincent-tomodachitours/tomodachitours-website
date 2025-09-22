@@ -23,7 +23,7 @@ const TourHeader = ({
                         {customMessage ? (
                             <div className='flex items-center justify-between gap-2'>
                                 <div className='flex items-center gap-2'>
-                                    <div className='bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-sm font-bold'>
+                                    <div className='bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-sm font-bold text-center'>
                                         NEW TOUR
                                     </div>
                                     <span className='text-gray-700 font-medium'>{customMessage}</span>
