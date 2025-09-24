@@ -34,12 +34,11 @@ const LiveMusicPerformance: React.FC = () => {
     const tourDetails = {
         included: [
             "English speaking guide",
-            "Traditional Music Performance",
-            "Japanese Tea Ceremony Experience",
-            "Tofukuji Entrance Fare (1000 yen)"
+            "Traditional Music Performance"
         ],
         notIncluded: [
-            "Food and Beverages"
+            "Food and Beverages",
+            "Tofukuji Entrance Fare (1000 yen)"
         ],
         accessibility: [
             "Not wheelchair accessible",

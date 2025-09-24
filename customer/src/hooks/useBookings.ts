@@ -12,14 +12,15 @@ export const useBookings = (sheetId: string, availableTimes: string[]): Bookings
             'NIGHT_TOUR': 'NIGHT_TOUR',
             'MORNING_TOUR': 'MORNING_TOUR',
             'UJI_TOUR': 'UJI_TOUR',
-            'UJI_WALKING_TOUR': 'UJI_TOUR', // Use same availability as UJI_TOUR
+            'UJI_WALKING_TOUR': 'UJI_WALKING_TOUR',
             'GION_TOUR': 'GION_TOUR',
             'MUSIC_TOUR': 'MUSIC_TOUR',
+            'MUSIC_PERFORMANCE': 'MUSIC_PERFORMANCE',
             // Hyphenated format (used by tour pages)
             'night-tour': 'NIGHT_TOUR',
             'morning-tour': 'MORNING_TOUR',
             'uji-tour': 'UJI_TOUR',
-            'uji-walking-tour': 'UJI_TOUR',
+            'uji-walking-tour': 'UJI_WALKING_TOUR',
             'gion-tour': 'GION_TOUR',
             'music-tour': 'MUSIC_TOUR',
             'music-performance': 'MUSIC_PERFORMANCE',

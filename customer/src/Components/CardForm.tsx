@@ -48,7 +48,9 @@ const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, ap
                     'morning-tour': 'MORNING_TOUR',
                     'uji-tour': 'UJI_TOUR',
                     'uji-walking-tour': 'UJI_WALKING_TOUR',
-                    'gion-tour': 'GION_TOUR'
+                    'gion-tour': 'GION_TOUR',
+                    'music-tour': 'MUSIC_TOUR',
+                    'music-performance': 'MUSIC_PERFORMANCE'
                 };
                 return typeMap[sheetId] || sheetId.toUpperCase().replace('-', '_');
             };
