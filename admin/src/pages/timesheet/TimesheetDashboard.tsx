@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClockIcon, CalendarDaysIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { ClockIcon, CalendarDaysIcon, ChartBarIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import { TimesheetService, TimesheetRealtimeManager } from '../../services/timesheetService';
 import { ClockInOutWidget } from '../../components/timesheet/ClockInOutWidget';
@@ -12,6 +12,18 @@ export const TimesheetDashboard: React.FC = () => {
     const subscriptionRef = useRef<any>(null);
     const [connectionState, setConnectionState] = useState<'connected' | 'disconnected' | 'reconnecting'>('connected');
     const [, setLastUpdateTime] = useState<Date>(new Date());
+    const [editingTimesheet, setEditingTimesheet] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState<{
+        clock_in: string;
+        clock_out: string;
+        todo: string;
+        note: string;
+    }>({
+        clock_in: '',
+        clock_out: '',
+        todo: '',
+        note: ''
+    });
 
     // Get recent timesheet entries
     const { data: recentTimesheets, isLoading: isLoadingRecent, error: recentError } = useQuery({
@@ -30,6 +42,21 @@ export const TimesheetDashboard: React.FC = () => {
         staleTime: 60000, // Consider data stale after 1 minute
         refetchInterval: connectionState === 'connected' ? 300000 : 60000, // Adjust based on connection
         refetchIntervalInBackground: false
+    });
+
+    // Mutation for updating timesheet entries
+    const updateTimesheetMutation = useMutation({
+        mutationFn: ({ id, updates }: { id: string; updates: Partial<Timesheet> }) =>
+            TimesheetService.updateTimesheet(id, updates),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['recentTimesheets', employee?.id] });
+            queryClient.invalidateQueries({ queryKey: ['timesheetStats'] });
+            setEditingTimesheet(null);
+        },
+        onError: (error) => {
+            console.error('Failed to update timesheet:', error);
+            alert('Failed to update timesheet entry. Please try again.');
+        }
     });
 
     // Handle query success states
@@ -145,6 +172,57 @@ export const TimesheetDashboard: React.FC = () => {
                 </span>
             );
         }
+    };
+
+    // Start editing a timesheet entry
+    const startEditing = (timesheet: Timesheet) => {
+        setEditingTimesheet(timesheet.id);
+        setEditForm({
+            clock_in: formatDateTimeForInput(timesheet.clock_in),
+            clock_out: timesheet.clock_out ? formatDateTimeForInput(timesheet.clock_out) : '',
+            todo: timesheet.todo || '',
+            note: timesheet.note || ''
+        });
+    };
+
+    // Cancel editing
+    const cancelEditing = () => {
+        setEditingTimesheet(null);
+        setEditForm({
+            clock_in: '',
+            clock_out: '',
+            todo: '',
+            note: ''
+        });
+    };
+
+    // Save timesheet changes
+    const saveTimesheet = (timesheetId: string) => {
+        const updates: Partial<Timesheet> = {
+            clock_in: new Date(editForm.clock_in).toISOString(),
+            todo: editForm.todo || undefined,
+            note: editForm.note || undefined
+        };
+
+        if (editForm.clock_out) {
+            updates.clock_out = new Date(editForm.clock_out).toISOString();
+        }
+
+        updateTimesheetMutation.mutate({ id: timesheetId, updates });
+    };
+
+    // Format datetime for input field
+    const formatDateTimeForInput = (dateString: string): string => {
+        const date = new Date(dateString);
+        // Get local timezone offset and adjust the date
+        const timezoneOffset = date.getTimezoneOffset() * 60000; // offset in milliseconds
+        const localDate = new Date(date.getTime() - timezoneOffset);
+        return localDate.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm format
+    };
+
+    // Check if user can edit this timesheet (only their own completed entries)
+    const canEditTimesheet = (timesheet: Timesheet): boolean => {
+        return timesheet.employee_id === employee?.id && !!timesheet.clock_out;
     };
 
     if (!employee) {
@@ -307,49 +385,154 @@ export const TimesheetDashboard: React.FC = () => {
                                     </p>
                                 </div>
                             ) : (
-                                <div className="overflow-hidden">
+                                <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Date
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '160px' }}>
                                                     Clock In
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '160px' }}>
                                                     Clock Out
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Duration
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Status
+                                                </th>
+                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '80px' }}>
+                                                    Actions
                                                 </th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {recentTimesheets.map((timesheet) => (
                                                 <tr key={timesheet.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {formatDate(timesheet.clock_in)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {formatTime(timesheet.clock_in)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {timesheet.clock_out ? formatTime(timesheet.clock_out) : '-'}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {timesheet.hours_worked ? formatDuration(timesheet.hours_worked) : '-'}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {getStatusBadge(timesheet)}
-                                                    </td>
+                                                    {editingTimesheet === timesheet.id ? (
+                                                        // Edit mode
+                                                        <>
+                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                {formatDate(timesheet.clock_in)}
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap">
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    value={editForm.clock_in}
+                                                                    onChange={(e) => setEditForm(prev => ({ ...prev, clock_in: e.target.value }))}
+                                                                    className="w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                                    style={{ minWidth: '160px' }}
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap">
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    value={editForm.clock_out}
+                                                                    onChange={(e) => setEditForm(prev => ({ ...prev, clock_out: e.target.value }))}
+                                                                    className="w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                                    style={{ minWidth: '160px' }}
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                {timesheet.hours_worked ? formatDuration(timesheet.hours_worked) : '-'}
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap">
+                                                                {getStatusBadge(timesheet)}
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
+                                                                <div className="flex space-x-1 justify-center">
+                                                                    <button
+                                                                        onClick={() => saveTimesheet(timesheet.id)}
+                                                                        disabled={updateTimesheetMutation.isPending}
+                                                                        className="p-1 text-green-600 hover:text-green-900 disabled:opacity-50 hover:bg-green-50 rounded"
+                                                                        title="Save changes"
+                                                                    >
+                                                                        <CheckIcon className="h-4 w-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={cancelEditing}
+                                                                        disabled={updateTimesheetMutation.isPending}
+                                                                        className="p-1 text-red-600 hover:text-red-900 disabled:opacity-50 hover:bg-red-50 rounded"
+                                                                        title="Cancel editing"
+                                                                    >
+                                                                        <XMarkIcon className="h-4 w-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </>
+                                                    ) : (
+                                                        // View mode
+                                                        <>
+                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                {formatDate(timesheet.clock_in)}
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                {formatTime(timesheet.clock_in)}
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                {timesheet.clock_out ? formatTime(timesheet.clock_out) : '-'}
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                {timesheet.hours_worked ? formatDuration(timesheet.hours_worked) : '-'}
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap">
+                                                                {getStatusBadge(timesheet)}
+                                                            </td>
+                                                            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-center">
+                                                                {canEditTimesheet(timesheet) ? (
+                                                                    <button
+                                                                        onClick={() => startEditing(timesheet)}
+                                                                        className="p-1 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded"
+                                                                        title="Edit timesheet entry"
+                                                                    >
+                                                                        <PencilIcon className="h-4 w-4" />
+                                                                    </button>
+                                                                ) : (
+                                                                    <span className="text-gray-400">-</span>
+                                                                )}
+                                                            </td>
+                                                        </>
+                                                    )}
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
+
+                                    {/* Edit Form for Todo and Notes */}
+                                    {editingTimesheet && (
+                                        <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                                            <h4 className="text-sm font-medium text-gray-900 mb-3">Edit Todo & Notes</h4>
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                        Todo
+                                                    </label>
+                                                    <textarea
+                                                        value={editForm.todo}
+                                                        onChange={(e) => setEditForm(prev => ({ ...prev, todo: e.target.value }))}
+                                                        rows={2}
+                                                        className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                        placeholder="What needs to be done during this shift?"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                        Notes
+                                                    </label>
+                                                    <textarea
+                                                        value={editForm.note}
+                                                        onChange={(e) => setEditForm(prev => ({ ...prev, note: e.target.value }))}
+                                                        rows={2}
+                                                        className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                        placeholder="Any additional notes about this shift?"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Todo and Notes Display */}
                                     {recentTimesheets.some(t => t.todo || t.note) && (

@@ -61,12 +61,6 @@ const Navigation: React.FC = () => {
             permission: 'manage_employees' as const,
         },
         {
-            name: 'Timesheet Management',
-            href: '/timesheet/manage',
-            icon: DocumentTextIcon,
-            permission: 'manage_employees' as const,
-        },
-        {
             name: 'Tours',
             href: '/tours',
             icon: Cog6ToothIcon,
@@ -99,9 +93,11 @@ const Navigation: React.FC = () => {
                     {/* Logo and main navigation */}
                     <div className="flex">
                         <div className="flex-shrink-0 flex items-center">
-                            <h1 className="text-xl font-bold text-gray-900">
-                                Tomodachi Tours Admin
-                            </h1>
+                            <img
+                                src="/favicon.ico"
+                                alt="Tomodachi Tours"
+                                className="h-8 w-8"
+                            />
                         </div>
                         <nav className="hidden md:ml-8 md:flex md:space-x-8">
                             {filteredNavigation.map((item) => {
