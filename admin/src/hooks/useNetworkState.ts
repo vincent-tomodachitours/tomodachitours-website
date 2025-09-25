@@ -104,40 +104,6 @@ export function useNetworkState(): NetworkStateHook {
     }, []);
 
     /**
-     * Handle online event
-     */
-    const handleOnline = useCallback(() => {
-        console.log('Network: Online event detected');
-
-        // Clear any pending reconnect attempts
-        if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-            reconnectTimeoutRef.current = null;
-        }
-
-        // Verify connection with server
-        checkConnection();
-    }, [checkConnection]);
-
-    /**
-     * Handle offline event
-     */
-    const handleOffline = useCallback(() => {
-        console.log('Network: Offline event detected');
-
-        setNetworkState(prev => ({
-            ...prev,
-            isOnline: false,
-            isSlowConnection: false,
-            connectionType: getConnectionType(),
-            isReconnecting: false
-        }));
-
-        // Start reconnection attempts
-        scheduleReconnect();
-    }, []);
-
-    /**
      * Schedule reconnection attempt
      */
     const scheduleReconnect = useCallback(() => {
@@ -172,6 +138,40 @@ export function useNetworkState(): NetworkStateHook {
             });
         }, RECONNECT_INTERVAL);
     }, [checkConnection, networkState.reconnectAttempts]);
+
+    /**
+     * Handle online event
+     */
+    const handleOnline = useCallback(() => {
+        console.log('Network: Online event detected');
+
+        // Clear any pending reconnect attempts
+        if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = null;
+        }
+
+        // Verify connection with server
+        checkConnection();
+    }, [checkConnection]);
+
+    /**
+     * Handle offline event
+     */
+    const handleOffline = useCallback(() => {
+        console.log('Network: Offline event detected');
+
+        setNetworkState(prev => ({
+            ...prev,
+            isOnline: false,
+            isSlowConnection: false,
+            connectionType: getConnectionType(),
+            isReconnecting: false
+        }));
+
+        // Start reconnection attempts
+        scheduleReconnect();
+    }, [scheduleReconnect]);
 
     /**
      * Force reconnection attempt
@@ -228,6 +228,10 @@ export function useNetworkState(): NetworkStateHook {
             }
         }, 30000); // Check every 30 seconds
 
+        // Capture ref values for cleanup
+        const currentReconnectTimeout = reconnectTimeoutRef.current;
+        const currentPingTimeout = pingTimeoutRef.current;
+
         return () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
@@ -236,12 +240,12 @@ export function useNetworkState(): NetworkStateHook {
             clearTimeout(initialCheck);
             clearInterval(periodicCheck);
 
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
+            if (currentReconnectTimeout) {
+                clearTimeout(currentReconnectTimeout);
             }
 
-            if (pingTimeoutRef.current) {
-                clearTimeout(pingTimeoutRef.current);
+            if (currentPingTimeout) {
+                clearTimeout(currentPingTimeout);
             }
         };
     }, [handleOnline, handleOffline, handleVisibilityChange, checkConnection, networkState.isOnline]);
@@ -342,7 +346,7 @@ export function useNetworkAwareOperation() {
                 const operations = [...pendingOperations];
                 setPendingOperations([]);
 
-                for (const { operation, context } of operations) {
+                for (const { operation } of operations) {
                     try {
                         await operation();
                         console.log('Processed pending operation successfully');
