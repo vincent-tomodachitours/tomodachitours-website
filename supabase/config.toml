@@ -214,6 +214,9 @@ enabled = true
 policy = "oneshot"
 inspector_port = 8083
 
+[functions.stripe-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

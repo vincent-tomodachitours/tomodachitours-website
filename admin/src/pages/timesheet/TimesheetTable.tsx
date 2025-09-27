@@ -261,7 +261,7 @@ const TimesheetTable: React.FC = () => {
             const csvRows = monthlyTimesheets.map(timesheet => {
                 const clockInDate = parseISO(timesheet.clock_in);
                 const clockOutDate = timesheet.clock_out ? parseISO(timesheet.clock_out) : null;
-                const duration = clockOutDate 
+                const duration = clockOutDate
                     ? ((clockOutDate.getTime() - clockInDate.getTime()) / (1000 * 60 * 60)).toFixed(2)
                     : 'Ongoing';
 
