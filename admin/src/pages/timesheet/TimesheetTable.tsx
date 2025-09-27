@@ -9,7 +9,8 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon,
     ExclamationTriangleIcon,
-    ArrowPathIcon
+    ArrowPathIcon,
+    ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { TimesheetService, TimesheetRealtimeManager } from '../../services/timesheetService';
 import { EmployeeService } from '../../services/employeeService';
@@ -43,6 +44,10 @@ const TimesheetTable: React.FC = () => {
     const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'completed'>('all');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
+
+    // Download state
+    const [downloadMonth, setDownloadMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+    const [isDownloading, setIsDownloading] = useState<boolean>(false);
 
     // Build filters object
     const filters = useMemo((): TimesheetFilters => {
@@ -220,6 +225,83 @@ const TimesheetTable: React.FC = () => {
         setCurrentPage(1);
     };
 
+    const downloadTimesheetData = async () => {
+        if (!downloadMonth) return;
+
+        setIsDownloading(true);
+        try {
+            const [year, month] = downloadMonth.split('-');
+            const startOfMonth = new Date(parseInt(year), parseInt(month) - 1, 1);
+            const endOfMonth = new Date(parseInt(year), parseInt(month), 0);
+
+            // Create filters for the selected month
+            const monthFilters: TimesheetFilters = {
+                dateRange: {
+                    start: startOfMonth,
+                    end: endOfMonth
+                }
+            };
+
+            // Fetch timesheet data for the month
+            const monthlyTimesheets = await TimesheetService.getTimesheets(monthFilters);
+
+            // Convert to CSV format
+            const csvHeaders = [
+                'Employee Name',
+                'Employee Code',
+                'Date',
+                'Clock In',
+                'Clock Out',
+                'Duration (Hours)',
+                'Todo',
+                'Notes',
+                'Status'
+            ];
+
+            const csvRows = monthlyTimesheets.map(timesheet => {
+                const clockInDate = parseISO(timesheet.clock_in);
+                const clockOutDate = timesheet.clock_out ? parseISO(timesheet.clock_out) : null;
+                const duration = clockOutDate 
+                    ? ((clockOutDate.getTime() - clockInDate.getTime()) / (1000 * 60 * 60)).toFixed(2)
+                    : 'Ongoing';
+
+                return [
+                    `${timesheet.employee?.first_name || ''} ${timesheet.employee?.last_name || ''}`.trim(),
+                    timesheet.employee?.employee_code || '',
+                    format(clockInDate, 'yyyy-MM-dd'),
+                    format(clockInDate, 'HH:mm'),
+                    clockOutDate ? format(clockOutDate, 'HH:mm') : '',
+                    duration,
+                    timesheet.todo || '',
+                    timesheet.note || '',
+                    timesheet.clock_out ? 'Completed' : 'Active'
+                ];
+            });
+
+            // Create CSV content
+            const csvContent = [
+                csvHeaders.join(','),
+                ...csvRows.map(row => row.map(field => `"${field}"`).join(','))
+            ].join('\n');
+
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `timesheet-${downloadMonth}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('Failed to download timesheet data:', error);
+            alert('Failed to download timesheet data. Please try again.');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     const getStatusBadge = (timesheet: Timesheet) => {
         if (timesheet.clock_out) {
             return (
@@ -307,8 +389,29 @@ const TimesheetTable: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Connection Status and Refresh */}
+                {/* Actions */}
                 <div className="flex items-center space-x-4">
+                    {/* Download Section */}
+                    <div className="flex items-center space-x-2">
+                        <label className="text-sm text-gray-700">Download:</label>
+                        <input
+                            type="month"
+                            value={downloadMonth}
+                            onChange={(e) => setDownloadMonth(e.target.value)}
+                            className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={downloadTimesheetData}
+                            disabled={isDownloading || !downloadMonth}
+                            className="flex items-center"
+                        >
+                            <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
+                            {isDownloading ? 'Downloading...' : 'CSV'}
+                        </Button>
+                    </div>
+
                     {/* Connection Status */}
                     <div className="flex items-center space-x-2">
                         <div className={`w-2 h-2 rounded-full ${connectionState === 'connected' ? 'bg-green-400' :
