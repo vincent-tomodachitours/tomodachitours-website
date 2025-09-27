@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { ClockIcon, CalendarDaysIcon, ChartBarIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Link } from 'react-router-dom';
+import { ClockIcon, CalendarDaysIcon, ChartBarIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import { TimesheetService, TimesheetRealtimeManager } from '../../services/timesheetService';
 import { ClockInOutWidget } from '../../components/timesheet/ClockInOutWidget';
+import { Button } from '../../components/ui/Button';
 import { Timesheet } from '../../types';
 
 export const TimesheetDashboard: React.FC = () => {
@@ -246,6 +248,18 @@ export const TimesheetDashboard: React.FC = () => {
                     <p className="mt-1 text-sm text-gray-500">
                         Track your work hours and manage your shifts
                     </p>
+                </div>
+                <div className="mt-4 flex md:mt-0 md:ml-4">
+                    <Link to="/timesheet/manage">
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="flex items-center"
+                        >
+                            <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                            Download Reports
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
