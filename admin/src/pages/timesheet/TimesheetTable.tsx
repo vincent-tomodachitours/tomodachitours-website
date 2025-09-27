@@ -223,14 +223,14 @@ const TimesheetTable: React.FC = () => {
     const getStatusBadge = (timesheet: Timesheet) => {
         if (timesheet.clock_out) {
             return (
-                <Badge variant="success" className="flex items-center">
+                <Badge variant="success" className="flex items-center text-xs px-1.5 py-0.5">
                     <CheckCircleIcon className="h-3 w-3 mr-1" />
-                    Completed
+                    Done
                 </Badge>
             );
         } else {
             return (
-                <Badge variant="warning" className="flex items-center">
+                <Badge variant="warning" className="flex items-center text-xs px-1.5 py-0.5">
                     <ClockIcon className="h-3 w-3 mr-1" />
                     Active
                 </Badge>
@@ -258,7 +258,7 @@ const TimesheetTable: React.FC = () => {
 
     const SortableHeader: React.FC<{ field: keyof Timesheet; children: React.ReactNode }> = ({ field, children }) => (
         <th
-            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+            className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
             onClick={() => handleSort(field)}
         >
             <div className="flex items-center">
@@ -520,15 +520,15 @@ const TimesheetTable: React.FC = () => {
                                     <tr>
                                         <SortableHeader field="employee_id">Employee</SortableHeader>
                                         <SortableHeader field="clock_in">Clock In</SortableHeader>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Todo
                                         </th>
                                         <SortableHeader field="clock_out">Clock Out</SortableHeader>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Note
                                         </th>
                                         <SortableHeader field="hours_worked">Duration</SortableHeader>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Status
                                         </th>
                                     </tr>
@@ -536,63 +536,63 @@ const TimesheetTable: React.FC = () => {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {sortedAndPaginatedTimesheets.data.map((timesheet) => (
                                         <tr key={timesheet.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-3 py-2 whitespace-nowrap">
                                                 <div className="flex items-center">
-                                                    <div className="flex-shrink-0 h-8 w-8">
-                                                        <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                    <div className="flex-shrink-0 h-6 w-6">
+                                                        <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center">
                                                             <span className="text-xs font-medium text-indigo-800">
                                                                 {timesheet.employee?.first_name?.[0]}{timesheet.employee?.last_name?.[0]}
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <div className="ml-3">
-                                                        <div className="text-sm font-medium text-gray-900">
+                                                    <div className="ml-2">
+                                                        <div className="text-xs font-medium text-gray-900">
                                                             {timesheet.employee?.first_name} {timesheet.employee?.last_name}
                                                         </div>
-                                                        <div className="text-sm text-gray-500">
+                                                        <div className="text-xs text-gray-500">
                                                             {timesheet.employee?.employee_code}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {format(parseISO(timesheet.clock_in), 'MMM d, yyyy')}
+                                            <td className="px-3 py-2 whitespace-nowrap">
+                                                <div className="text-xs text-gray-900">
+                                                    {format(parseISO(timesheet.clock_in), 'MMM d')}
                                                 </div>
-                                                <div className="text-sm text-gray-500">
+                                                <div className="text-xs text-gray-500">
                                                     {format(parseISO(timesheet.clock_in), 'h:mm a')}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-900 max-w-xs truncate">
+                                            <td className="px-3 py-2">
+                                                <div className="text-xs text-gray-900 max-w-xs truncate">
                                                     {timesheet.todo || '-'}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-3 py-2 whitespace-nowrap">
                                                 {timesheet.clock_out ? (
                                                     <>
-                                                        <div className="text-sm text-gray-900">
-                                                            {format(parseISO(timesheet.clock_out), 'MMM d, yyyy')}
+                                                        <div className="text-xs text-gray-900">
+                                                            {format(parseISO(timesheet.clock_out), 'MMM d')}
                                                         </div>
-                                                        <div className="text-sm text-gray-500">
+                                                        <div className="text-xs text-gray-500">
                                                             {format(parseISO(timesheet.clock_out), 'h:mm a')}
                                                         </div>
                                                     </>
                                                 ) : (
-                                                    <span className="text-sm text-gray-500">-</span>
+                                                    <span className="text-xs text-gray-500">-</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-900 max-w-xs truncate">
+                                            <td className="px-3 py-2">
+                                                <div className="text-xs text-gray-900 max-w-xs truncate">
                                                     {timesheet.note || '-'}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
+                                            <td className="px-3 py-2 whitespace-nowrap">
+                                                <div className="text-xs text-gray-900">
                                                     {formatDuration(timesheet.clock_in, timesheet.clock_out)}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-3 py-2 whitespace-nowrap">
                                                 {getStatusBadge(timesheet)}
                                             </td>
                                         </tr>

@@ -161,14 +161,14 @@ export const TimesheetDashboard: React.FC = () => {
     const getStatusBadge = (timesheet: Timesheet) => {
         if (!timesheet.clock_out) {
             return (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Active
                 </span>
             );
         } else {
             return (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    Completed
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    Done
                 </span>
             );
         }
@@ -389,22 +389,22 @@ export const TimesheetDashboard: React.FC = () => {
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Date
                                                 </th>
-                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '160px' }}>
+                                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '100px' }}>
                                                     Clock In
                                                 </th>
-                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '160px' }}>
+                                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '100px' }}>
                                                     Clock Out
                                                 </th>
-                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Duration
                                                 </th>
-                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Status
                                                 </th>
-                                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '80px' }}>
+                                                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '60px' }}>
                                                     Actions
                                                 </th>
                                             </tr>
@@ -415,50 +415,50 @@ export const TimesheetDashboard: React.FC = () => {
                                                     {editingTimesheet === timesheet.id ? (
                                                         // Edit mode
                                                         <>
-                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                                                                 {formatDate(timesheet.clock_in)}
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap">
+                                                            <td className="px-2 py-2 whitespace-nowrap">
                                                                 <input
                                                                     type="datetime-local"
                                                                     value={editForm.clock_in}
                                                                     onChange={(e) => setEditForm(prev => ({ ...prev, clock_in: e.target.value }))}
                                                                     className="w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                                                    style={{ minWidth: '160px' }}
+                                                                    style={{ minWidth: '100px' }}
                                                                 />
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap">
+                                                            <td className="px-2 py-2 whitespace-nowrap">
                                                                 <input
                                                                     type="datetime-local"
                                                                     value={editForm.clock_out}
                                                                     onChange={(e) => setEditForm(prev => ({ ...prev, clock_out: e.target.value }))}
                                                                     className="w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                                                    style={{ minWidth: '160px' }}
+                                                                    style={{ minWidth: '100px' }}
                                                                 />
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                                                                 {timesheet.hours_worked ? formatDuration(timesheet.hours_worked) : '-'}
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap">
+                                                            <td className="px-2 py-2 whitespace-nowrap">
                                                                 {getStatusBadge(timesheet)}
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
+                                                            <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
                                                                 <div className="flex space-x-1 justify-center">
                                                                     <button
                                                                         onClick={() => saveTimesheet(timesheet.id)}
                                                                         disabled={updateTimesheetMutation.isPending}
-                                                                        className="p-1 text-green-600 hover:text-green-900 disabled:opacity-50 hover:bg-green-50 rounded"
+                                                                        className="p-0.5 text-green-600 hover:text-green-900 disabled:opacity-50 hover:bg-green-50 rounded"
                                                                         title="Save changes"
                                                                     >
-                                                                        <CheckIcon className="h-4 w-4" />
+                                                                        <CheckIcon className="h-3 w-3" />
                                                                     </button>
                                                                     <button
                                                                         onClick={cancelEditing}
                                                                         disabled={updateTimesheetMutation.isPending}
-                                                                        className="p-1 text-red-600 hover:text-red-900 disabled:opacity-50 hover:bg-red-50 rounded"
+                                                                        className="p-0.5 text-red-600 hover:text-red-900 disabled:opacity-50 hover:bg-red-50 rounded"
                                                                         title="Cancel editing"
                                                                     >
-                                                                        <XMarkIcon className="h-4 w-4" />
+                                                                        <XMarkIcon className="h-3 w-3" />
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -466,29 +466,29 @@ export const TimesheetDashboard: React.FC = () => {
                                                     ) : (
                                                         // View mode
                                                         <>
-                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                                                                 {formatDate(timesheet.clock_in)}
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                                                                 {formatTime(timesheet.clock_in)}
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                                                                 {timesheet.clock_out ? formatTime(timesheet.clock_out) : '-'}
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                                                                 {timesheet.hours_worked ? formatDuration(timesheet.hours_worked) : '-'}
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap">
+                                                            <td className="px-2 py-2 whitespace-nowrap">
                                                                 {getStatusBadge(timesheet)}
                                                             </td>
-                                                            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-center">
+                                                            <td className="px-2 py-2 whitespace-nowrap text-xs font-medium text-center">
                                                                 {canEditTimesheet(timesheet) ? (
                                                                     <button
                                                                         onClick={() => startEditing(timesheet)}
-                                                                        className="p-1 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded"
+                                                                        className="p-0.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded"
                                                                         title="Edit timesheet entry"
                                                                     >
-                                                                        <PencilIcon className="h-4 w-4" />
+                                                                        <PencilIcon className="h-3 w-3" />
                                                                     </button>
                                                                 ) : (
                                                                     <span className="text-gray-400">-</span>
