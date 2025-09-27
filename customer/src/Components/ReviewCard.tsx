@@ -128,7 +128,9 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
 
     return (
         <div
-            className="bg-white rounded-lg shadow-md border border-gray-200 p-6 transition-shadow duration-200 hover:shadow-lg"
+            className={`bg-white rounded-lg shadow-md border border-gray-200 p-6 transition-all duration-200 hover:shadow-lg flex flex-col ${
+                isExpanded ? 'h-auto' : 'h-80 sm:h-96'
+            }`}
             data-testid="review-card"
         >
             {/* Header with rating and reviewer info */}
@@ -152,16 +154,18 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
             </div>
 
             {/* Review text */}
-            <div className="mb-4">
-                <p className="text-gray-700 leading-relaxed text-base md:text-lg">
-                    {displayText}
-                </p>
+            <div className={`flex-grow flex flex-col ${isExpanded ? 'mb-4' : 'mb-2'}`}>
+                <div className={`${isExpanded ? 'flex-grow' : 'overflow-hidden'}`}>
+                    <p className="text-gray-700 leading-relaxed text-base md:text-lg">
+                        {displayText}
+                    </p>
+                </div>
 
                 {/* Read more/less button */}
                 {shouldTruncate && (
                     <button
                         onClick={handleToggleExpanded}
-                        className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded"
+                        className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded self-start"
                         data-testid="toggle-text-button"
                         aria-expanded={isExpanded}
                     >
@@ -171,7 +175,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
             </div>
 
             {/* Footer with reviewer info and metadata */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-gray-100 text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-gray-100 text-sm text-gray-600 mt-auto">
                 <div className="flex items-center mb-2 sm:mb-0">
                     {/* Reviewer avatar placeholder */}
                     <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3 flex-shrink-0">

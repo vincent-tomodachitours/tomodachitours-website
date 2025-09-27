@@ -39,7 +39,7 @@ const TripAdvisorReviews: React.FC<TripAdvisorReviewsProps> = ({
         lastFetch,
         handleRefresh,
         MAX_RETRIES
-    } = useTripAdvisorData(locationId, maxReviews, autoRefresh, refreshInterval, null);
+    } = useTripAdvisorData(locationId, maxReviews, autoRefresh, refreshInterval, _tourId);
 
     // Don't render anything if no locationId is provided
     if (!locationId) {
@@ -57,11 +57,11 @@ const TripAdvisorReviews: React.FC<TripAdvisorReviewsProps> = ({
         if (reviewCount === 1) {
             return 'grid grid-cols-1 max-w-md mx-auto';
         } else if (reviewCount === 2) {
-            return 'grid grid-cols-1 md:grid-cols-2 gap-6';
+            return 'grid grid-cols-1 md:grid-cols-2 gap-6 items-start';
         } else if (reviewCount <= 4) {
-            return 'grid grid-cols-1 md:grid-cols-2 gap-6';
+            return 'grid grid-cols-1 md:grid-cols-2 gap-6 items-start';
         } else {
-            return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+            return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start';
         }
     };
 
@@ -87,7 +87,7 @@ const TripAdvisorReviews: React.FC<TripAdvisorReviewsProps> = ({
                     <EmptyState />
                 ) : (
                     <div className={getGridClasses()}>
-                        {(reviews as any[]).map((review, index) => (
+                        {reviews.map((review, index) => (
                             <div
                                 key={review.id || `review-${index}`}
                                 className={layout === 'carousel' ? 'flex-shrink-0 w-80' : ''}

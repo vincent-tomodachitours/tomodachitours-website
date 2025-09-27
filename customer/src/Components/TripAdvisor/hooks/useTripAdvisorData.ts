@@ -1,30 +1,70 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getBusinessReviewsWithFallback } from '../../../services/tripAdvisorService';
+import type { Review, RealBusinessInfo } from '../../../types/data';
 
-export const useTripAdvisorData = (locationId, maxReviews = 6, autoRefresh = false, refreshInterval = 300000, tourId = null) => {
-    const [reviews, setReviews] = useState([]);
-    const [businessInfo, setBusinessInfo] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [retryCount, setRetryCount] = useState(0);
-    const [lastFetch, setLastFetch] = useState(null);
+// Types for the hook parameters
+interface TripAdvisorDataOptions {
+    locationId: string;
+    maxReviews: number;
+    forceRefresh: boolean;
+    tourId: string | null;
+}
+
+// Types for the service response
+interface TripAdvisorServiceResponse {
+    reviews: Review[];
+    businessInfo: RealBusinessInfo;
+    cached: boolean;
+    fetchedAt: string;
+    source?: string;
+    tourId?: string | null;
+    note?: string;
+    cachedAt?: string;
+    error?: string;
+}
+
+// Types for the hook return value
+export interface UseTripAdvisorDataResult {
+    reviews: Review[];
+    businessInfo: RealBusinessInfo | null;
+    loading: boolean;
+    error: string | null;
+    retryCount: number;
+    lastFetch: Date | null;
+    handleRefresh: () => void;
+    MAX_RETRIES: number;
+}
+
+export const useTripAdvisorData = (
+    locationId?: string,
+    maxReviews: number = 6,
+    autoRefresh: boolean = false,
+    refreshInterval: number = 300000, // 5 minutes
+    tourId: string | null = null
+): UseTripAdvisorDataResult => {
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [businessInfo, setBusinessInfo] = useState<RealBusinessInfo | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState<number>(0);
+    const [lastFetch, setLastFetch] = useState<Date | null>(null);
 
     const MAX_RETRIES = 3;
 
     /**
      * Fetch reviews from TripAdvisor service
      */
-    const fetchReviews = useCallback(async (forceRefresh = false) => {
+    const fetchReviews = useCallback(async (forceRefresh: boolean = false): Promise<void> => {
         try {
             setLoading(true);
             setError(null);
 
-            const result = await getBusinessReviewsWithFallback({
+            const result: TripAdvisorServiceResponse = await getBusinessReviewsWithFallback({
                 locationId,
                 maxReviews,
                 forceRefresh,
                 tourId
-            });
+            } as TripAdvisorDataOptions);
 
             // Limit reviews to maxReviews
             const limitedReviews = result.reviews.slice(0, maxReviews);
@@ -36,7 +76,8 @@ export const useTripAdvisorData = (locationId, maxReviews = 6, autoRefresh = fal
 
         } catch (err) {
             console.error('❌ useTripAdvisorData: Error fetching TripAdvisor reviews:', err);
-            setError(err.message || 'Failed to load reviews');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to load reviews';
+            setError(errorMessage);
 
             // Increment retry count for automatic retries
             setRetryCount(prev => prev + 1);
@@ -48,7 +89,7 @@ export const useTripAdvisorData = (locationId, maxReviews = 6, autoRefresh = fal
     /**
      * Handle retry with exponential backoff
      */
-    const handleRetry = useCallback(() => {
+    const handleRetry = useCallback((): void => {
         if (retryCount < MAX_RETRIES) {
             const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
             setTimeout(() => {
@@ -60,7 +101,7 @@ export const useTripAdvisorData = (locationId, maxReviews = 6, autoRefresh = fal
     /**
      * Manual refresh handler
      */
-    const handleRefresh = useCallback(() => {
+    const handleRefresh = useCallback((): void => {
         setRetryCount(0);
         fetchReviews(true);
     }, [fetchReviews]);
