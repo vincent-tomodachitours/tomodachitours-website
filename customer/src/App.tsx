@@ -49,6 +49,7 @@ const App: React.FC = () => {
                 <Route path="/kyoto-fushimi-inari-night-walking-tourit" element={<Navigate to="/tours/kyoto-fushimi-inari-night-walking-tour" replace />} />
                 <Route path="/tours/kyoto-music-culture-walking-tour" element={<MusicTour />} />
                 <Route path="/tours/kyoto-live-music-performance" element={<LiveMusicPerformance />} />
+                <Route path="/music" element={<Navigate to="/tours/kyoto-live-music-performance" replace />} />
                 <Route path="/tours/kyoto-early-bird-english-tour" element={<MorningTour />} />
                 <Route path="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto" element={<UjiTour />} />
                 <Route path="/tours/uji-walking-tour" element={<UjiWalkingTour />} />
