@@ -190,14 +190,15 @@ export class StripeService {
                 return_url: `${Deno.env.get('FRONTEND_URL') || 'https://localhost:3000'}/thankyou`,
             });
 
-            if (paymentIntent.status !== 'succeeded') {
+            if (paymentIntent.status !== 'succeeded' && paymentIntent.status !== 'requires_action') {
                 throw new Error(`Payment not completed. Status: ${paymentIntent.status}`);
             }
 
             return {
                 id: paymentIntent.id,
                 status: paymentIntent.status,
-                amount: paymentIntent.amount
+                amount: paymentIntent.amount,
+                client_secret: paymentIntent.client_secret
             };
         } catch (error) {
             console.error('Stripe immediate payment error:', error);

@@ -108,7 +108,12 @@ const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, ap
             const paymentResult = await response.json();
 
             if (paymentResult.success) {
-                handlePaymentSuccess(paymentResult);
+                if (paymentResult.requires_action) {
+                    // Handle 3D Secure authentication
+                    await handle3DSecure(paymentResult.payment_intent, data.id);
+                } else {
+                    handlePaymentSuccess(paymentResult);
+                }
             } else {
                 throw new Error(paymentResult.error || 'Payment failed');
             }
@@ -119,6 +124,95 @@ const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, ap
             setPaymentStatus('');
             console.error("Error creating booking:", error);
             alert("Something went wrong creating the booking.");
+        }
+    };
+
+    const handle3DSecure = async (paymentIntent: any, bookingId: number): Promise<void> => {
+        try {
+            setPaymentStatus('Authenticating payment...');
+            console.log('Starting 3D Secure authentication for payment intent:', paymentIntent.id);
+            
+            // Check if 3D Secure handler is available
+            if (!window.handleStripe3DSecure) {
+                throw new Error('3D Secure handler not available. Please refresh the page and try again.');
+            }
+
+            const result = await window.handleStripe3DSecure(paymentIntent.client_secret);
+            console.log('3D Secure authentication result:', result);
+            
+            if (result.error) {
+                console.error('3D Secure authentication error:', result.error);
+                throw new Error(result.error.message || 'Authentication failed');
+            }
+            
+            if (result.paymentIntent.status === 'succeeded') {
+                console.log('Payment succeeded after 3D Secure authentication');
+                // Payment succeeded after 3D Secure, wait for webhook confirmation
+                await confirmPaymentSuccess(bookingId, result.paymentIntent.id);
+            } else {
+                console.error('Unexpected payment status after 3D Secure:', result.paymentIntent.status);
+                throw new Error(`Payment authentication failed: ${result.paymentIntent.status}`);
+            }
+        } catch (error) {
+            console.error('3D Secure authentication error:', error);
+            setPaymentProcessing(false);
+            setIsProcessing(false);
+            setPaymentStatus('');
+            
+            const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+            alert(`Payment authentication failed: ${errorMessage}`);
+        }
+    };
+
+    const confirmPaymentSuccess = async (bookingId: number, paymentIntentId: string): Promise<void> => {
+        try {
+            setPaymentStatus('Confirming payment...');
+            
+            // Wait a moment for Stripe webhook to process the payment
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Check if booking was confirmed by webhook
+            const { data: booking } = await supabase
+                .from('bookings')
+                .select('status')
+                .eq('id', bookingId)
+                .single();
+
+            if (booking?.status === 'CONFIRMED') {
+                // Payment confirmed by webhook, redirect to success
+                handlePaymentSuccess({
+                    success: true,
+                    charge: { id: paymentIntentId },
+                    provider_used: 'stripe'
+                });
+            } else {
+                // Webhook hasn't processed yet, wait a bit more
+                setPaymentStatus('Finalizing booking...');
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // Check again
+                const { data: booking2 } = await supabase
+                    .from('bookings')
+                    .select('status')
+                    .eq('id', bookingId)
+                    .single();
+
+                if (booking2?.status === 'CONFIRMED') {
+                    handlePaymentSuccess({
+                        success: true,
+                        charge: { id: paymentIntentId },
+                        provider_used: 'stripe'
+                    });
+                } else {
+                    throw new Error('Payment succeeded but booking confirmation is taking longer than expected');
+                }
+            }
+        } catch (error) {
+            console.error('Payment confirmation error:', error);
+            setPaymentProcessing(false);
+            setIsProcessing(false);
+            setPaymentStatus('');
+            alert('Payment succeeded but confirmation is taking longer than expected. Please check your email or contact support.');
         }
     };
 

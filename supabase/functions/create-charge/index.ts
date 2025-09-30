@@ -404,7 +404,59 @@ const handler = async (req: Request): Promise<Response> => {
       throw paymentError
     }
 
-    // Update booking with payment information
+    // Handle different payment statuses
+    if (paymentResult.status === 'requires_action') {
+      // For requires_action, don't update booking status yet - keep it as PENDING_PAYMENT
+      // Just store the payment intent ID for later confirmation
+      const updateData: any = {
+        payment_provider: primaryProvider,
+        stripe_payment_intent_id: paymentResult.id,
+        paid_amount: data.amount
+      }
+
+      console.log(`Payment requires action for booking ${data.bookingId}, storing payment intent: ${paymentResult.id}`);
+
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update(updateData)
+        .eq('id', data.bookingId)
+
+      if (bookingError) {
+        console.error('Failed to update booking with payment intent:', bookingError)
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Failed to store payment intent'
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      // Return response with client_secret for 3D Secure
+      return new Response(
+        JSON.stringify({
+          success: true,
+          requires_action: true,
+          payment_intent: {
+            id: paymentResult.id,
+            client_secret: paymentResult.client_secret,
+            status: paymentResult.status
+          },
+          provider_used: primaryProvider
+        }),
+        {
+          headers: addSecurityHeaders(new Headers({
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }))
+        }
+      )
+    }
+
+    // For succeeded payments, update booking to CONFIRMED
     const updateData: any = {
       status: 'CONFIRMED',
       payment_provider: primaryProvider,

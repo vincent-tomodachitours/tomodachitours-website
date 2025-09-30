@@ -132,13 +132,34 @@ const StripePaymentForm = ({ totalPrice, originalPrice: _originalPrice, appliedD
         }
     }, [stripe, elements, isProcessing, onCreateBookingAndPayment, onError, onProcessing, totalPrice]);
 
-    // Expose submit function to window for external button
+    // Handle 3D Secure authentication
+    const handle3DSecure = useCallback(async (clientSecret: string) => {
+        if (!stripe) {
+            console.error('Stripe not loaded for 3D Secure authentication');
+            throw new Error('Stripe not loaded');
+        }
+
+        console.log('Confirming card payment with client secret:', clientSecret.substring(0, 20) + '...');
+        
+        try {
+            const result = await stripe.confirmCardPayment(clientSecret);
+            console.log('Stripe confirmCardPayment result:', result);
+            return result;
+        } catch (error) {
+            console.error('Error during stripe.confirmCardPayment:', error);
+            throw error;
+        }
+    }, [stripe]);
+
+    // Expose functions to window for external access
     useEffect(() => {
         window.submitPaymentForm = handleSubmit;
+        window.handleStripe3DSecure = handle3DSecure;
         return () => {
             delete window.submitPaymentForm;
+            delete window.handleStripe3DSecure;
         };
-    }, [handleSubmit]);
+    }, [handleSubmit, handle3DSecure]);
 
     if (!process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY) {
         return (
