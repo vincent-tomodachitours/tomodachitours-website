@@ -164,7 +164,12 @@ const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, ap
             setPaymentStatus('Authenticating payment...');
             console.log('Calling 3D Secure handler with client secret');
 
-            const result = await window.handleStripe3DSecure(paymentIntent.client_secret);
+            const handler = window.handleStripe3DSecure;
+            if (!handler) {
+                throw new Error('3D Secure handler disappeared. Please refresh the page and try again.');
+            }
+
+            const result = await handler(paymentIntent.client_secret);
             console.log('3D Secure authentication result:', result);
             
             if (result.error) {
