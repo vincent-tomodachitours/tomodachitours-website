@@ -13,6 +13,7 @@ declare global {
     interface Window {
         submitPaymentForm?: () => Promise<void>;
         handleStripe3DSecure?: (clientSecret: string) => Promise<any>;
+        stripeHandlersReady?: boolean;
     }
 }
 

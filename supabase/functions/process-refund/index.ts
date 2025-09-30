@@ -118,6 +118,9 @@ const handler = async (req: Request): Promise<Response> => {
       if (error.message.includes('already refunded') || error.message.includes('cannot refund')) {
         console.log('Stripe payment already refunded, updating booking status...')
         refundResponse = { ok: false, error: { code: 'already_refunded' } }
+      } else if (error.message.includes('does not have a successful charge to refund')) {
+        console.log('PaymentIntent has no successful charge - likely a test booking or failed payment, proceeding with cancellation...')
+        refundResponse = { ok: false, error: { code: 'no_successful_charge' } }
       } else {
         throw new Error('Failed to process Stripe refund')
       }
@@ -236,9 +239,10 @@ const handler = async (req: Request): Promise<Response> => {
       // Don't fail the entire operation if email fails
     }
 
-    // Prepare response based on whether it was a new refund or already refunded
-    const responseData = refundResponse.ok
-      ? {
+    // Prepare response based on refund status
+    let responseData
+    if (refundResponse.ok) {
+      responseData = {
         success: true,
         refund: {
           id: refund.id,
@@ -246,11 +250,25 @@ const handler = async (req: Request): Promise<Response> => {
           status: refund.status
         }
       }
-      : {
+    } else if (refundResponse.error?.code === 'already_refunded') {
+      responseData = {
         success: true,
         message: 'Booking cancelled successfully (charge was already refunded)',
         alreadyRefunded: true
       }
+    } else if (refundResponse.error?.code === 'no_successful_charge') {
+      responseData = {
+        success: true,
+        message: 'Booking cancelled successfully (no payment to refund)',
+        noChargeToRefund: true
+      }
+    } else {
+      responseData = {
+        success: true,
+        message: 'Booking cancelled successfully',
+        noRefundProcessed: true
+      }
+    }
 
     return new Response(
       JSON.stringify(responseData),

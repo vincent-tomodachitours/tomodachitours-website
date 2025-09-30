@@ -108,13 +108,22 @@ const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, ap
             const paymentResult = await response.json();
 
             if (paymentResult.success) {
+                console.log('Payment result received:', {
+                    success: paymentResult.success,
+                    requires_action: paymentResult.requires_action,
+                    payment_intent_id: paymentResult.payment_intent?.id
+                });
+                
                 if (paymentResult.requires_action) {
+                    console.log('Payment requires 3D Secure authentication');
                     // Handle 3D Secure authentication
                     await handle3DSecure(paymentResult.payment_intent, data.id);
                 } else {
+                    console.log('Payment succeeded without additional authentication');
                     handlePaymentSuccess(paymentResult);
                 }
             } else {
+                console.error('Payment failed:', paymentResult.error);
                 throw new Error(paymentResult.error || 'Payment failed');
             }
 
@@ -129,29 +138,62 @@ const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, ap
 
     const handle3DSecure = async (paymentIntent: any, bookingId: number): Promise<void> => {
         try {
-            setPaymentStatus('Authenticating payment...');
+            setPaymentStatus('Preparing authentication...');
             console.log('Starting 3D Secure authentication for payment intent:', paymentIntent.id);
             
-            // Check if 3D Secure handler is available
-            if (!window.handleStripe3DSecure) {
-                throw new Error('3D Secure handler not available. Please refresh the page and try again.');
+            // Wait for 3D Secure handler to be available with timeout
+            const waitForHandler = async (maxAttempts = 20, delay = 250): Promise<boolean> => {
+                for (let i = 0; i < maxAttempts; i++) {
+                    if (window.stripeHandlersReady && window.handleStripe3DSecure) {
+                        console.log('3D Secure handler ready after', i, 'attempts');
+                        return true;
+                    }
+                    console.log('Waiting for Stripe handlers, attempt', i + 1, 'ready flag:', window.stripeHandlersReady, 'handler exists:', !!window.handleStripe3DSecure);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+                return false;
+            };
+
+            const handlerAvailable = await waitForHandler();
+            
+            if (!handlerAvailable) {
+                console.error('3D Secure handler not available after waiting');
+                throw new Error('Payment system not ready. Please refresh the page and try again.');
             }
+
+            setPaymentStatus('Authenticating payment...');
+            console.log('Calling 3D Secure handler with client secret');
 
             const result = await window.handleStripe3DSecure(paymentIntent.client_secret);
             console.log('3D Secure authentication result:', result);
             
             if (result.error) {
                 console.error('3D Secure authentication error:', result.error);
-                throw new Error(result.error.message || 'Authentication failed');
+                
+                // Provide more specific error messages
+                let errorMessage = 'Authentication failed';
+                if (result.error.code === 'card_declined') {
+                    errorMessage = 'Your card was declined. Please try a different payment method.';
+                } else if (result.error.code === 'authentication_required') {
+                    errorMessage = 'Authentication was required but not completed. Please try again.';
+                } else if (result.error.message) {
+                    errorMessage = result.error.message;
+                }
+                
+                throw new Error(errorMessage);
             }
             
             if (result.paymentIntent.status === 'succeeded') {
                 console.log('Payment succeeded after 3D Secure authentication');
+                setPaymentStatus('Payment authenticated successfully...');
                 // Payment succeeded after 3D Secure, wait for webhook confirmation
                 await confirmPaymentSuccess(bookingId, result.paymentIntent.id);
+            } else if (result.paymentIntent.status === 'requires_action') {
+                console.error('Payment still requires action after 3D Secure attempt');
+                throw new Error('Additional authentication required. Please contact your bank or try a different card.');
             } else {
                 console.error('Unexpected payment status after 3D Secure:', result.paymentIntent.status);
-                throw new Error(`Payment authentication failed: ${result.paymentIntent.status}`);
+                throw new Error(`Payment authentication failed with status: ${result.paymentIntent.status}`);
             }
         } catch (error) {
             console.error('3D Secure authentication error:', error);

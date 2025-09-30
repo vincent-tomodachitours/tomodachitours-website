@@ -134,32 +134,66 @@ const StripePaymentForm = ({ totalPrice, originalPrice: _originalPrice, appliedD
 
     // Handle 3D Secure authentication
     const handle3DSecure = useCallback(async (clientSecret: string) => {
+        console.log('3D Secure handler called with client secret:', clientSecret.substring(0, 20) + '...');
+        
         if (!stripe) {
             console.error('Stripe not loaded for 3D Secure authentication');
-            throw new Error('Stripe not loaded');
+            throw new Error('Payment system not ready. Please wait a moment and try again.');
         }
 
-        console.log('Confirming card payment with client secret:', clientSecret.substring(0, 20) + '...');
-        
+        if (!elements) {
+            console.error('Stripe elements not loaded for 3D Secure authentication');
+            throw new Error('Payment form not ready. Please refresh the page and try again.');
+        }
+
         try {
+            console.log('Calling stripe.confirmCardPayment...');
             const result = await stripe.confirmCardPayment(clientSecret);
-            console.log('Stripe confirmCardPayment result:', result);
+            console.log('Stripe confirmCardPayment result:', {
+                error: result.error ? {
+                    code: result.error.code,
+                    message: result.error.message,
+                    type: result.error.type
+                } : null,
+                paymentIntent: result.paymentIntent ? {
+                    id: result.paymentIntent.id,
+                    status: result.paymentIntent.status
+                } : null
+            });
             return result;
         } catch (error) {
             console.error('Error during stripe.confirmCardPayment:', error);
-            throw error;
+            // Re-throw with more context
+            throw new Error(`Payment confirmation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-    }, [stripe]);
+    }, [stripe, elements]);
 
     // Expose functions to window for external access
     useEffect(() => {
+        console.log('Exposing Stripe functions to window');
         window.submitPaymentForm = handleSubmit;
         window.handleStripe3DSecure = handle3DSecure;
+        
+        // Add a flag to indicate functions are ready
+        window.stripeHandlersReady = true;
+        
         return () => {
+            console.log('Cleaning up Stripe window functions');
             delete window.submitPaymentForm;
             delete window.handleStripe3DSecure;
+            delete window.stripeHandlersReady;
         };
     }, [handleSubmit, handle3DSecure]);
+
+    // Also expose immediately when stripe and elements are ready
+    useEffect(() => {
+        if (stripe && elements) {
+            console.log('Stripe and elements ready, ensuring handlers are exposed');
+            window.submitPaymentForm = handleSubmit;
+            window.handleStripe3DSecure = handle3DSecure;
+            window.stripeHandlersReady = true;
+        }
+    }, [stripe, elements, handleSubmit, handle3DSecure]);
 
     if (!process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY) {
         return (
