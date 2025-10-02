@@ -3,6 +3,7 @@ import Stripe from 'https://esm.sh/stripe@14?target=denonext';
 // @ts-ignore - ESM imports work in Deno runtime  
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from "../_shared/cors.ts";
+import sgMail from "npm:@sendgrid/mail";
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
     apiVersion: '2024-11-20'
@@ -17,6 +18,292 @@ const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
+
+// Initialize SendGrid
+const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY')
+if (SENDGRID_API_KEY) {
+  sgMail.setApiKey(SENDGRID_API_KEY)
+}
+
+// SendGrid template IDs
+const SENDGRID_TEMPLATES = {
+  BOOKING_CONFIRMATION: 'd-80e109cadad44eeab06c1b2396b504b2',
+  BOOKING_NOTIFICATION: 'd-3337db456cc04cebb2009460bd23a629'
+}
+
+// SendGrid sender config
+const SENDGRID_FROM = {
+  email: 'contact@tomodachitours.com',
+  name: 'Tomodachi Tours'
+}
+
+async function getTourName(supabase: any, tourType: string): Promise<{ name: string; meetingPoint: any }> {
+  try {
+    const { data: tour, error } = await supabase
+      .from('tours')
+      .select('name, meeting_point')
+      .eq('type', tourType)
+      .single();
+
+    if (error || !tour) {
+      console.error('Failed to fetch tour name:', error);
+      // Fallback to formatted tour type if database fetch fails
+      return {
+        name: tourType.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' '),
+        meetingPoint: {
+          location: '7-Eleven Heart-in - JR Kyoto Station Central Entrance Store',
+          google_maps_url: 'https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9',
+          additional_info: 'Warning: There are multiple 7-Elevens at Kyoto station. The 7-Eleven for the meetup location is in the central exit of Kyoto station.'
+        }
+      };
+    }
+
+    // Return both name and meeting point
+    return {
+      name: tour.name,
+      meetingPoint: tour.meeting_point || {
+        location: '7-Eleven Heart-in - JR Kyoto Station Central Entrance Store',
+        google_maps_url: 'https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9',
+        additional_info: 'Warning: There are multiple 7-Elevens at Kyoto station. The 7-Eleven for the meetup location is in the central exit of Kyoto station.'
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching tour name:', error);
+    // Fallback to formatted tour type
+    return {
+      name: tourType.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' '),
+      meetingPoint: {
+        location: '7-Eleven Heart-in - JR Kyoto Station Central Entrance Store',
+        google_maps_url: 'https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9',
+        additional_info: 'Warning: There are multiple 7-Elevens at Kyoto station. The 7-Eleven for the meetup location is in the central exit of Kyoto station.'
+      }
+    };
+  }
+}
+
+async function sendBookingEmails(supabase: any, booking: any) {
+  try {
+    // Helper function to escape special characters for Handlebars
+    const escapeHandlebars = (str: string) => {
+      if (!str) return str;
+      return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+
+    // Format date and time
+    const bookingDate = new Date(booking.booking_date);
+    const formattedDate = bookingDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // Get proper tour name and meeting point from database
+    const { name: tourName, meetingPoint } = await getTourName(supabase, booking.tour_type);
+
+    // Ensure we have a valid paid amount - use paid_amount if available, otherwise calculate from tour pricing
+    let paidAmount = booking.paid_amount;
+
+    if (!paidAmount || paidAmount <= 0) {
+      console.error(`ERROR: Invalid paid_amount for booking ${booking.id}: ${paidAmount}`);
+      console.error('Full booking data:', JSON.stringify(booking, null, 2));
+
+      // Calculate fallback amount from tour pricing (6500 yen per adult/child)
+      const fallbackAmount = 6500 * (booking.adults + (booking.children || 0));
+      const discountedAmount = booking.discount_amount ? fallbackAmount - booking.discount_amount : fallbackAmount;
+
+      console.error(`Using fallback calculation: ${fallbackAmount} - ${booking.discount_amount || 0} = ${discountedAmount}`);
+      paidAmount = Math.max(discountedAmount, 0); // Ensure it's not negative
+
+      // Log this critical issue for investigation
+      console.error(`CRITICAL: Booking ${booking.id} has invalid paid_amount. Using fallback: ${paidAmount} yen`);
+    }
+
+    const totalAmountFormatted = paidAmount.toLocaleString();
+
+    // Try SendGrid first, then fallback to simple email if it fails
+    let emailSent = false;
+
+    if (SENDGRID_API_KEY) {
+      try {
+        // Send customer confirmation email using the same format as refund emails
+        await sgMail.send({
+          to: booking.customer_email,
+          from: SENDGRID_FROM,
+          template_id: SENDGRID_TEMPLATES.BOOKING_CONFIRMATION,
+          personalizations: [{
+            to: [{ email: booking.customer_email }],
+            dynamic_template_data: {
+              bookingId: booking.id.toString(),
+              tourName: escapeHandlebars(tourName),
+              tourDate: escapeHandlebars(formattedDate),
+              tourTime: escapeHandlebars(booking.booking_time),
+              adults: booking.adults,
+              children: booking.children || 0,
+              infants: booking.infants || 0,
+              totalAmount: `¥${totalAmountFormatted}`,
+              meetingPoint: {
+                location: escapeHandlebars(meetingPoint.location),
+                google_maps_url: meetingPoint.google_maps_url,
+                additional_info: escapeHandlebars(meetingPoint.additional_info || '')
+              }
+            }
+          }]
+        });
+
+        // Send company notification emails to all three addresses
+        const now = new Date();
+        const companyEmails = [
+          'spirivincent03@gmail.com',
+          'contact@tomodachitours.com',
+          'yutaka.m@tomodachitours.com'
+        ];
+
+        const notificationData = {
+          bookingId: booking.id.toString(),
+          productBookingRef: '',
+          extBookingRef: '',
+          productId: booking.tour_type,
+          tourName: escapeHandlebars(tourName),
+          customerName: escapeHandlebars(booking.customer_name),
+          customerEmail: escapeHandlebars(booking.customer_email),
+          customerPhone: escapeHandlebars(booking.customer_phone || ''),
+          tourDate: escapeHandlebars(formattedDate),
+          tourTime: escapeHandlebars(booking.booking_time),
+          adults: booking.adults,
+          adultPlural: booking.adults > 1,
+          children: booking.children || 0,
+          infants: booking.infants || 0,
+          createdDate: escapeHandlebars(now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: '2-digit' })),
+          createdTime: escapeHandlebars(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })),
+          meetingPoint: {
+            location: escapeHandlebars(meetingPoint.location),
+            google_maps_url: meetingPoint.google_maps_url, // URLs don't need escaping
+            additional_info: escapeHandlebars(meetingPoint.additional_info || '')
+          }
+        };
+
+        // Send company notification emails using the same format as refund emails
+        const personalizations = companyEmails.map(email => ({
+          to: [{ email: email }],
+          dynamic_template_data: {
+            ...notificationData,
+            totalAmount: `¥${totalAmountFormatted}`
+          }
+        }));
+
+        try {
+          console.log(`Attempting to send notifications to company emails`);
+          await sgMail.send({
+            from: SENDGRID_FROM,
+            template_id: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
+            personalizations: personalizations
+          });
+          console.log(`✅ Successfully sent notifications to all company emails`);
+        } catch (emailError) {
+          console.error(`❌ Failed to send company notifications:`, emailError);
+          if (emailError.response) {
+            console.error(`Response body:`, emailError.response.body);
+          }
+        }
+
+        emailSent = true;
+        console.log('Booking confirmation emails sent successfully via SendGrid');
+      } catch (sendgridError) {
+        console.error('SendGrid failed:', sendgridError);
+
+        // Check if it's a credits exceeded error
+        if (sendgridError.response?.body?.errors?.[0]?.message?.includes('Maximum credits exceeded')) {
+          console.error('SendGrid credits exceeded - need to upgrade plan or add credits');
+        }
+
+        // Continue to fallback method
+      }
+    }
+
+    // If SendGrid failed or isn't configured, log the booking details for manual follow-up
+    if (!emailSent) {
+      console.log('EMAIL SERVICE UNAVAILABLE - MANUAL FOLLOW-UP REQUIRED');
+      console.log('Booking Details for Manual Email:');
+      console.log(`- Booking ID: ${booking.id}`);
+      console.log(`- Customer: ${booking.customer_name} (${booking.customer_email})`);
+      console.log(`- Tour: ${tourName}`);
+      console.log(`- Date: ${formattedDate} at ${booking.booking_time}`);
+      console.log(`- Participants: ${booking.adults} adults, ${booking.children || 0} children`);
+      console.log(`- Amount: ¥${totalAmountFormatted}`);
+      console.log('- Meeting Point:', meetingPoint.location);
+
+      // Store failed email attempt in database for follow-up
+      try {
+        await supabase
+          .from('email_failures')
+          .insert({
+            booking_id: booking.id,
+            customer_email: booking.customer_email,
+            email_type: 'booking_confirmation',
+            failure_reason: 'SendGrid credits exceeded',
+            booking_details: {
+              tourName,
+              tourDate: formattedDate,
+              tourTime: booking.booking_time,
+              adults: booking.adults,
+              children: booking.children || 0,
+              totalAmount: `¥${totalAmountFormatted}`,
+              meetingPoint
+            },
+            created_at: new Date().toISOString()
+          });
+        console.log('Email failure logged for manual follow-up');
+      } catch (logError) {
+        console.error('Failed to log email failure:', logError);
+      }
+    }
+
+  } catch (error) {
+    console.error('Failed to send booking emails:', error);
+    // Don't throw error as payment was successful
+  }
+}
+
+/**
+ * Trigger Bokun sync via separate Edge Function (async, non-blocking)
+ */
+async function triggerBokunSync(bookingId: number) {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!supabaseUrl || !serviceKey) {
+      console.log('Supabase configuration not available for Bokun sync')
+      return
+    }
+
+    // Call the sync-bokun-booking Edge Function
+    const response = await fetch(`${supabaseUrl}/functions/v1/sync-bokun-booking`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceKey}`
+      },
+      body: JSON.stringify({ bookingId })
+    })
+
+    if (!response.ok) {
+      console.error('Failed to trigger Bokun sync:', await response.text())
+    } else {
+      console.log(`Bokun sync triggered for booking ${bookingId}`)
+    }
+
+  } catch (error) {
+    console.error('Error triggering Bokun sync:', error)
+    // Don't throw - this is a background operation
+  }
+}
 
 Deno.serve(async (req) => {
     // Handle CORS
@@ -190,6 +477,28 @@ async function handlePaymentSucceeded(paymentIntent: any) {
             console.error('Error updating booking after successful payment:', error);
         } else {
             console.log(`Booking ${bookingId} confirmed via Stripe webhook`);
+            
+            // Fetch complete booking details for email sending
+            const { data: booking, error: fetchError } = await supabase
+                .from('bookings')
+                .select('*')
+                .eq('id', parseInt(bookingId))
+                .single();
+
+            if (fetchError || !booking) {
+                console.error('Failed to fetch booking details for email:', fetchError);
+            } else {
+                console.log(`Fetched booking details for email - paid_amount: ${booking.paid_amount}, status: ${booking.status}`);
+                
+                // Send confirmation emails
+                await sendBookingEmails(supabase, booking);
+                
+                // Trigger Bokun sync (async, don't block webhook processing)
+                triggerBokunSync(booking.id).catch(error => {
+                    console.error('Failed to trigger Bokun sync:', error);
+                    // Log error but don't fail the webhook process
+                });
+            }
         }
     } catch (error) {
         console.error('Error handling payment succeeded:', error);
