@@ -166,7 +166,7 @@ const Recommendations: React.FC = () => {
             ]
         },
         {
-            title: "Kyoto Night Life",
+            title: "Kyoto Bars",
             items: [
                 {
                     image: shareHappiness,

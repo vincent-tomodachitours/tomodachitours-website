@@ -46,6 +46,24 @@ export const refundSchema = z.object({
     email: z.string().email()
 })
 
+// Booking request validation schema
+export const bookingRequestSchema = z.object({
+    tour_type: z.string().min(1),
+    booking_date: dateSchema,
+    booking_time: timeSchema,
+    adults: countSchema.min(1),
+    children: countSchema,
+    infants: countSchema.optional(),
+    customer_name: nameSchema,
+    customer_email: emailSchema,
+    customer_phone: phoneSchema.optional(),
+    payment_method_id: z.string().min(1, "Payment method ID is required"),
+    total_amount: priceSchema,
+    discount_code: discountCodeSchema,
+    original_amount: priceSchema.optional(),
+    special_requests: z.string().max(500).optional()
+});
+
 // Charge validation schema
 export const chargeSchema = z.object({
     tourId: z.string().uuid(),

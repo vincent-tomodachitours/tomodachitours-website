@@ -23,8 +23,7 @@ import nightTour from "../IMG/Night-Tour/1.webp"
 import morningTour from "../IMG/Morning-Tour/IMG_7260 2.webp"
 import ujiTour from "../IMG/Uji-Tour/icecream.webp"
 import gionTour from "../IMG/Gion-Tour/geisha.webp"
-import musicTour from "../IMG/Music-Tour/1.webp"
-import musicPerformance from "../IMG/Music-Tour/5.webp"
+
 
 interface LoadingOrErrorStateProps {
     isLoading: boolean;
@@ -333,30 +332,7 @@ const Home: React.FC = () => {
                             badge="Best Seller"
                             duration={tours['morning-tour']['tour-duration']}
                         />
-                        <TourCard
-                            image={musicTour}
-                            imageAlt="Traditional music performance in Kyoto"
-                            title={tours['music-tour']['tour-title']}
-                            description={tours['music-tour']['tour-description']}
-                            price={`¥ ${tours['music-tour']['tour-price'].toLocaleString('en-US')}`}
-                            originalPrice={tours['music-tour']['original-price']}
-                            showOriginalPrice={tours['music-tour']['original-price'] !== tours['music-tour']['tour-price']}
-                            link="/tours/kyoto-music-culture-walking-tour"
-                            badge="NEW TOUR"
-                            duration={tours['music-tour']['tour-duration']}
-                        />
-                        <TourCard
-                            image={musicPerformance}
-                            imageAlt="Live music performance experience in Kyoto"
-                            title={tours['music-performance']['tour-title']}
-                            description={tours['music-performance']['tour-description']}
-                            price={`¥ ${tours['music-performance']['tour-price'].toLocaleString('en-US')}`}
-                            originalPrice={tours['music-performance']['original-price']}
-                            showOriginalPrice={tours['music-performance']['original-price'] !== tours['music-performance']['tour-price']}
-                            link="/tours/kyoto-live-music-performance"
-                            badge="NEW TOUR"
-                            duration={tours['music-performance']['tour-duration']}
-                        />
+
                         <TourCard
                             image={ujiTour}
                             imageAlt="Matcha on ice cream"
