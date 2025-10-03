@@ -23,6 +23,7 @@ import nightTour from "../IMG/Night-Tour/1.webp"
 import morningTour from "../IMG/Morning-Tour/IMG_7260 2.webp"
 import ujiTour from "../IMG/Uji-Tour/icecream.webp"
 import gionTour from "../IMG/Gion-Tour/geisha.webp"
+import musicTour from "../IMG/Music-Tour/1.webp"
 
 
 interface LoadingOrErrorStateProps {
@@ -309,52 +310,75 @@ const Home: React.FC = () => {
                     </div>
 
                     <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 max-w-7xl mx-auto'>
-                        <TourCard
-                            image={nightTour}
-                            imageAlt="Couple walking through torii gates"
-                            title={tours['night-tour']['tour-title']}
-                            description={tours['night-tour']['tour-description']}
-                            price={`¥ ${tours['night-tour']['tour-price'].toLocaleString('en-US')}`}
-                            originalPrice={tours['night-tour']['original-price']}
-                            showOriginalPrice={true}
-                            link="/tours/kyoto-fushimi-inari-night-walking-tour"
-                            duration={tours['night-tour']['tour-duration']}
-                        />
-                        <TourCard
-                            image={morningTour}
-                            imageAlt="Couple posing in front of torii gates"
-                            title={tours['morning-tour']['tour-title']}
-                            description={tours['morning-tour']['tour-description']}
-                            price={`¥ ${tours['morning-tour']['tour-price'].toLocaleString('en-US')}`}
-                            originalPrice={tours['morning-tour']['original-price']}
-                            showOriginalPrice={true}
-                            link="/tours/kyoto-early-bird-english-tour"
-                            badge="Best Seller"
-                            duration={tours['morning-tour']['tour-duration']}
-                        />
+                        {tours['night-tour'] && (
+                            <TourCard
+                                image={nightTour}
+                                imageAlt="Couple walking through torii gates"
+                                title={tours['night-tour']['tour-title']}
+                                description={tours['night-tour']['tour-description']}
+                                price={`¥ ${tours['night-tour']['tour-price'].toLocaleString('en-US')}`}
+                                originalPrice={tours['night-tour']['original-price']}
+                                showOriginalPrice={true}
+                                link="/tours/kyoto-fushimi-inari-night-walking-tour"
+                                duration={tours['night-tour']['tour-duration']}
+                            />
+                        )}
+                        {tours['morning-tour'] && (
+                            <TourCard
+                                image={morningTour}
+                                imageAlt="Couple posing in front of torii gates"
+                                title={tours['morning-tour']['tour-title']}
+                                description={tours['morning-tour']['tour-description']}
+                                price={`¥ ${tours['morning-tour']['tour-price'].toLocaleString('en-US')}`}
+                                originalPrice={tours['morning-tour']['original-price']}
+                                showOriginalPrice={true}
+                                link="/tours/kyoto-early-bird-english-tour"
+                                badge="Best Seller"
+                                duration={tours['morning-tour']['tour-duration']}
+                            />
+                        )}
 
-                        <TourCard
-                            image={ujiTour}
-                            imageAlt="Matcha on ice cream"
-                            title={tours['uji-tour']['tour-title']}
-                            description={tours['uji-tour']['tour-description']}
-                            price={`¥ ${tours['uji-tour']['tour-price'].toLocaleString('en-US')}`}
-                            originalPrice={tours['uji-tour']['original-price']}
-                            showOriginalPrice={false}
-                            link="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto"
-                            duration={tours['uji-tour']['tour-duration']}
-                        />
-                        <TourCard
-                            image={gionTour}
-                            imageAlt="Geisha walking through hanamichi"
-                            title={tours['gion-tour']['tour-title']}
-                            description={tours['gion-tour']['tour-description']}
-                            price={`¥ ${tours['gion-tour']['tour-price'].toLocaleString('en-US')}`}
-                            originalPrice={tours['gion-tour']['original-price']}
-                            showOriginalPrice={false}
-                            link="/tours/kyoto-gion-early-morning-walking-tour"
-                            duration={tours['gion-tour']['tour-duration']}
-                        />
+                        {tours['uji-tour'] && (
+                            <TourCard
+                                image={ujiTour}
+                                imageAlt="Matcha on ice cream"
+                                title={tours['uji-tour']['tour-title']}
+                                description={tours['uji-tour']['tour-description']}
+                                price={`¥ ${tours['uji-tour']['tour-price'].toLocaleString('en-US')}`}
+                                originalPrice={tours['uji-tour']['original-price']}
+                                showOriginalPrice={false}
+                                link="/tours/matcha-grinding-experience-and-walking-tour-in-uji-kyoto"
+                                duration={tours['uji-tour']['tour-duration']}
+                            />
+                        )}
+                        {tours['gion-tour'] && (
+                            <TourCard
+                                image={gionTour}
+                                imageAlt="Geisha walking through hanamichi"
+                                title={tours['gion-tour']['tour-title']}
+                                description={tours['gion-tour']['tour-description']}
+                                price={`¥ ${tours['gion-tour']['tour-price'].toLocaleString('en-US')}`}
+                                originalPrice={tours['gion-tour']['original-price']}
+                                showOriginalPrice={false}
+                                link="/tours/kyoto-gion-early-morning-walking-tour"
+                                duration={tours['gion-tour']['tour-duration']}
+                            />
+                        )}
+                        {/* TEST: This tour card should NOT appear since 'music-tour' doesn't exist in the database */}
+                        {tours['music-tour'] && (
+                            <TourCard
+                                image={musicTour}
+                                imageAlt="Traditional Japanese music performance"
+                                title={tours['music-tour']['tour-title']}
+                                description={tours['music-tour']['tour-description']}
+                                price={`¥ ${tours['music-tour']['tour-price'].toLocaleString('en-US')}`}
+                                originalPrice={tours['music-tour']['original-price']}
+                                showOriginalPrice={false}
+                                link="/tours/kyoto-traditional-music-experience"
+                                duration={tours['music-tour']['tour-duration']}
+                                badge="NEW TOUR"
+                            />
+                        )}
                     </div>
                 </div>
             </main>
