@@ -3,7 +3,7 @@ export type EmployeeRole = 'admin' | 'manager' | 'tour_guide' | 'support';
 export type EmployeeStatus = 'active' | 'inactive' | 'suspended' | 'terminated';
 export type ShiftStatus = 'available' | 'assigned' | 'unavailable' | 'completed' | 'cancelled';
 export type TourType = 'NIGHT_TOUR' | 'MORNING_TOUR' | 'UJI_TOUR' | 'UJI_WALKING_TOUR' | 'GION_TOUR' | 'MUSIC_TOUR';
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'REFUNDED';
+export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'REFUNDED' | 'PENDING_CONFIRMATION' | 'REJECTED';
 
 // Employee interface
 export interface Employee {

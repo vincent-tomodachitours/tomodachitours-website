@@ -81,11 +81,13 @@ const AnalyticsDashboard: React.FC = () => {
         'MUSIC_TOUR': '#EC4899'
     };
 
-    const statusColors = {
+    const statusColors: Record<string, string> = {
         'PENDING': '#F59E0B',
         'CONFIRMED': '#10B981',
         'CANCELLED': '#EF4444',
-        'REFUNDED': '#6B7280'
+        'REFUNDED': '#6B7280',
+        'PENDING_CONFIRMATION': '#F97316',
+        'REJECTED': '#DC2626'
     };
 
     const handleExport = async (exportFormat: 'json' | 'csv') => {

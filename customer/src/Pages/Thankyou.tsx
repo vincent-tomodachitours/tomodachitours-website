@@ -1,16 +1,48 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import Header1 from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import SEO from '../components/SEO'
 import { seoData } from '../data/seoData'
 import { ReactComponent as CheckCircle } from '../SVG/check-circle.svg'
+import { ReactComponent as InfoCircle } from '../SVG/info-circle.svg'
 import { ReactComponent as Instagram } from '../SVG/instagram.svg'
 import { ReactComponent as Whatsapp } from '../SVG/whatsapp.svg'
 import { Link } from 'react-router-dom'
 import gtmService from '../services/gtmService'
 
 const Thankyou: React.FC = () => {
+    const [isBookingRequest, setIsBookingRequest] = useState(false);
+    const [requestData, setRequestData] = useState<any>(null);
+
     useEffect(() => {
+        // Check if this is a booking request
+        const bookingRequestSubmitted = sessionStorage.getItem('booking_request_submitted');
+        const bookingRequestDataStr = sessionStorage.getItem('booking_request_data');
+        
+        if (bookingRequestSubmitted === 'true' && bookingRequestDataStr) {
+            try {
+                const data = JSON.parse(bookingRequestDataStr);
+                setIsBookingRequest(true);
+                setRequestData(data);
+                
+                // Clean up session storage for booking requests
+                setTimeout(() => {
+                    sessionStorage.removeItem('booking_request_submitted');
+                    sessionStorage.removeItem('booking_request_data');
+                }, 2000);
+                
+                return; // Don't run the purchase tracking for booking requests
+            } catch (error) {
+                console.warn('Failed to parse booking request data:', error);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        // Only run purchase tracking for confirmed bookings, not requests
+        if (isBookingRequest) {
+            return;
+        }
         const trackPurchaseConversion = async () => {
             // Get transaction data from sessionStorage (set during payment) - moved outside try block for catch block access
             const transactionId = sessionStorage.getItem('booking_transaction_id') || `txn_${Date.now()}`;
@@ -238,42 +270,97 @@ const Thankyou: React.FC = () => {
                 <div className='max-w-3xl mx-auto flex flex-col items-center text-center'>
                     {/* Success Animation Container */}
                     <div className='mb-8 relative'>
-                        <div className='absolute -inset-4 bg-emerald-100 rounded-full animate-pulse'></div>
-                        <CheckCircle className='w-24 h-24 md:w-28 md:h-28 text-emerald-500 relative' />
+                        {isBookingRequest ? (
+                            <>
+                                <div className='absolute -inset-4 bg-blue-100 rounded-full animate-pulse'></div>
+                                <InfoCircle className='w-24 h-24 md:w-28 md:h-28 text-blue-500 relative' />
+                            </>
+                        ) : (
+                            <>
+                                <div className='absolute -inset-4 bg-emerald-100 rounded-full animate-pulse'></div>
+                                <CheckCircle className='w-24 h-24 md:w-28 md:h-28 text-emerald-500 relative' />
+                            </>
+                        )}
                     </div>
 
                     {/* Main Content */}
                     <div className='space-y-6 mb-12'>
                         <div className='space-y-3'>
                             <h1 className='text-3xl md:text-4xl font-bold text-gray-900 font-roboto'>
-                                Booking Confirmed!
+                                {isBookingRequest ? 'Request Submitted!' : 'Booking Confirmed!'}
                             </h1>
-                            <p className='text-xl text-emerald-600 font-medium'>
+                            <p className={`text-xl font-medium ${isBookingRequest ? 'text-blue-600' : 'text-emerald-600'}`}>
                                 Thank you for choosing Tomodachi Tours
                             </p>
                         </div>
 
                         <div className='bg-white rounded-2xl p-8 shadow-lg border border-gray-100 max-w-2xl mx-auto'>
                             <div className='space-y-4 text-left'>
-                                <div className='border-b border-gray-100 pb-4'>
-                                    <h2 className='text-lg font-semibold text-gray-800 mb-2'>Next Steps</h2>
-                                    <p className='text-gray-600'>We've sent a confirmation email with your booking details</p>
-                                </div>
-                                <div className='space-y-3 pt-2'>
-                                    <p className='text-gray-600 flex items-start'>
-                                        <span className='text-emerald-500 mr-2'>•</span>
-                                        Your tour guide will contact you via WhatsApp approximately 48 hours before your tour
-                                    </p>
-                                    <div className='flex items-start'>
-                                        <span className='text-emerald-500 mr-2'>•</span>
-                                        <p className='text-gray-600'>
-                                            If you don't receive the confirmation email within 24 hours, contact us at{' '}
-                                            <a href="mailto:contact@tomodachitours.com" className='text-blue-600 hover:text-blue-700'>
-                                                contact@tomodachitours.com
-                                            </a>
-                                        </p>
-                                    </div>
-                                </div>
+                                {isBookingRequest ? (
+                                    <>
+                                        <div className='border-b border-gray-100 pb-4'>
+                                            <h2 className='text-lg font-semibold text-gray-800 mb-2'>What Happens Next</h2>
+                                            <p className='text-gray-600'>Your booking request is being reviewed by our team</p>
+                                        </div>
+                                        {requestData && (
+                                            <div className='bg-blue-50 rounded-lg p-4 mb-4'>
+                                                <h3 className='font-semibold text-blue-900 mb-2'>Request Details</h3>
+                                                <div className='text-sm text-blue-800 space-y-1'>
+                                                    <p><strong>Tour:</strong> {requestData.tourName}</p>
+                                                    <p><strong>Date:</strong> {requestData.bookingDate}</p>
+                                                    <p><strong>Time:</strong> {requestData.bookingTime}</p>
+                                                    <p><strong>Participants:</strong> {requestData.adults} adults{requestData.children > 0 && `, ${requestData.children} children`}{requestData.infants > 0 && `, ${requestData.infants} infants`}</p>
+                                                    <p><strong>Total Amount:</strong> ¥{requestData.totalAmount?.toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className='space-y-3 pt-2'>
+                                            <p className='text-gray-600 flex items-start'>
+                                                <span className='text-blue-500 mr-2'>•</span>
+                                                We'll review your request and confirm availability within 24 hours
+                                            </p>
+                                            <p className='text-gray-600 flex items-start'>
+                                                <span className='text-blue-500 mr-2'>•</span>
+                                                You'll receive an email notification once your booking is approved or if we need more information
+                                            </p>
+                                            <p className='text-gray-600 flex items-start'>
+                                                <span className='text-blue-500 mr-2'>•</span>
+                                                Your payment method is securely stored but won't be charged until your booking is confirmed
+                                            </p>
+                                            <div className='flex items-start'>
+                                                <span className='text-blue-500 mr-2'>•</span>
+                                                <p className='text-gray-600'>
+                                                    Questions? Contact us at{' '}
+                                                    <a href="mailto:contact@tomodachitours.com" className='text-blue-600 hover:text-blue-700'>
+                                                        contact@tomodachitours.com
+                                                    </a>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className='border-b border-gray-100 pb-4'>
+                                            <h2 className='text-lg font-semibold text-gray-800 mb-2'>Next Steps</h2>
+                                            <p className='text-gray-600'>We've sent a confirmation email with your booking details</p>
+                                        </div>
+                                        <div className='space-y-3 pt-2'>
+                                            <p className='text-gray-600 flex items-start'>
+                                                <span className='text-emerald-500 mr-2'>•</span>
+                                                Your tour guide will contact you via WhatsApp approximately 48 hours before your tour
+                                            </p>
+                                            <div className='flex items-start'>
+                                                <span className='text-emerald-500 mr-2'>•</span>
+                                                <p className='text-gray-600'>
+                                                    If you don't receive the confirmation email within 24 hours, contact us at{' '}
+                                                    <a href="mailto:contact@tomodachitours.com" className='text-blue-600 hover:text-blue-700'>
+                                                        contact@tomodachitours.com
+                                                    </a>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -326,10 +413,21 @@ const Thankyou: React.FC = () => {
                     {/* Cancellation Link */}
                     <div className='bg-gray-50 px-6 py-3 rounded-xl'>
                         <p className="text-gray-600">
-                            Need to cancel your booking?
-                            <Link to="/cancel-booking" className="text-blue-600 hover:text-blue-700 ml-2 underline font-medium">
-                                Cancel here
-                            </Link>
+                            {isBookingRequest ? (
+                                <>
+                                    Need to modify or cancel your request?
+                                    <a href="mailto:contact@tomodachitours.com" className="text-blue-600 hover:text-blue-700 ml-2 underline font-medium">
+                                        Contact us
+                                    </a>
+                                </>
+                            ) : (
+                                <>
+                                    Need to cancel your booking?
+                                    <Link to="/cancel-booking" className="text-blue-600 hover:text-blue-700 ml-2 underline font-medium">
+                                        Cancel here
+                                    </Link>
+                                </>
+                            )}
                         </p>
                     </div>
                 </div>

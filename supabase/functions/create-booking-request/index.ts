@@ -7,6 +7,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { validateRequest, bookingRequestSchema, addSecurityHeaders, sanitizeOutput } from '../validation-middleware/index.ts'
 import sgMail from "npm:@sendgrid/mail"
+import { BookingRequestLogger, BookingRequestEventType } from '../_shared/booking-request-logger.ts'
+import { AdminNotificationService } from '../_shared/admin-notification-service.ts'
+import { BookingRequestErrorHandler } from '../_shared/error-handler.ts'
+import { RetryService } from '../_shared/retry-service.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,11 +27,9 @@ if (SENDGRID_API_KEY) {
 }
 
 // SendGrid template IDs for booking requests
-// NOTE: These template IDs need to be updated once templates are created in SendGrid
-// See EMAIL_TEMPLATES.md for template creation instructions
 const SENDGRID_TEMPLATES = {
-  REQUEST_CONFIRMATION: 'd-booking-request-confirmation', // Customer confirmation template
-  ADMIN_NOTIFICATION: 'd-booking-request-admin-notification' // Admin notification template
+  REQUEST_CONFIRMATION: 'd-ab9af3697fa443a6a248b787da1c4533', // Customer confirmation template
+  ADMIN_NOTIFICATION: 'd-e3a27de126df45908ad6036088fb9c15' // Admin notification template
 }
 
 // SendGrid sender config
@@ -83,9 +85,16 @@ async function getTourDetails(supabase: any, tourType: string): Promise<{ name: 
 }
 
 /**
- * Send booking request confirmation emails
+ * Send booking request confirmation emails with enhanced error handling
  */
-async function sendRequestEmails(supabase: any, booking: any, tourDetails: any) {
+async function sendRequestEmailsWithErrorHandling(
+  supabase: any, 
+  booking: any, 
+  tourDetails: any, 
+  logger: BookingRequestLogger,
+  errorHandler: BookingRequestErrorHandler,
+  correlationId: string
+) {
   try {
     // Helper function to escape special characters for Handlebars
     const escapeHandlebars = (str: string) => {
@@ -109,150 +118,181 @@ async function sendRequestEmails(supabase: any, booking: any, tourDetails: any) 
 
     const totalAmountFormatted = booking.total_amount.toLocaleString();
 
-    let emailSent = false;
-
     if (SENDGRID_API_KEY) {
-      try {
-        // Send customer request confirmation email
-        await sgMail.send({
-          to: booking.customer_email,
-          from: SENDGRID_FROM,
-          template_id: SENDGRID_TEMPLATES.REQUEST_CONFIRMATION,
-          personalizations: [{
-            to: [{ email: booking.customer_email }],
-            dynamic_template_data: {
-              bookingId: booking.id.toString(),
-              tourName: escapeHandlebars(tourDetails.name),
-              tourDate: escapeHandlebars(formattedDate),
-              tourTime: escapeHandlebars(booking.booking_time),
-              adults: booking.adults,
-              children: booking.children || 0,
-              infants: booking.infants || 0,
-              totalAmount: `¥${totalAmountFormatted}`,
-              customerName: escapeHandlebars(booking.customer_name),
-              specialRequests: escapeHandlebars(booking.special_requests || ''),
-              meetingPoint: {
-                location: escapeHandlebars(tourDetails.meetingPoint.location),
-                google_maps_url: tourDetails.meetingPoint.google_maps_url,
-                additional_info: escapeHandlebars(tourDetails.meetingPoint.additional_info || '')
+      // Send customer confirmation email with retry
+      const customerEmailResult = await RetryService.retryEmailSending(
+        async () => {
+          await sgMail.send({
+            to: booking.customer_email,
+            from: SENDGRID_FROM,
+            template_id: SENDGRID_TEMPLATES.REQUEST_CONFIRMATION,
+            personalizations: [{
+              to: [{ email: booking.customer_email }],
+              dynamic_template_data: {
+                bookingId: booking.id.toString(),
+                tourName: escapeHandlebars(tourDetails.name),
+                tourDate: escapeHandlebars(formattedDate),
+                tourTime: escapeHandlebars(booking.booking_time),
+                adults: booking.adults,
+                children: booking.children || 0,
+                infants: booking.infants || 0,
+                totalAmount: `¥${totalAmountFormatted}`,
+                customerName: escapeHandlebars(booking.customer_name),
+                specialRequests: escapeHandlebars(booking.special_requests || ''),
+                meetingPoint: {
+                  location: escapeHandlebars(tourDetails.meetingPoint.location),
+                  google_maps_url: tourDetails.meetingPoint.google_maps_url,
+                  additional_info: escapeHandlebars(tourDetails.meetingPoint.additional_info || '')
+                }
               }
-            }
-          }]
-        });
+            }]
+          });
+          return true;
+        },
+        'customer-confirmation',
+        booking.id
+      );
 
-        // Send admin notification emails
-        const adminEmails = [
-          'spirivincent03@gmail.com',
-          'contact@tomodachitours.com',
-          'yutaka.m@tomodachitours.com'
-        ];
+      if (customerEmailResult.success) {
+        await logger.logEmailSent(
+          booking.id,
+          'booking_request_confirmation',
+          booking.customer_email,
+          SENDGRID_TEMPLATES.REQUEST_CONFIRMATION
+        );
+      } else {
+        await errorHandler.handleEmailError(
+          customerEmailResult.error || new Error('Unknown email error'),
+          booking.id,
+          'booking_request_confirmation',
+          booking.customer_email,
+          customerEmailResult.attempts - 1
+        );
+      }
 
-        const now = new Date();
-        const adminNotificationData = {
-          bookingId: booking.id.toString(),
-          tourName: escapeHandlebars(tourDetails.name),
-          customerName: escapeHandlebars(booking.customer_name),
-          customerEmail: escapeHandlebars(booking.customer_email),
-          customerPhone: escapeHandlebars(booking.customer_phone || ''),
-          tourDate: escapeHandlebars(formattedDate),
-          tourTime: escapeHandlebars(booking.booking_time),
-          adults: booking.adults,
-          children: booking.children || 0,
-          infants: booking.infants || 0,
-          totalAmount: `¥${totalAmountFormatted}`,
-          specialRequests: escapeHandlebars(booking.special_requests || ''),
-          requestedDate: escapeHandlebars(now.toLocaleDateString('en-US', { 
-            weekday: 'short', 
-            year: 'numeric', 
-            month: 'long', 
-            day: '2-digit' 
-          })),
-          requestedTime: escapeHandlebars(now.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })),
-          meetingPoint: {
-            location: escapeHandlebars(tourDetails.meetingPoint.location),
-            google_maps_url: tourDetails.meetingPoint.google_maps_url,
-            additional_info: escapeHandlebars(tourDetails.meetingPoint.additional_info || '')
-          }
-        };
+      // Send admin notification emails with retry
+      const adminEmails = [
+        'spirivincent03@gmail.com',
+        'contact@tomodachitours.com',
+        'yutaka.m@tomodachitours.com'
+      ];
 
-        // Send admin notification emails
-        const personalizations = adminEmails.map(email => ({
-          to: [{ email: email }],
-          dynamic_template_data: adminNotificationData
-        }));
+      const now = new Date();
+      const adminNotificationData = {
+        bookingId: booking.id.toString(),
+        tourName: escapeHandlebars(tourDetails.name),
+        customerName: escapeHandlebars(booking.customer_name),
+        customerEmail: escapeHandlebars(booking.customer_email),
+        customerPhone: escapeHandlebars(booking.customer_phone || ''),
+        tourDate: escapeHandlebars(formattedDate),
+        tourTime: escapeHandlebars(booking.booking_time),
+        adults: booking.adults,
+        children: booking.children || 0,
+        infants: booking.infants || 0,
+        totalAmount: `¥${totalAmountFormatted}`,
+        specialRequests: escapeHandlebars(booking.special_requests || ''),
+        requestedDate: escapeHandlebars(now.toLocaleDateString('en-US', { 
+          weekday: 'short', 
+          year: 'numeric', 
+          month: 'long', 
+          day: '2-digit' 
+        })),
+        requestedTime: escapeHandlebars(now.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })),
+        meetingPoint: {
+          location: escapeHandlebars(tourDetails.meetingPoint.location),
+          google_maps_url: tourDetails.meetingPoint.google_maps_url,
+          additional_info: escapeHandlebars(tourDetails.meetingPoint.additional_info || '')
+        }
+      };
 
-        try {
-          console.log(`Sending admin notifications for booking request ${booking.id}`);
+      const adminEmailResult = await RetryService.retryEmailSending(
+        async () => {
+          const personalizations = adminEmails.map(email => ({
+            to: [{ email: email }],
+            dynamic_template_data: adminNotificationData
+          }));
+
           await sgMail.send({
             from: SENDGRID_FROM,
             template_id: SENDGRID_TEMPLATES.ADMIN_NOTIFICATION,
             personalizations: personalizations
           });
-          console.log(`✅ Successfully sent admin notifications for booking request ${booking.id}`);
-        } catch (emailError) {
-          console.error(`❌ Failed to send admin notifications:`, emailError);
-          if (emailError.response) {
-            console.error(`Response body:`, emailError.response.body);
-          }
-        }
+          return true;
+        },
+        'admin-notification',
+        booking.id
+      );
 
-        emailSent = true;
-        console.log('Booking request emails sent successfully via SendGrid');
-      } catch (sendgridError) {
-        console.error('SendGrid failed:', sendgridError);
-
-        // Check if it's a credits exceeded error
-        if (sendgridError.response?.body?.errors?.[0]?.message?.includes('Maximum credits exceeded')) {
-          console.error('SendGrid credits exceeded - need to upgrade plan or add credits');
-        }
+      if (adminEmailResult.success) {
+        await logger.logEmailSent(
+          booking.id,
+          'admin_booking_request_notification',
+          adminEmails.join(', '),
+          SENDGRID_TEMPLATES.ADMIN_NOTIFICATION
+        );
+        console.log(`[${correlationId}] ✅ Successfully sent admin notifications for booking request ${booking.id}`);
+      } else {
+        await errorHandler.handleEmailError(
+          adminEmailResult.error || new Error('Unknown email error'),
+          booking.id,
+          'admin_booking_request_notification',
+          adminEmails.join(', '),
+          adminEmailResult.attempts - 1
+        );
       }
-    }
 
-    // If SendGrid failed or isn't configured, log the booking details for manual follow-up
-    if (!emailSent) {
-      console.log('EMAIL SERVICE UNAVAILABLE - MANUAL FOLLOW-UP REQUIRED');
-      console.log('Booking Request Details for Manual Email:');
-      console.log(`- Booking ID: ${booking.id}`);
-      console.log(`- Customer: ${booking.customer_name} (${booking.customer_email})`);
-      console.log(`- Tour: ${tourDetails.name}`);
-      console.log(`- Date: ${formattedDate} at ${booking.booking_time}`);
-      console.log(`- Participants: ${booking.adults} adults, ${booking.children || 0} children`);
-      console.log(`- Amount: ¥${totalAmountFormatted}`);
-      console.log(`- Status: PENDING_CONFIRMATION (Request)`);
+      console.log(`[${correlationId}] Booking request emails processed`);
+    } else {
+      // SendGrid not configured - log as system error
+      await logger.logSystemError(
+        booking.id,
+        'email_service_configuration',
+        'SendGrid API key not configured',
+        'SENDGRID_NOT_CONFIGURED'
+      );
 
       // Store failed email attempt in database for follow-up
-      try {
-        await supabase
-          .from('email_failures')
-          .insert({
-            booking_id: booking.id,
-            customer_email: booking.customer_email,
-            email_type: 'booking_request_confirmation',
-            failure_reason: 'SendGrid unavailable or credits exceeded',
-            booking_details: {
-              tourName: tourDetails.name,
-              tourDate: formattedDate,
-              tourTime: booking.booking_time,
-              adults: booking.adults,
-              children: booking.children || 0,
-              totalAmount: `¥${totalAmountFormatted}`,
-              status: 'PENDING_CONFIRMATION',
-              meetingPoint: tourDetails.meetingPoint
-            },
-            created_at: new Date().toISOString()
-          });
-        console.log('Email failure logged for manual follow-up');
-      } catch (logError) {
-        console.error('Failed to log email failure:', logError);
-      }
+      await supabase
+        .from('email_failures')
+        .insert({
+          booking_id: booking.id,
+          customer_email: booking.customer_email,
+          email_type: 'booking_request_confirmation',
+          failure_reason: 'SendGrid API key not configured',
+          booking_details: {
+            tourName: tourDetails.name,
+            tourDate: formattedDate,
+            tourTime: booking.booking_time,
+            adults: booking.adults,
+            children: booking.children || 0,
+            totalAmount: `¥${totalAmountFormatted}`,
+            status: 'PENDING_PAYMENT',
+            meetingPoint: tourDetails.meetingPoint
+          },
+          created_at: new Date().toISOString()
+        });
+
+      console.log(`[${correlationId}] EMAIL SERVICE UNAVAILABLE - MANUAL FOLLOW-UP REQUIRED`);
     }
 
   } catch (error) {
-    console.error('Failed to send booking request emails:', error);
-    // Don't throw error as booking request creation was successful
+    await errorHandler.handleError(
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        bookingId: booking.id,
+        operation: 'send_booking_request_emails',
+        customerEmail: booking.customer_email,
+        correlationId,
+        metadata: {
+          tour_name: tourDetails.name,
+          total_amount: booking.total_amount
+        }
+      },
+      { severity: 'HIGH', notifyAdmins: true }
+    );
   }
 }
 
@@ -260,23 +300,60 @@ async function sendRequestEmails(supabase: any, booking: any, tourDetails: any) 
  * Validate that the tour type is eligible for booking requests
  */
 function isUjiTour(tourType: string): boolean {
-  const ujiTourTypes = ['uji-tour', 'uji-walking-tour'];
+  const ujiTourTypes = [
+    'uji-tour', 
+    'uji-walking-tour',
+    'uji_tour',
+    'uji_walking_tour'
+  ];
   return ujiTourTypes.includes(tourType.toLowerCase());
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  // Initialize services
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') || '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+  )
+  
+  const logger = new BookingRequestLogger(supabase)
+  const adminNotificationService = new AdminNotificationService(supabase, {
+    adminEmails: [
+      'spirivincent03@gmail.com',
+      'contact@tomodachitours.com',
+      'yutaka.m@tomodachitours.com'
+    ],
+    sendgridApiKey: SENDGRID_API_KEY,
+    fromEmail: SENDGRID_FROM.email,
+    fromName: SENDGRID_FROM.name
+  })
+  const errorHandler = new BookingRequestErrorHandler(supabase, adminNotificationService)
+
+  // Generate correlation ID for request tracking
+  const correlationId = `booking-request-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  logger.setCorrelationId(correlationId)
+
   try {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response('ok', { headers: corsHeaders })
     }
 
-    console.log('Received booking request')
+    console.log(`[${correlationId}] Received booking request`)
 
     // Validate request data
     const { data, error } = await validateRequest(req, bookingRequestSchema)
     if (error) {
       console.error('Validation error:', error)
+      
+      // Log validation error if we have booking context
+      await logger.logEvent(
+        0, // No booking ID yet
+        BookingRequestEventType.VALIDATION_ERROR,
+        `Request validation failed: ${error}`,
+        { validation_error: error, correlation_id: correlationId }
+      )
+      
       return new Response(
         JSON.stringify({ success: false, error }),
         {
@@ -287,6 +364,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (!data) {
+      await logger.logEvent(
+        0,
+        BookingRequestEventType.VALIDATION_ERROR,
+        'Invalid request data - no data provided',
+        { correlation_id: correlationId }
+      )
+      
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid request data' }),
         {
@@ -298,6 +382,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Validate that this is a Uji tour (booking requests are only for Uji tours)
     if (!isUjiTour(data.tour_type)) {
+      await logger.logEvent(
+        0,
+        BookingRequestEventType.VALIDATION_ERROR,
+        `Invalid tour type for booking request: ${data.tour_type}`,
+        { tour_type: data.tour_type, correlation_id: correlationId }
+      )
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -310,13 +401,7 @@ const handler = async (req: Request): Promise<Response> => {
       )
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') || '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    )
-
-    console.log('Creating booking request...')
+    console.log(`[${correlationId}] Creating booking request...`)
 
     // Create booking record with PENDING_CONFIRMATION status
     const bookingData = {
@@ -334,21 +419,44 @@ const handler = async (req: Request): Promise<Response> => {
       discount_code: data.discount_code || null,
       special_requests: data.special_requests || null,
       status: 'PENDING_CONFIRMATION',
-      request_submitted_at: new Date().toISOString(),
-      // Set tour_id to a default value (will be updated when we have proper tour management)
-      tour_id: 1,
-      // Set number_of_people for compatibility with existing schema
-      number_of_people: data.adults + (data.children || 0) + (data.infants || 0)
+      request_submitted_at: new Date().toISOString()
     };
 
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .insert(bookingData)
-      .select()
-      .single()
+    // Create booking with error handling and retry
+    const bookingResult = await RetryService.retryDatabaseOperation(
+      async () => {
+        const { data: booking, error: bookingError } = await supabase
+          .from('bookings')
+          .insert(bookingData)
+          .select()
+          .single()
 
-    if (bookingError) {
-      console.error('Failed to create booking request:', bookingError)
+        if (bookingError) {
+          throw new Error(`Database error: ${bookingError.message}`)
+        }
+
+        return booking
+      },
+      'create-booking-request'
+    )
+
+    if (!bookingResult.success || !bookingResult.result) {
+      const dbError = bookingResult.error || new Error('Unknown database error')
+      
+      await errorHandler.handleDatabaseError(
+        dbError,
+        'create_booking_request',
+        {
+          operation: 'create_booking_request',
+          customerEmail: data.customer_email,
+          correlationId,
+          metadata: {
+            tour_type: data.tour_type,
+            total_amount: data.total_amount
+          }
+        }
+      )
+
       return new Response(
         JSON.stringify({
           success: false,
@@ -361,38 +469,50 @@ const handler = async (req: Request): Promise<Response> => {
       )
     }
 
-    console.log(`Booking request created with ID: ${booking.id}`)
+    const booking = bookingResult.result
+    console.log(`[${correlationId}] Booking request created with ID: ${booking.id}`)
 
-    // Log the booking request event
+    // Log the booking request submission
+    await logger.logRequestSubmitted(
+      booking.id,
+      data.customer_email,
+      data.tour_type,
+      data.total_amount,
+      data.payment_method_id
+    )
+
+    // Get tour details for emails with error handling
+    let tourDetails
     try {
-      await supabase
-        .from('booking_request_events')
-        .insert({
-          booking_id: booking.id,
-          event_type: 'submitted',
-          event_data: {
-            tour_type: data.tour_type,
-            total_amount: data.total_amount,
-            adults: data.adults,
-            children: data.children || 0,
-            infants: data.infants || 0,
-            payment_method_id: data.payment_method_id
-          },
-          created_by: 'customer'
-        });
-      console.log(`Logged booking request event for booking ${booking.id}`);
-    } catch (eventError) {
-      console.error('Failed to log booking request event:', eventError);
-      // Don't fail the request creation for logging errors
+      tourDetails = await getTourDetails(supabase, data.tour_type)
+    } catch (tourError) {
+      await errorHandler.handleError(
+        tourError instanceof Error ? tourError : new Error(String(tourError)),
+        {
+          bookingId: booking.id,
+          operation: 'get_tour_details',
+          customerEmail: data.customer_email,
+          correlationId,
+          metadata: { tour_type: data.tour_type }
+        },
+        { severity: 'MEDIUM', notifyAdmins: false }
+      )
+      
+      // Use fallback tour details
+      tourDetails = {
+        name: data.tour_type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+        meetingPoint: {
+          location: '7-Eleven Heart-in - JR Kyoto Station Central Entrance Store',
+          google_maps_url: 'https://maps.app.goo.gl/EFbn55FvZ6VdaxXN9',
+          additional_info: 'Warning: There are multiple 7-Elevens at Kyoto station. The 7-Eleven for the meetup location is in the central exit of Kyoto station.'
+        }
+      }
     }
 
-    // Get tour details for emails
-    const tourDetails = await getTourDetails(supabase, data.tour_type);
+    // Send confirmation emails with enhanced error handling
+    await sendRequestEmailsWithErrorHandling(supabase, booking, tourDetails, logger, errorHandler, correlationId)
 
-    // Send confirmation emails
-    await sendRequestEmails(supabase, booking, tourDetails);
-
-    console.log('Booking request process completed successfully')
+    console.log(`[${correlationId}] Booking request process completed successfully`)
 
     // Return sanitized response
     return new Response(
@@ -411,11 +531,32 @@ const handler = async (req: Request): Promise<Response> => {
     )
 
   } catch (error) {
-    console.error('Booking request processing error:', error)
+    console.error(`[${correlationId}] Booking request processing error:`, error)
+    
+    // Handle critical system error
+    await errorHandler.handleError(
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        operation: 'create_booking_request_handler',
+        correlationId,
+        metadata: {
+          request_method: req.method,
+          user_agent: req.headers.get('user-agent'),
+          origin: req.headers.get('origin')
+        }
+      },
+      { 
+        severity: 'CRITICAL', 
+        notifyAdmins: true,
+        enableRetry: false // Don't retry the entire handler
+      }
+    );
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        correlation_id: correlationId
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

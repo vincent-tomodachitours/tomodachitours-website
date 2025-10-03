@@ -28,12 +28,116 @@ const hashCustomerData = async (data: string): Promise<string | null> => {
     }
 };
 
-const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, appliedDiscount, formRef, tourName, sheetId, tourDate: _tourDate, tourTime: _tourTime, adult: _adult, child: _child, infant: _infant, formData: _formData, paymentProcessing: _paymentProcessing, setPaymentProcessing, setIs3DSInProgress: _setIs3DSInProgress }, ref) => {
+const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, appliedDiscount, formRef, tourName, sheetId, tourDate: _tourDate, tourTime: _tourTime, adult: _adult, child: _child, infant: _infant, formData: _formData, paymentProcessing: _paymentProcessing, setPaymentProcessing, setIs3DSInProgress: _setIs3DSInProgress, isRequestTour = false }, ref) => {
     // eslint-disable-next-line no-unused-vars
     // const { primaryProvider } = usePaymentProvider(); // Removed unused variable
     const [paymentFailed, setPaymentFailed] = useState<boolean>(false);
     const [paymentStatus, setPaymentStatus] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+    const handleCreateBookingRequest = async (paymentMethodData: any): Promise<void> => {
+        try {
+            setPaymentStatus('Submitting booking request...');
+            setPaymentProcessing(true);
+            setIsProcessing(true);
+
+            // Validate required data
+            if (!paymentMethodData?.payment_method_id) {
+                throw new Error('Payment method is required');
+            }
+
+            if (!formRef.current?.email || !formRef.current?.name) {
+                throw new Error('Customer information is required');
+            }
+
+            if (!formRef.current?.date || !formRef.current?.time) {
+                throw new Error('Booking date and time are required');
+            }
+
+            // Convert sheetId to proper tour_type enum value
+            const convertToTourType = (sheetId: string): string => {
+                const typeMap: Record<string, string> = {
+                    'night-tour': 'NIGHT_TOUR',
+                    'morning-tour': 'MORNING_TOUR',
+                    'uji-tour': 'UJI_TOUR',
+                    'uji-walking-tour': 'UJI_WALKING_TOUR',
+                    'gion-tour': 'GION_TOUR',
+                    'music-tour': 'MUSIC_TOUR',
+                    'music-performance': 'MUSIC_PERFORMANCE'
+                };
+                return typeMap[sheetId] || sheetId.toUpperCase().replace('-', '_');
+            };
+
+            const requestData = {
+                tour_type: convertToTourType(sheetId),
+                booking_date: formRef.current.date,
+                booking_time: formRef.current.time,
+                customer_name: formRef.current.name,
+                customer_phone: formRef.current.phone,
+                customer_email: formRef.current.email,
+                adults: parseInt(formRef.current.adults),
+                children: parseInt(formRef.current.children) || 0,
+                infants: parseInt(formRef.current.infants) || 0,
+                total_amount: totalPrice,
+                discount_code: appliedDiscount?.code || null,
+                discount_amount: appliedDiscount ? (appliedDiscount.originalAmount - appliedDiscount.finalAmount) : null,
+                payment_method_id: paymentMethodData.payment_method_id
+            };
+
+            // Store request data locally in case of failure
+            try {
+                localStorage.setItem('pending_booking_request', JSON.stringify({
+                    ...requestData,
+                    timestamp: Date.now()
+                }));
+            } catch (storageError) {
+                console.warn('Failed to store request data locally:', storageError);
+            }
+
+            // Submit booking request to the create-booking-request function
+            const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/create-booking-request`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify(requestData),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                console.log('Booking request submitted successfully:', result);
+                handleBookingRequestSuccess(result);
+            } else {
+                console.error('Booking request failed:', result.error);
+                throw new Error(result.error || 'Failed to submit booking request');
+            }
+
+        } catch (error) {
+            setPaymentProcessing(false);
+            setIsProcessing(false);
+            setPaymentStatus('');
+            console.error("Error submitting booking request:", error);
+            
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            
+            // Provide user-friendly error messages
+            if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+                alert("Network error. Please check your connection and try again.");
+            } else if (errorMessage.includes('Payment method')) {
+                alert("There was an issue with your payment method. Please try again.");
+            } else if (errorMessage.includes('required')) {
+                alert("Please fill in all required fields and try again.");
+            } else {
+                alert(`Something went wrong submitting your booking request: ${errorMessage}`);
+            }
+        }
+    };
 
     const handleCreateBookingAndPayment = async (paymentData: any): Promise<void> => {
         try {
@@ -260,6 +364,52 @@ const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, ap
             setIsProcessing(false);
             setPaymentStatus('');
             alert('Payment succeeded but confirmation is taking longer than expected. Please check your email or contact support.');
+        }
+    };
+
+    const handleBookingRequestSuccess = async (data: any): Promise<void> => {
+        try {
+            // Store booking request data for confirmation page
+            const requestData = {
+                requestId: data.booking_id,
+                tourName: tourName,
+                tourId: sheetId,
+                bookingDate: formRef.current?.date,
+                bookingTime: formRef.current?.time,
+                totalAmount: totalPrice,
+                customerName: formRef.current?.name,
+                customerEmail: formRef.current?.email,
+                adults: formRef.current?.adults || 0,
+                children: formRef.current?.children || 0,
+                infants: formRef.current?.infants || 0,
+                discountApplied: appliedDiscount ? true : false,
+                discountAmount: appliedDiscount ? (appliedDiscount.originalAmount - appliedDiscount.finalAmount) : 0,
+                discountCode: appliedDiscount?.code || null
+            };
+
+            try {
+                sessionStorage.setItem('booking_request_data', JSON.stringify(requestData));
+                sessionStorage.setItem('booking_request_submitted', 'true');
+                // Clear the pending request data since it was successful
+                localStorage.removeItem('pending_booking_request');
+            } catch (error) {
+                console.warn('Failed to store booking request data:', error);
+            }
+
+            setPaymentStatus('Request submitted successfully! Redirecting...');
+            
+            setTimeout(() => {
+                setIsProcessing(false);
+                setPaymentProcessing(false);
+                // Redirect to a booking request confirmation page or modify thankyou page to handle requests
+                window.location.href = "/thankyou";
+            }, 1500);
+
+        } catch (error) {
+            console.error('Failed to handle booking request success:', error);
+            setPaymentProcessing(false);
+            setIsProcessing(false);
+            setPaymentStatus('');
         }
     };
 
@@ -512,10 +662,11 @@ const CardForm = forwardRef<any, CardFormProps>(({ totalPrice, originalPrice, ap
                 totalPrice={totalPrice}
                 originalPrice={originalPrice}
                 appliedDiscount={appliedDiscount}
-                onCreateBookingAndPayment={handleCreateBookingAndPayment}
+                onCreateBookingAndPayment={isRequestTour ? handleCreateBookingRequest : handleCreateBookingAndPayment}
                 onError={handlePaymentError}
                 onProcessing={handlePaymentProcessing}
                 isProcessing={isProcessing}
+                isRequestTour={isRequestTour}
             />
 
             {paymentFailed && (

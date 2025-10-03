@@ -18,7 +18,8 @@ const PaymentSection = ({
     formData,
     paymentProcessing,
     setPaymentProcessing,
-    setIs3DSInProgress
+    setIs3DSInProgress,
+    isRequestTour = false
 }: PaymentSectionProps) => {
     return (
         <div className='bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300'>
@@ -29,8 +30,16 @@ const PaymentSection = ({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                         </svg>
                     </div>
-                    <h2 className='font-inter text-xl font-semibold text-gray-900'>Payment Information</h2>
+                    <h2 className='font-inter text-xl font-semibold text-gray-900'>
+                        {isRequestTour ? 'Payment Method' : 'Payment Information'}
+                    </h2>
                 </div>
+                
+                {isRequestTour && (
+                    <div className="mb-4 text-sm text-gray-600">
+                        Your payment method will be securely stored but not charged until your booking is confirmed.
+                    </div>
+                )}
 
                 <CardForm
                     ref={childRef}
@@ -49,6 +58,7 @@ const PaymentSection = ({
                     paymentProcessing={paymentProcessing}
                     setPaymentProcessing={setPaymentProcessing}
                     setIs3DSInProgress={setIs3DSInProgress}
+                    isRequestTour={isRequestTour}
                 />
             </div>
         </div>

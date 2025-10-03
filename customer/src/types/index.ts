@@ -448,6 +448,7 @@ export interface PaymentSectionProps {
     paymentProcessing: boolean;
     setPaymentProcessing: (processing: boolean) => void;
     setIs3DSInProgress: (inProgress: boolean) => void;
+    isRequestTour?: boolean;
 }
 
 export interface StripePaymentFormProps {
@@ -458,6 +459,7 @@ export interface StripePaymentFormProps {
     onError: (error: string) => void;
     onProcessing: (message: string) => void;
     isProcessing: boolean;
+    isRequestTour?: boolean;
 }
 
 export interface CardFormProps {
@@ -476,6 +478,7 @@ export interface CardFormProps {
     paymentProcessing: boolean;
     setPaymentProcessing: (processing: boolean) => void;
     setIs3DSInProgress: (inProgress: boolean) => void;
+    isRequestTour?: boolean;
 }
 
 export interface PaymentProviderHook {

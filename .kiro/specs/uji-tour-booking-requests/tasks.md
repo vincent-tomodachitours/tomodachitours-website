@@ -36,59 +36,59 @@
     - Handle email delivery failures gracefully
     - _Requirements: 3.2, 3.3, 3.4_
 
-- [ ] 4. Modify frontend checkout flow for Uji tours
-  - [ ] 4.1 Add tour type detection logic to checkout
+- [x] 4. Modify frontend checkout flow for Uji tours
+  - [x] 4.1 Add tour type detection logic to checkout
     - Modify checkout component to detect Uji tour types
     - Implement conditional rendering for request vs instant booking flows
     - Update checkout button text and behavior for Uji tours
     - Add request confirmation messaging
     - _Requirements: 1.1, 1.2, 4.1_
 
-  - [ ] 4.2 Create booking request form component
+  - [x] 4.2 Create booking request form component
     - Build BookingRequestForm component for Uji tour requests
     - Implement Stripe Payment Method creation in frontend
     - Add form validation and error handling
     - Create success confirmation UI for submitted requests
     - _Requirements: 1.1, 1.3, 1.5_
 
-  - [ ] 4.3 Update payment processing integration
+  - [x] 4.3 Update payment processing integration
     - Modify existing payment components to handle deferred payment flow
     - Update CardForm component to support payment method creation without charging
     - Add request submission handling to payment workflow
     - Ensure backward compatibility with existing instant booking flow
     - _Requirements: 1.5, 4.2, 4.3_
 
-- [ ] 5. Build admin request management interface
-  - [ ] 5.1 Create booking requests dashboard page
+- [x] 5. Build admin request management interface
+  - [x] 5.1 Create booking requests dashboard page
     - Build admin page to display pending booking requests
     - Implement request list with filtering and sorting capabilities
     - Add request details view with customer and booking information
     - Create responsive design consistent with existing admin interface
     - _Requirements: 2.1, 2.2, 4.4_
 
-  - [ ] 5.2 Implement admin approval/rejection actions
+  - [x] 5.2 Implement admin approval/rejection actions
     - Add approve/reject buttons with confirmation dialogs
     - Implement API calls to manage-booking-request function
     - Add loading states and success/error feedback
     - Handle payment processing results and display appropriate messages
     - _Requirements: 2.3, 2.4, 2.5, 2.6_
 
-  - [ ] 5.3 Add request analytics and monitoring
+  - [x] 5.3 Add request analytics and monitoring
     - Create metrics dashboard for booking request performance
     - Implement conversion rate tracking from requests to confirmed bookings
     - Add alerts for requests exceeding time limits
     - Display payment failure rates and common rejection reasons
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 6. Implement automated cleanup and monitoring
-  - [ ] 6.1 Create request timeout handling system
+- [x] 6. Implement automated cleanup and monitoring
+  - [x] 6.1 Create request timeout handling system
     - Implement automated reminder emails for pending requests
     - Add customer notification system for delayed processing
     - Create optional auto-rejection for requests exceeding 48 hours
     - Implement cleanup of expired Stripe payment methods
     - _Requirements: 3.5, 2.6_
 
-  - [ ] 6.2 Add comprehensive error handling and logging
+  - [x] 6.2 Add comprehensive error handling and logging
     - Implement detailed logging for all request lifecycle events
     - Add error recovery mechanisms for payment failures
     - Create admin notification system for system errors
@@ -96,14 +96,14 @@
     - _Requirements: 2.6, 3.4, 4.3_
 
 - [ ] 7. Create comprehensive test suite
-  - [ ] 7.1 Write unit tests for backend functions
+  - [x] 7.1 Write unit tests for backend functions
     - Test create-booking-request function with various input scenarios
     - Test manage-booking-request function for approval/rejection flows
     - Test payment method creation and processing logic
     - Test email notification systems and template rendering
     - _Requirements: 1.1, 2.2, 2.3, 3.1, 3.2, 3.3_
 
-  - [ ] 7.2 Write integration tests for complete workflows
+  - [x] 7.2 Write integration tests for complete workflows
     - Test end-to-end booking request flow from submission to confirmation
     - Test payment failure recovery and retry mechanisms
     - Test admin interface interactions and API integrations

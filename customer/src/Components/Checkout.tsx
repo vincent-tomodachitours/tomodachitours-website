@@ -5,6 +5,7 @@ import PaymentSection from './Checkout/PaymentSection';
 import { useCheckoutLogic } from './Checkout/useCheckoutLogic';
 import bookingFlowManager from '../services/bookingFlowManager';
 import { CheckoutProps } from '../types';
+import { isBookingRequestTour, getCheckoutButtonText, getProcessingMessage } from '../utils/tourUtils';
 
 const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, tourPrice, tourName }: CheckoutProps) => {
     const {
@@ -50,6 +51,9 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
 
     // Calculate original price before discount
     const originalPrice = (adult + child) * tourPrice;
+    
+    // Determine if this is a booking request tour
+    const isRequestTour = isBookingRequestTour(sheetId);
 
     return (
         <div className='fixed inset-0 h-screen bg-black bg-opacity-60 backdrop-blur-sm flex justify-center items-center z-40 p-4'>
@@ -61,7 +65,9 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                     <div className='absolute inset-0 bg-white bg-opacity-95 backdrop-blur-sm flex items-center justify-center z-50 rounded-2xl'>
                         <div className='bg-white rounded-lg shadow-lg p-8 flex flex-col items-center space-y-4 border border-gray-200'>
                             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                            <div className="text-lg font-semibold text-gray-800">Processing Payment</div>
+                            <div className="text-lg font-semibold text-gray-800">
+                                {isRequestTour ? 'Submitting Request' : 'Processing Payment'}
+                            </div>
                             <div className="text-sm text-gray-600 text-center max-w-xs">
                                 {is3DSInProgress ? (
                                     <>
@@ -70,7 +76,7 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                         <strong>Do not close this window.</strong>
                                     </>
                                 ) : (
-                                    'Please wait while we securely process your payment. Do not close this window.'
+                                    getProcessingMessage(sheetId)
                                 )}
                             </div>
                         </div>
@@ -141,7 +147,26 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                     paymentProcessing={paymentProcessing}
                                 />
 
-
+                                {/* Booking Request Information for Uji Tours */}
+                                {isRequestTour && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex-shrink-0 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center mt-0.5">
+                                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="text-sm font-semibold text-blue-900 mb-1">
+                                                    Booking Request Process
+                                                </h3>
+                                                <p className="text-sm text-blue-800">
+                                                    This tour requires manual confirmation. Your payment method will be securely stored but not charged until your booking is approved by our team. You'll receive an email confirmation once we verify availability.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Payment Information */}
                                 <PaymentSection
@@ -161,6 +186,7 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                                     paymentProcessing={paymentProcessing}
                                     setPaymentProcessing={setPaymentProcessing}
                                     setIs3DSInProgress={setIs3DSInProgress}
+                                    isRequestTour={isRequestTour}
                                 />
                             </div>
 
@@ -203,10 +229,10 @@ const Checkout = ({ onClose, sheetId, tourDate, tourTime, adult, child, infant, 
                             {paymentProcessing ? (
                                 <div className="flex items-center justify-center gap-3">
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    <span>Processing...</span>
+                                    <span>{isRequestTour ? 'Submitting...' : 'Processing...'}</span>
                                 </div>
                             ) : (
-                                `Pay ¥${finalPrice.toLocaleString()}`
+                                getCheckoutButtonText(sheetId, false, finalPrice)
                             )}
                         </button>
                     </div>

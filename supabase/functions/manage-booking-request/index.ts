@@ -10,6 +10,10 @@ import { addSecurityHeaders } from '../validation-middleware/index.ts'
 import sgMail from "npm:@sendgrid/mail"
 import { StripeService } from '../_shared/stripe-service.ts'
 import { PaymentProviderService } from '../_shared/payment-provider-service.ts'
+import { BookingRequestLogger, BookingRequestEventType } from '../_shared/booking-request-logger.ts'
+import { AdminNotificationService } from '../_shared/admin-notification-service.ts'
+import { BookingRequestErrorHandler } from '../_shared/error-handler.ts'
+import { RetryService } from '../_shared/retry-service.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,12 +30,11 @@ if (SENDGRID_API_KEY) {
 }
 
 // SendGrid template IDs for booking request status notifications
-// NOTE: These template IDs need to be updated once templates are created in SendGrid
 const SENDGRID_TEMPLATES = {
-  REQUEST_APPROVED: 'd-booking-request-approved', // Customer approval notification
-  REQUEST_REJECTED: 'd-booking-request-rejected', // Customer rejection notification
-  PAYMENT_FAILED: 'd-booking-request-payment-failed', // Customer payment failure notification
-  ADMIN_PAYMENT_FAILED: 'd-booking-request-admin-payment-failed' // Admin payment failure notification
+  REQUEST_APPROVED: 'd-80e109cadad44eeab06c1b2396b504b2', // Customer approval notification (reuse existing booking confirmation)
+  REQUEST_REJECTED: 'd-236d283e8a5a4271995de8ec5064c49b', // Customer rejection notification
+  PAYMENT_FAILED: 'd-0cafd30a53044f2fb64d676a9964d982', // Customer payment failure notification
+  ADMIN_PAYMENT_FAILED: 'd-752cc6754d7148c99dbec67c462db656' // Admin payment failure notification
 }
 
 // SendGrid sender config
@@ -267,70 +270,177 @@ async function sendStatusNotificationEmails(
 }
 
 /**
- * Process payment for approved booking request
+ * Process payment for approved booking request with enhanced error handling
  */
-async function processApprovedPayment(supabase: any, booking: any): Promise<{ success: boolean; error?: string }> {
+async function processApprovedPaymentWithErrorHandling(
+  supabase: any, 
+  booking: any,
+  logger: BookingRequestLogger,
+  errorHandler: BookingRequestErrorHandler,
+  correlationId: string
+): Promise<{ success: boolean; error?: string; shouldRetry?: boolean }> {
   try {
-    console.log(`Processing payment for approved booking request ${booking.id}`);
+    console.log(`[${correlationId}] Processing payment for approved booking request ${booking.id}`);
 
     if (!booking.payment_method_id) {
-      throw new Error('No payment method stored for this booking request');
+      const error = new Error('No payment method stored for this booking request');
+      await logger.logPaymentFailed(
+        booking.id,
+        booking.total_amount,
+        error.message,
+        'MISSING_PAYMENT_METHOD'
+      );
+      return { success: false, error: error.message, shouldRetry: false };
     }
 
     // Initialize payment services
     const paymentService = new PaymentProviderService(supabase);
     const stripeService = new StripeService();
 
-    // Process payment using stored payment method
-    const paymentResult = await stripeService.processImmediatePayment(
-      booking.total_amount,
+    // Log payment processing start
+    await logger.logPaymentProcessing(
       booking.id,
+      booking.total_amount,
       booking.payment_method_id
     );
 
-    console.log('Payment result:', paymentResult);
+    // Process payment with retry logic
+    const paymentResult = await RetryService.retryPaymentProcessing(
+      async () => {
+        const result = await stripeService.processImmediatePayment(
+          booking.total_amount,
+          booking.id,
+          booking.payment_method_id
+        );
+
+        if (result.status !== 'succeeded' && result.status !== 'requires_action') {
+          throw new Error(`Payment not completed. Status: ${result.status}`);
+        }
+
+        return result;
+      },
+      booking.id
+    );
 
     // Log payment attempt
     await paymentService.logPaymentAttempt(
       booking.id, 
       'stripe', 
       booking.total_amount, 
-      paymentResult.status === 'succeeded' ? 'success' : 'failed',
-      paymentResult.status !== 'succeeded' ? `Payment status: ${paymentResult.status}` : undefined,
-      1
+      paymentResult.success ? 'success' : 'failed',
+      paymentResult.success ? undefined : paymentResult.error?.message,
+      paymentResult.attempts
     );
 
-    if (paymentResult.status === 'succeeded') {
-      // Update booking to CONFIRMED status
-      const { error: updateError } = await supabase
-        .from('bookings')
-        .update({
-          status: 'CONFIRMED',
-          payment_provider: 'stripe',
-          charge_id: paymentResult.id,
-          stripe_payment_intent_id: paymentResult.id,
-          paid_amount: booking.total_amount,
-          admin_reviewed_at: new Date().toISOString()
-        })
-        .eq('id', booking.id);
+    if (paymentResult.success && paymentResult.result) {
+      const result = paymentResult.result;
+      
+      // Update booking to CONFIRMED status with retry
+      const updateResult = await RetryService.retryDatabaseOperation(
+        async () => {
+          const { error: updateError } = await supabase
+            .from('bookings')
+            .update({
+              status: 'CONFIRMED',
+              payment_provider: 'stripe',
+              charge_id: result.id,
+              stripe_payment_intent_id: result.id,
+              paid_amount: booking.total_amount,
+              admin_reviewed_at: new Date().toISOString()
+            })
+            .eq('id', booking.id);
 
-      if (updateError) {
-        console.error('Failed to update booking status after successful payment:', updateError);
+          if (updateError) {
+            throw new Error(`Database update failed: ${updateError.message}`);
+          }
+
+          return true;
+        },
+        'update-booking-status'
+      );
+
+      if (!updateResult.success) {
+        await errorHandler.handleDatabaseError(
+          updateResult.error || new Error('Unknown database error'),
+          'update_booking_status_after_payment',
+          {
+            bookingId: booking.id,
+            operation: 'update_booking_status_after_payment',
+            correlationId,
+            metadata: {
+              payment_intent_id: result.id,
+              amount: booking.total_amount
+            }
+          }
+        );
+
         return { success: false, error: 'Failed to update booking status after payment' };
       }
 
-      console.log(`✅ Payment successful for booking ${booking.id}`);
+      // Log successful payment
+      await logger.logPaymentSuccess(
+        booking.id,
+        booking.total_amount,
+        result.id,
+        paymentResult.attempts - 1
+      );
+
+      console.log(`[${correlationId}] ✅ Payment successful for booking ${booking.id}`);
       return { success: true };
     } else {
-      // Payment requires action or failed
-      const errorMessage = `Payment not completed. Status: ${paymentResult.status}`;
-      console.error(errorMessage);
-      return { success: false, error: errorMessage };
+      // Payment failed after retries
+      const error = paymentResult.error || new Error('Unknown payment error');
+      
+      await logger.logPaymentFailed(
+        booking.id,
+        booking.total_amount,
+        error.message,
+        'PAYMENT_PROCESSING_FAILED',
+        paymentResult.attempts - 1
+      );
+
+      // Handle payment error with admin notification
+      const errorResult = await errorHandler.handlePaymentError(
+        error,
+        booking.id,
+        booking.payment_method_id,
+        booking.total_amount,
+        booking.customer_email,
+        paymentResult.attempts - 1
+      );
+
+      return { 
+        success: false, 
+        error: error.message,
+        shouldRetry: errorResult.shouldRetry
+      };
     }
 
   } catch (error) {
-    console.error('Payment processing error:', error);
-    return { success: false, error: error.message };
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error(`[${correlationId}] Payment processing error:`, err);
+    
+    await logger.logPaymentFailed(
+      booking.id,
+      booking.total_amount,
+      err.message,
+      'PAYMENT_EXCEPTION'
+    );
+
+    // Handle the error with potential retry logic
+    const errorResult = await errorHandler.handlePaymentError(
+      err,
+      booking.id,
+      booking.payment_method_id,
+      booking.total_amount,
+      booking.customer_email
+    );
+
+    return { 
+      success: false, 
+      error: err.message,
+      shouldRetry: errorResult.shouldRetry
+    };
   }
 }
 
@@ -362,18 +472,49 @@ async function validateRequest(req: Request): Promise<{ data: any | null; error:
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  // Initialize services
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') || '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+  )
+  
+  const logger = new BookingRequestLogger(supabase)
+  const adminNotificationService = new AdminNotificationService(supabase, {
+    adminEmails: [
+      'spirivincent03@gmail.com',
+      'contact@tomodachitours.com',
+      'yutaka.m@tomodachitours.com'
+    ],
+    sendgridApiKey: SENDGRID_API_KEY,
+    fromEmail: SENDGRID_FROM.email,
+    fromName: SENDGRID_FROM.name
+  })
+  const errorHandler = new BookingRequestErrorHandler(supabase, adminNotificationService)
+
+  // Generate correlation ID for request tracking
+  const correlationId = `manage-booking-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  logger.setCorrelationId(correlationId)
+
   try {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response('ok', { headers: corsHeaders })
     }
 
-    console.log('Received manage booking request')
+    console.log(`[${correlationId}] Received manage booking request`)
 
     // Validate request data
     const { data, error } = await validateRequest(req)
     if (error) {
       console.error('Validation error:', error)
+      
+      await logger.logEvent(
+        0, // No booking ID yet
+        BookingRequestEventType.VALIDATION_ERROR,
+        `Request validation failed: ${error}`,
+        { validation_error: error, correlation_id: correlationId }
+      )
+      
       return new Response(
         JSON.stringify({ success: false, error }),
         {
@@ -384,6 +525,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (!data) {
+      await logger.logEvent(
+        0,
+        BookingRequestEventType.VALIDATION_ERROR,
+        'Invalid request data - no data provided',
+        { correlation_id: correlationId }
+      )
+      
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid request data' }),
         {
@@ -393,13 +541,7 @@ const handler = async (req: Request): Promise<Response> => {
       )
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') || '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    )
-
-    console.log(`Processing ${data.action} action for booking ${data.booking_id}`)
+    console.log(`[${correlationId}] Processing ${data.action} action for booking ${data.booking_id}`)
 
     // Fetch booking details
     const { data: booking, error: fetchError } = await supabase
@@ -440,39 +582,58 @@ const handler = async (req: Request): Promise<Response> => {
     const tourDetails = await getTourDetails(supabase, booking.tour_type);
 
     if (data.action === 'approve') {
-      // Process payment for approved request
-      const paymentResult = await processApprovedPayment(supabase, booking);
+      // Process payment for approved request with enhanced error handling
+      const paymentResult = await processApprovedPaymentWithErrorHandling(
+        supabase, 
+        booking, 
+        logger, 
+        errorHandler, 
+        correlationId
+      );
 
       if (paymentResult.success) {
         // Log approval event
-        try {
-          await supabase
-            .from('booking_request_events')
-            .insert({
-              booking_id: booking.id,
-              event_type: 'approved',
-              event_data: {
-                admin_id: data.admin_id,
-                payment_processed: true,
-                total_amount: booking.total_amount
-              },
-              created_by: data.admin_id
-            });
-        } catch (eventError) {
-          console.error('Failed to log approval event:', eventError);
+        await logger.logRequestApproved(
+          booking.id,
+          data.admin_id,
+          booking.total_amount
+        );
+
+        // Send approval notification emails with error handling
+        const emailResult = await RetryService.retryEmailSending(
+          async () => {
+            await sendStatusNotificationEmails(supabase, booking, tourDetails, 'approve');
+            return true;
+          },
+          'approval-notification',
+          booking.id
+        );
+
+        if (emailResult.success) {
+          await logger.logEmailSent(
+            booking.id,
+            'booking_request_approved',
+            booking.customer_email
+          );
+        } else {
+          await errorHandler.handleEmailError(
+            emailResult.error || new Error('Unknown email error'),
+            booking.id,
+            'booking_request_approved',
+            booking.customer_email,
+            emailResult.attempts - 1
+          );
         }
 
-        // Send approval notification emails
-        await sendStatusNotificationEmails(supabase, booking, tourDetails, 'approve');
-
-        console.log(`Booking request ${booking.id} approved and payment processed successfully`)
+        console.log(`[${correlationId}] Booking request ${booking.id} approved and payment processed successfully`)
 
         return new Response(
           JSON.stringify({
             success: true,
             message: 'Booking request approved and payment processed successfully',
             booking_id: booking.id,
-            status: 'CONFIRMED'
+            status: 'CONFIRMED',
+            correlation_id: correlationId
           }),
           {
             headers: addSecurityHeaders(new Headers({
@@ -482,36 +643,42 @@ const handler = async (req: Request): Promise<Response> => {
           }
         )
       } else {
-        // Payment failed - keep booking in PENDING_CONFIRMATION status
-        // Log payment failure event
-        try {
-          await supabase
-            .from('booking_request_events')
-            .insert({
-              booking_id: booking.id,
-              event_type: 'payment_failed',
-              event_data: {
-                admin_id: data.admin_id,
-                payment_error: paymentResult.error,
-                total_amount: booking.total_amount
-              },
-              created_by: data.admin_id
-            });
-        } catch (eventError) {
-          console.error('Failed to log payment failure event:', eventError);
+        // Payment failed - send failure notification emails
+        const emailResult = await RetryService.retryEmailSending(
+          async () => {
+            await sendStatusNotificationEmails(supabase, booking, tourDetails, 'payment_failed', undefined, paymentResult.error);
+            return true;
+          },
+          'payment-failure-notification',
+          booking.id
+        );
+
+        if (emailResult.success) {
+          await logger.logEmailSent(
+            booking.id,
+            'payment_failure_notification',
+            booking.customer_email
+          );
+        } else {
+          await errorHandler.handleEmailError(
+            emailResult.error || new Error('Unknown email error'),
+            booking.id,
+            'payment_failure_notification',
+            booking.customer_email,
+            emailResult.attempts - 1
+          );
         }
 
-        // Send payment failure notification emails
-        await sendStatusNotificationEmails(supabase, booking, tourDetails, 'payment_failed', undefined, paymentResult.error);
-
-        console.error(`Payment failed for booking request ${booking.id}: ${paymentResult.error}`)
+        console.error(`[${correlationId}] Payment failed for booking request ${booking.id}: ${paymentResult.error}`)
 
         return new Response(
           JSON.stringify({
             success: false,
             error: `Payment processing failed: ${paymentResult.error}`,
             booking_id: booking.id,
-            status: 'PENDING_CONFIRMATION'
+            status: 'PENDING_CONFIRMATION',
+            should_retry: paymentResult.shouldRetry,
+            correlation_id: correlationId
           }),
           {
             status: 400,
@@ -521,23 +688,48 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
     } else if (data.action === 'reject') {
-      // Update booking to REJECTED status
-      const { error: updateError } = await supabase
-        .from('bookings')
-        .update({
-          status: 'REJECTED',
-          admin_reviewed_at: new Date().toISOString(),
-          admin_reviewed_by: data.admin_id,
-          rejection_reason: data.rejection_reason || 'No specific reason provided'
-        })
-        .eq('id', booking.id);
+      // Update booking to REJECTED status with retry
+      const updateResult = await RetryService.retryDatabaseOperation(
+        async () => {
+          const { error: updateError } = await supabase
+            .from('bookings')
+            .update({
+              status: 'REJECTED',
+              admin_reviewed_at: new Date().toISOString(),
+              admin_reviewed_by: data.admin_id,
+              rejection_reason: data.rejection_reason || 'No specific reason provided'
+            })
+            .eq('id', booking.id);
 
-      if (updateError) {
-        console.error('Failed to update booking status:', updateError)
+          if (updateError) {
+            throw new Error(`Database update failed: ${updateError.message}`);
+          }
+
+          return true;
+        },
+        'reject-booking-request'
+      );
+
+      if (!updateResult.success) {
+        await errorHandler.handleDatabaseError(
+          updateResult.error || new Error('Unknown database error'),
+          'reject_booking_request',
+          {
+            bookingId: booking.id,
+            operation: 'reject_booking_request',
+            adminId: data.admin_id,
+            correlationId,
+            metadata: {
+              rejection_reason: data.rejection_reason
+            }
+          }
+        );
+
         return new Response(
           JSON.stringify({
             success: false,
-            error: 'Failed to update booking status'
+            error: 'Failed to update booking status',
+            correlation_id: correlationId
           }),
           {
             status: 500,
@@ -547,33 +739,47 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       // Log rejection event
-      try {
-        await supabase
-          .from('booking_request_events')
-          .insert({
-            booking_id: booking.id,
-            event_type: 'rejected',
-            event_data: {
-              admin_id: data.admin_id,
-              rejection_reason: data.rejection_reason || 'No specific reason provided'
-            },
-            created_by: data.admin_id
-          });
-      } catch (eventError) {
-        console.error('Failed to log rejection event:', eventError);
+      await logger.logRequestRejected(
+        booking.id,
+        data.admin_id,
+        data.rejection_reason || 'No specific reason provided'
+      );
+
+      // Send rejection notification emails with error handling
+      const emailResult = await RetryService.retryEmailSending(
+        async () => {
+          await sendStatusNotificationEmails(supabase, booking, tourDetails, 'reject', data.rejection_reason);
+          return true;
+        },
+        'rejection-notification',
+        booking.id
+      );
+
+      if (emailResult.success) {
+        await logger.logEmailSent(
+          booking.id,
+          'booking_request_rejected',
+          booking.customer_email
+        );
+      } else {
+        await errorHandler.handleEmailError(
+          emailResult.error || new Error('Unknown email error'),
+          booking.id,
+          'booking_request_rejected',
+          booking.customer_email,
+          emailResult.attempts - 1
+        );
       }
 
-      // Send rejection notification emails
-      await sendStatusNotificationEmails(supabase, booking, tourDetails, 'reject', data.rejection_reason);
-
-      console.log(`Booking request ${booking.id} rejected successfully`)
+      console.log(`[${correlationId}] Booking request ${booking.id} rejected successfully`)
 
       return new Response(
         JSON.stringify({
           success: true,
           message: 'Booking request rejected successfully',
           booking_id: booking.id,
-          status: 'REJECTED'
+          status: 'REJECTED',
+          correlation_id: correlationId
         }),
         {
           headers: addSecurityHeaders(new Headers({
@@ -597,11 +803,32 @@ const handler = async (req: Request): Promise<Response> => {
     )
 
   } catch (error) {
-    console.error('Manage booking request processing error:', error)
+    console.error(`[${correlationId}] Manage booking request processing error:`, error)
+    
+    // Handle critical system error
+    await errorHandler.handleError(
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        operation: 'manage_booking_request_handler',
+        correlationId,
+        metadata: {
+          request_method: req.method,
+          user_agent: req.headers.get('user-agent'),
+          origin: req.headers.get('origin')
+        }
+      },
+      { 
+        severity: 'CRITICAL', 
+        notifyAdmins: true,
+        enableRetry: false // Don't retry the entire handler
+      }
+    );
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        correlation_id: correlationId
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -4,7 +4,7 @@ This document describes the SendGrid email templates that need to be created for
 
 ## Template 1: Customer Request Confirmation
 
-**Template ID**: `d-booking-request-confirmation` (to be created in SendGrid)
+**Template ID**: `d-ab9af3697fa443a6a248b787da1c4533`
 **Purpose**: Sent to customers when they submit a booking request
 **Recipient**: Customer who submitted the request
 
@@ -74,7 +74,7 @@ The Tomodachi Tours Team</p>
 
 ## Template 2: Admin Notification
 
-**Template ID**: `d-booking-request-admin-notification` (to be created in SendGrid)
+**Template ID**: `d-e3a27de126df45908ad6036088fb9c15`
 **Purpose**: Sent to admin team when a new booking request is submitted
 **Recipients**: Admin team (spirivincent03@gmail.com, contact@tomodachitours.com, yutaka.m@tomodachitours.com)
 

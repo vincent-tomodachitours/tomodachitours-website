@@ -1,193 +1,106 @@
-import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+/// <reference lib="deno.ns" />
 
-// Common validation schemas
-const emailSchema = z.string().email()
-const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/)
-const nameSchema = z.string().min(1).max(100).regex(/^[a-zA-Z\s-']+$/)
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
-const timeSchema = z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)
-const countSchema = z.number().int().min(0).max(99)
-const priceSchema = z.number().int().min(0).max(1000000)
-const idSchema = z.number().int().positive()
-const statusSchema = z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'REFUNDED'])
-const discountCodeSchema = z.string().max(50).nullable().optional()
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts"
 
-// Booking validation schema
-export const bookingSchema = z.object({
-    customer_name: nameSchema,
-    customer_email: emailSchema,
-    customer_phone: phoneSchema,
-    booking_date: dateSchema,
-    booking_time: timeSchema,
-    adults: countSchema,
-    children: countSchema,
-    infants: countSchema.optional(),
-    tour_type: z.string(),
-    tour_price: priceSchema,
-    discount_code: discountCodeSchema,
-})
+// Security headers for all responses
+export function addSecurityHeaders(headers: Headers): Headers {
+  headers.set('X-Content-Type-Options', 'nosniff')
+  headers.set('X-Frame-Options', 'DENY')
+  headers.set('X-XSS-Protection', '1; mode=block')
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  return headers
+}
 
-// Payment validation schema - Stripe only
-export const paymentSchema = z.object({
-    // Stripe fields
-    payment_method_id: z.string().min(1, "Payment method ID is required"),
-
-    // Common fields
-    provider: z.enum(['stripe']).optional(),
-    amount: priceSchema,
-    bookingId: idSchema,
-    discountCode: discountCodeSchema,
-    originalAmount: priceSchema.optional(),
-});
-
-// Refund validation schema
-export const refundSchema = z.object({
-    bookingId: idSchema, // Using idSchema (number) instead of UUID string
-    email: z.string().email()
-})
+// Sanitize output to prevent XSS
+export function sanitizeOutput(data: any): any {
+  if (typeof data === 'string') {
+    return data.replace(/[<>]/g, '')
+  }
+  if (Array.isArray(data)) {
+    return data.map(sanitizeOutput)
+  }
+  if (typeof data === 'object' && data !== null) {
+    const sanitized: any = {}
+    for (const [key, value] of Object.entries(data)) {
+      sanitized[key] = sanitizeOutput(value)
+    }
+    return sanitized
+  }
+  return data
+}
 
 // Booking request validation schema
 export const bookingRequestSchema = z.object({
-    tour_type: z.string().min(1),
-    booking_date: dateSchema,
-    booking_time: timeSchema,
-    adults: countSchema.min(1),
-    children: countSchema,
-    infants: countSchema.optional(),
-    customer_name: nameSchema,
-    customer_email: emailSchema,
-    customer_phone: phoneSchema.optional(),
-    payment_method_id: z.string().min(1, "Payment method ID is required"),
-    total_amount: priceSchema,
-    discount_code: discountCodeSchema,
-    original_amount: priceSchema.optional(),
-    special_requests: z.string().max(500).optional()
-});
-
-// Charge validation schema
-export const chargeSchema = z.object({
-    tourId: z.string().uuid(),
-    tourType: z.string(),
-    tourDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    tourTime: z.string().regex(/^\d{2}:\d{2}$/),
-    adults: z.number().int().min(1),
-    children: z.number().int().min(0),
-    infants: z.number().int().min(0),
-    customerName: z.string().min(2),
-    customerEmail: z.string().email(),
-    customerPhone: z.string().optional(),
-    discountCode: z.string().optional(),
-    paymentToken: z.string(),
-    totalAmount: z.number().int().positive(),
-    currency: z.enum(['JPY']),
-    language: z.enum(['en', 'ja']).optional(),
-    specialRequests: z.string().optional()
+  tour_type: z.string().min(1, "Tour type is required"),
+  booking_date: z.string().refine((date) => {
+    const bookingDate = new Date(date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return bookingDate >= today
+  }, "Booking date must be today or in the future"),
+  booking_time: z.string().min(1, "Booking time is required"),
+  adults: z.number().min(1, "At least 1 adult is required").max(20, "Maximum 20 adults allowed"),
+  children: z.number().min(0).max(20, "Maximum 20 children allowed").optional(),
+  infants: z.number().min(0).max(20, "Maximum 20 infants allowed").optional(),
+  customer_name: z.string().min(1, "Customer name is required").max(100, "Name too long"),
+  customer_email: z.string().email("Valid email is required"),
+  customer_phone: z.string().optional(),
+  payment_method_id: z.string().min(1, "Payment method is required"),
+  total_amount: z.number().min(0, "Total amount must be positive"),
+  discount_code: z.string().optional(),
+  special_requests: z.string().max(1000, "Special requests too long").optional()
 })
 
-// Notification validation schema
-export const notificationSchema = z.object({
-    to: z.string().email(),
-    templateId: z.string(),
-    templateData: z.record(z.any())
+// Booking management validation schema
+export const bookingManagementSchema = z.object({
+  booking_id: z.number().min(1, "Valid booking ID is required"),
+  action: z.enum(['approve', 'reject'], "Action must be 'approve' or 'reject'"),
+  rejection_reason: z.string().optional(),
+  admin_notes: z.string().max(1000, "Admin notes too long").optional()
 })
 
-// Security headers
-export const addSecurityHeaders = (headers: Headers): Headers => {
-    // Content type protection
-    headers.set('X-Content-Type-Options', 'nosniff');
+// Refund processing validation schema
+export const refundSchema = z.object({
+  bookingId: z.number().min(1, "Valid booking ID is required"),
+  email: z.string().email("Valid email is required").optional()
+})
 
-    // Frame protection
-    headers.set('X-Frame-Options', 'DENY');
-
-    // XSS protection
-    headers.set('X-XSS-Protection', '1; mode=block');
-
-    // HTTPS enforcement
-    headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-
-    // Content Security Policy
-    headers.set('Content-Security-Policy', [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-        "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: https:",
-        "font-src 'self' data:",
-        "connect-src 'self'",
-        "frame-ancestors 'none'",
-        "base-uri 'self'",
-        "form-action 'self'"
-    ].join('; '));
-
-    // Referrer policy
-    headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-    // Permissions policy (replaces Feature-Policy)
-    headers.set('Permissions-Policy', [
-        "camera=()",
-        "microphone=()",
-        "geolocation=()",
-        "payment=(self)",
-        "usb=()",
-        "magnetometer=()",
-        "accelerometer=()",
-        "gyroscope=()"
-    ].join(', '));
-
-    // Additional security headers
-    headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
-    headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-    headers.set('Cross-Origin-Resource-Policy', 'same-site');
-
-    return headers;
-}
-
-// Sanitize sensitive data from output
-export const sanitizeOutput = (data: any): any => {
-    if (!data) return data;
-    const sensitiveFields = ['secret', 'key', 'password', 'token', 'cardNumber'];
-
-    if (Array.isArray(data)) {
-        return data.map(item => sanitizeOutput(item));
-    }
-
-    if (typeof data === 'object') {
-        const sanitized: Record<string, any> = {};
-        for (const [key, value] of Object.entries(data)) {
-            if (!sensitiveFields.includes(key)) {
-                sanitized[key] = sanitizeOutput(value);
-            }
-        }
-        return sanitized;
-    }
-
-    return data;
-}
-
-// Validate request data against schema
+// Generic request validation function
 export async function validateRequest<T>(
-    req: Request,
-    schema: z.Schema<T>
+  req: Request, 
+  schema: z.ZodSchema<T>
 ): Promise<{ data: T | null; error: string | null }> {
-    try {
-        const body = await req.json()
-        const result = schema.safeParse(body)
-
-        if (!result.success) {
-            return {
-                data: null,
-                error: result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
-            }
-        }
-
-        return {
-            data: result.data,
-            error: null
-        }
-    } catch (error) {
-        return {
-            data: null,
-            error: error instanceof Error ? error.message : 'Failed to parse request body'
-        }
+  try {
+    const body = await req.json()
+    const result = schema.safeParse(body)
+    
+    if (!result.success) {
+      const errors = result.error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ')
+      return { data: null, error: `Validation failed: ${errors}` }
     }
+    
+    return { data: result.data, error: null }
+  } catch (error) {
+    return { data: null, error: 'Invalid JSON in request body' }
+  }
 }
 
+// Rate limiting (basic implementation)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+
+export function checkRateLimit(clientId: string, maxRequests = 10, windowMs = 60000): boolean {
+  const now = Date.now()
+  const clientData = rateLimitMap.get(clientId)
+  
+  if (!clientData || now > clientData.resetTime) {
+    rateLimitMap.set(clientId, { count: 1, resetTime: now + windowMs })
+    return true
+  }
+  
+  if (clientData.count >= maxRequests) {
+    return false
+  }
+  
+  clientData.count++
+  return true
+}

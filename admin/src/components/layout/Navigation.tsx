@@ -13,6 +13,7 @@ import {
     DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { clsx } from 'clsx';
+import BookingRequestsButton from '../ui/BookingRequestsButton';
 
 const Navigation: React.FC = () => {
     const { employee, signOut, hasPermission } = useAdminAuth();
@@ -122,21 +123,29 @@ const Navigation: React.FC = () => {
                         </nav>
                     </div>
 
-                    {/* User menu */}
-                    <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-700">
-                            {employee?.first_name} {employee?.last_name}
-                        </span>
-                        <span className="text-xs text-gray-500 bg-gray-100 px-1 py-0.5 rounded">
-                            {employee?.role}
-                        </span>
-                        <button
-                            onClick={handleSignOut}
-                            className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100"
-                            title="Sign Out"
-                        >
-                            <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                        </button>
+                    {/* Booking Requests Button and User menu */}
+                    <div className="flex items-center space-x-3">
+                        {/* Booking Requests Button - only show for admins/managers */}
+                        {(hasPermission('manage_employees') || hasPermission('edit_bookings')) && (
+                            <BookingRequestsButton />
+                        )}
+                        
+                        {/* User info */}
+                        <div className="flex items-center space-x-2">
+                            <span className="text-xs text-gray-700">
+                                {employee?.first_name} {employee?.last_name}
+                            </span>
+                            <span className="text-xs text-gray-500 bg-gray-100 px-1 py-0.5 rounded">
+                                {employee?.role}
+                            </span>
+                            <button
+                                onClick={handleSignOut}
+                                className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100"
+                                title="Sign Out"
+                            >
+                                <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

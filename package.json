@@ -54,7 +54,8 @@
     "security:health-check": "node -e \"console.log('Security system health check - implement based on your monitoring needs')\"",
     "script:blacklist": "ts-node scripts/manage-blacklist.ts",
     "script:review-queue": "ts-node scripts/manage-review-queue.ts",
-    "test:supabase": "node -e \"require('dotenv').config(); require('./tests/supabase-functions-test.js')\""
+    "test:supabase": "node -e \"require('dotenv').config(); require('./tests/supabase-functions-test.js')\"",
+    "test:timeouts": "tsx scripts/test-booking-request-timeouts.ts"
   },
   "eslintConfig": {
     "extends": [

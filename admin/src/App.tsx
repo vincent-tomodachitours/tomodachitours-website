@@ -13,6 +13,8 @@ import { ShiftCalendar } from './pages/schedule';
 import AnalyticsDashboard from './pages/analytics/AnalyticsDashboard';
 import { TourList } from './pages/tours';
 import { TimesheetDashboard, TimesheetTable } from './pages/timesheet';
+import { BookingRequestsDashboard } from './pages/booking-requests';
+import BookingRequestAnalytics from './pages/booking-requests/BookingRequestAnalytics';
 
 // Conditional Bookings component based on user role
 const BookingsPage: React.FC = () => {
@@ -192,6 +194,36 @@ function App() {
                                             <div className="py-6">
                                                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                                                     <TimesheetTable />
+                                                </div>
+                                            </div>
+                                        </AdminLayout>
+                                    </ProtectedRoute>
+                                }
+                            />
+
+                            <Route
+                                path="/booking-requests"
+                                element={
+                                    <ProtectedRoute requiredPermission="edit_bookings">
+                                        <AdminLayout>
+                                            <div className="py-6">
+                                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                                    <BookingRequestsDashboard />
+                                                </div>
+                                            </div>
+                                        </AdminLayout>
+                                    </ProtectedRoute>
+                                }
+                            />
+
+                            <Route
+                                path="/booking-requests/analytics"
+                                element={
+                                    <ProtectedRoute requiredPermission="edit_bookings">
+                                        <AdminLayout>
+                                            <div className="py-6">
+                                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                                    <BookingRequestAnalytics />
                                                 </div>
                                             </div>
                                         </AdminLayout>

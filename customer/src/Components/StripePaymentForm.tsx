@@ -50,7 +50,7 @@ const CARD_ELEMENT_OPTIONS = {
     hidePostalCode: true
 };
 
-const StripePaymentForm = ({ totalPrice, originalPrice: _originalPrice, appliedDiscount: _appliedDiscount, onCreateBookingAndPayment, onError, onProcessing, isProcessing }: StripePaymentFormProps) => {
+const StripePaymentForm = ({ totalPrice, originalPrice: _originalPrice, appliedDiscount: _appliedDiscount, onCreateBookingAndPayment, onError, onProcessing, isProcessing, isRequestTour = false }: StripePaymentFormProps) => {
     const stripe = useStripe();
     const elements = useElements();
 
@@ -100,7 +100,7 @@ const StripePaymentForm = ({ totalPrice, originalPrice: _originalPrice, appliedD
             console.warn('Failed to track add payment info conversion:', error);
         }
 
-        onProcessing('Processing payment with Stripe...');
+        onProcessing(isRequestTour ? 'Creating secure payment method...' : 'Processing payment with Stripe...');
 
         const cardElement = elements.getElement(CardElement);
 
@@ -117,6 +117,10 @@ const StripePaymentForm = ({ totalPrice, originalPrice: _originalPrice, appliedD
 
             if (error) {
                 throw new Error(error.message);
+            }
+
+            if (!paymentMethod || !paymentMethod.id) {
+                throw new Error('Failed to create payment method');
             }
 
             // Call the booking and payment handler with Stripe payment data
@@ -211,6 +215,11 @@ const StripePaymentForm = ({ totalPrice, originalPrice: _originalPrice, appliedD
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                     Card Details
                 </label>
+                {isRequestTour && (
+                    <div className="mb-2 text-xs text-gray-600">
+                        Your card will be securely stored but not charged until your booking is approved.
+                    </div>
+                )}
                 <div className="p-3 border border-gray-300 rounded-md bg-white">
                     <CardElement options={CARD_ELEMENT_OPTIONS} />
                 </div>
