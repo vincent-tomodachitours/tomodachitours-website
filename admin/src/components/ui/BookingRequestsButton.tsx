@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ClockIcon } from '@heroicons/react/24/outline';
 import { usePendingRequestsCount } from '../../hooks/usePendingRequestsCount';
-import { clsx } from 'clsx';
 
 const BookingRequestsButton: React.FC = () => {
     const { data: pendingCount = 0, isLoading } = usePendingRequestsCount();

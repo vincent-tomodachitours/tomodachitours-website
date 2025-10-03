@@ -9,7 +9,6 @@ import {
     CheckCircleIcon, 
     XCircleIcon, 
     ClockIcon,
-    FunnelIcon,
     MagnifyingGlassIcon,
     ExclamationTriangleIcon,
     CreditCardIcon,
