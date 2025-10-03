@@ -121,13 +121,13 @@ export class BookingRequestAnalyticsService {
             const pendingRequests = requests.filter(r => r.status === 'PENDING_CONFIRMATION').length;
             const approvedRequests = requests.filter(r => r.status === 'CONFIRMED').length;
             const rejectedRequests = requests.filter(r => r.status === 'REJECTED').length;
-            
+
             const conversionRate = totalRequests > 0 ? (approvedRequests / totalRequests) * 100 : 0;
 
             // Calculate average processing time for completed requests
-            const completedRequests = requests.filter(r => 
-                r.status !== 'PENDING_CONFIRMATION' && 
-                r.request_submitted_at && 
+            const completedRequests = requests.filter(r =>
+                r.status !== 'PENDING_CONFIRMATION' &&
+                r.request_submitted_at &&
                 r.admin_reviewed_at
             );
 
@@ -225,8 +225,8 @@ export class BookingRequestAnalyticsService {
 
             // Calculate conversion rates
             Object.values(weeklyMetrics).forEach(metric => {
-                metric.conversionRate = metric.totalRequests > 0 
-                    ? (metric.approvedRequests / metric.totalRequests) * 100 
+                metric.conversionRate = metric.totalRequests > 0
+                    ? (metric.approvedRequests / metric.totalRequests) * 100
                     : 0;
             });
 
@@ -376,9 +376,9 @@ export class BookingRequestAnalyticsService {
             }
 
             // Calculate average processing time
-            const completedRequests = (allRequests || []).filter(r => 
-                r.status !== 'PENDING_CONFIRMATION' && 
-                r.request_submitted_at && 
+            const completedRequests = (allRequests || []).filter(r =>
+                r.status !== 'PENDING_CONFIRMATION' &&
+                r.request_submitted_at &&
                 r.admin_reviewed_at
             );
 
@@ -437,14 +437,9 @@ export class BookingRequestAnalyticsService {
      * Get payment failure rate
      */
     private static async getPaymentFailureRate(dateRange?: { start: Date; end: Date }): Promise<number> {
-        try {
-            // This would query booking_request_events for payment failures
-            // For now, return a placeholder value
-            return 0;
-        } catch (error) {
-            console.error('Error calculating payment failure rate:', error);
-            return 0;
-        }
+        // This would query booking_request_events for payment failures
+        // For now, return a placeholder value
+        return 0;
     }
 
     /**
