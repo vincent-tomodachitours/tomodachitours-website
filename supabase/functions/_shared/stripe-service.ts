@@ -54,7 +54,7 @@ export class StripeService {
             };
         } catch (error) {
             console.error('Stripe payment creation error:', error);
-            throw new Error(`Stripe payment failed: ${error.message}`);
+            throw new Error(`Stripe payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -78,7 +78,7 @@ export class StripeService {
             };
         } catch (error) {
             console.error('Stripe payment confirmation error:', error);
-            throw new Error(`Stripe payment confirmation failed: ${error.message}`);
+            throw new Error(`Stripe payment confirmation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -95,7 +95,7 @@ export class StripeService {
             return refund;
         } catch (error) {
             console.error('Stripe refund error:', error);
-            throw new Error(`Stripe refund failed: ${error.message}`);
+            throw new Error(`Stripe refund failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -107,7 +107,7 @@ export class StripeService {
             return await this.stripe.paymentIntents.retrieve(paymentIntentId);
         } catch (error) {
             console.error('Stripe payment intent retrieval error:', error);
-            throw new Error(`Failed to retrieve payment intent: ${error.message}`);
+            throw new Error(`Failed to retrieve payment intent: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -122,7 +122,7 @@ export class StripeService {
             });
         } catch (error) {
             console.error('Stripe payment method creation error:', error);
-            throw new Error(`Failed to create payment method: ${error.message}`);
+            throw new Error(`Failed to create payment method: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -160,7 +160,7 @@ export class StripeService {
             };
         } catch (error) {
             console.error('Stripe payment intent creation error:', error);
-            throw new Error(`Stripe payment failed: ${error.message}`);
+            throw new Error(`Stripe payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -202,7 +202,7 @@ export class StripeService {
             };
         } catch (error) {
             console.error('Stripe immediate payment error:', error);
-            throw new Error(`Stripe payment failed: ${error.message}`);
+            throw new Error(`Stripe payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 } 

@@ -115,10 +115,11 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('Stripe refund processed successfully:', refund)
     } catch (error) {
       console.error('Stripe refund error:', error)
-      if (error.message.includes('already refunded') || error.message.includes('cannot refund')) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      if (errorMessage.includes('already refunded') || errorMessage.includes('cannot refund')) {
         console.log('Stripe payment already refunded, updating booking status...')
         refundResponse = { ok: false, error: { code: 'already_refunded' } }
-      } else if (error.message.includes('does not have a successful charge to refund')) {
+      } else if (errorMessage.includes('does not have a successful charge to refund')) {
         console.log('PaymentIntent has no successful charge - likely a test booking or failed payment, proceeding with cancellation...')
         refundResponse = { ok: false, error: { code: 'no_successful_charge' } }
       } else {
@@ -241,7 +242,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Prepare response based on refund status
     let responseData
-    if (refundResponse.ok) {
+    if (refundResponse.ok && refund) {
       responseData = {
         success: true,
         refund: {

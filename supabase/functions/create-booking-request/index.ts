@@ -125,10 +125,10 @@ async function sendRequestEmailsWithErrorHandling(
           await sgMail.send({
             to: booking.customer_email,
             from: SENDGRID_FROM,
-            template_id: SENDGRID_TEMPLATES.REQUEST_CONFIRMATION,
+            templateId: SENDGRID_TEMPLATES.REQUEST_CONFIRMATION,
             personalizations: [{
               to: [{ email: booking.customer_email }],
-              dynamic_template_data: {
+              dynamicTemplateData: {
                 bookingId: booking.id.toString(),
                 tourName: escapeHandlebars(tourDetails.name),
                 tourDate: escapeHandlebars(formattedDate),
@@ -212,14 +212,14 @@ async function sendRequestEmailsWithErrorHandling(
         async () => {
           const personalizations = adminEmails.map(email => ({
             to: [{ email: email }],
-            dynamic_template_data: adminNotificationData
+            dynamicTemplateData: adminNotificationData
           }));
 
           await sgMail.send({
             from: SENDGRID_FROM,
-            template_id: SENDGRID_TEMPLATES.ADMIN_NOTIFICATION,
+            templateId: SENDGRID_TEMPLATES.ADMIN_NOTIFICATION,
             personalizations: personalizations
-          });
+          } as any);
           return true;
         },
         'admin-notification',

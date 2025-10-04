@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { validateRequest, sanitizeOutput } from '../../supabase/functions/validation-middleware'
-import { refundSchema, chargeSchema } from '../../supabase/functions/validation-middleware'
+import { validateRequest, sanitizeOutput } from '../../supabase/functions/validation-middleware/index.ts'
+import { refundSchema, chargeSchema } from '../../supabase/functions/validation-middleware/index.ts'
 
 describe('Validation Middleware Tests', () => {
     describe('Refund Schema Validation', () => {

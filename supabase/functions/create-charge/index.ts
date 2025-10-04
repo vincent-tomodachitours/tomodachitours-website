@@ -138,10 +138,10 @@ async function sendBookingEmails(supabase: any, booking: any) {
         await sgMail.send({
           to: booking.customer_email,
           from: SENDGRID_FROM,
-          template_id: SENDGRID_TEMPLATES.BOOKING_CONFIRMATION,
+          templateId: SENDGRID_TEMPLATES.BOOKING_CONFIRMATION,
           personalizations: [{
             to: [{ email: booking.customer_email }],
-            dynamic_template_data: {
+            dynamicTemplateData: {
               bookingId: booking.id.toString(),
               tourName: escapeHandlebars(tourName),
               tourDate: escapeHandlebars(formattedDate),
@@ -204,14 +204,14 @@ async function sendBookingEmails(supabase: any, booking: any) {
           console.log(`Attempting to send notifications to company emails`);
           await sgMail.send({
             from: SENDGRID_FROM,
-            template_id: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
+            templateId: SENDGRID_TEMPLATES.BOOKING_NOTIFICATION,
             personalizations: personalizations
           });
           console.log(`✅ Successfully sent notifications to all company emails`);
         } catch (emailError) {
           console.error(`❌ Failed to send company notifications:`, emailError);
-          if (emailError.response) {
-            console.error(`Response body:`, emailError.response.body);
+          if (emailError instanceof Error && 'response' in emailError) {
+            console.error(`Response body:`, (emailError as any).response?.body);
           }
         }
 
@@ -221,8 +221,11 @@ async function sendBookingEmails(supabase: any, booking: any) {
         console.error('SendGrid failed:', sendgridError);
 
         // Check if it's a credits exceeded error
-        if (sendgridError.response?.body?.errors?.[0]?.message?.includes('Maximum credits exceeded')) {
-          console.error('SendGrid credits exceeded - need to upgrade plan or add credits');
+        if (sendgridError instanceof Error && 'response' in sendgridError) {
+          const response = (sendgridError as any).response;
+          if (response?.body?.errors?.[0]?.message?.includes('Maximum credits exceeded')) {
+            console.error('SendGrid credits exceeded - need to upgrade plan or add credits');
+          }
         }
 
         // Continue to fallback method
@@ -400,7 +403,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`Payment successful with ${primaryProvider}`)
     } catch (paymentError) {
       console.error(`Payment failed with ${primaryProvider}:`, paymentError)
-      await paymentService.logPaymentAttempt(data.bookingId, primaryProvider, data.amount, 'failed', paymentError.message, 1)
+      await paymentService.logPaymentAttempt(data.bookingId, primaryProvider, data.amount, 'failed', paymentError instanceof Error ? paymentError.message : 'Unknown error', 1)
       throw paymentError
     }
 

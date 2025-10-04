@@ -135,7 +135,7 @@ async function sendStatusNotificationEmails(
 
     if (SENDGRID_API_KEY) {
       try {
-        let templateId: string;
+        let templateId: string = '';
         let templateData: any = {
           bookingId: booking.id.toString(),
           tourName: escapeHandlebars(tourDetails.name),
@@ -168,12 +168,12 @@ async function sendStatusNotificationEmails(
         await sgMail.send({
           to: booking.customer_email,
           from: SENDGRID_FROM,
-          template_id: templateId,
+          templateId: templateId,
           personalizations: [{
             to: [{ email: booking.customer_email }],
-            dynamic_template_data: templateData
+            dynamicTemplateData: templateData
           }]
-        });
+        } as any);
 
         // Send admin notification for payment failures
         if (action === 'payment_failed') {
@@ -193,15 +193,15 @@ async function sendStatusNotificationEmails(
 
           const personalizations = adminEmails.map(email => ({
             to: [{ email: email }],
-            dynamic_template_data: adminNotificationData
+            dynamicTemplateData: adminNotificationData
           }));
 
           try {
             await sgMail.send({
               from: SENDGRID_FROM,
-              template_id: SENDGRID_TEMPLATES.ADMIN_PAYMENT_FAILED,
+              templateId: SENDGRID_TEMPLATES.ADMIN_PAYMENT_FAILED,
               personalizations: personalizations
-            });
+            } as any);
             console.log(`✅ Successfully sent admin payment failure notifications for booking ${booking.id}`);
           } catch (emailError) {
             console.error(`❌ Failed to send admin payment failure notifications:`, emailError);
@@ -214,8 +214,11 @@ async function sendStatusNotificationEmails(
         console.error('SendGrid failed:', sendgridError);
 
         // Check if it's a credits exceeded error
-        if (sendgridError.response?.body?.errors?.[0]?.message?.includes('Maximum credits exceeded')) {
-          console.error('SendGrid credits exceeded - need to upgrade plan or add credits');
+        if (sendgridError instanceof Error && 'response' in sendgridError) {
+          const response = (sendgridError as any).response;
+          if (response?.body?.errors?.[0]?.message?.includes('Maximum credits exceeded')) {
+            console.error('SendGrid credits exceeded - need to upgrade plan or add credits');
+          }
         }
       }
     }

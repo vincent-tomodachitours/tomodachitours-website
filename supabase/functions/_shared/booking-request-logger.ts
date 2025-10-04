@@ -146,7 +146,7 @@ export class BookingRequestLogger {
       console.error(`[FALLBACK LOG] ${eventType}: ${message}`, {
         bookingId,
         metadata,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }

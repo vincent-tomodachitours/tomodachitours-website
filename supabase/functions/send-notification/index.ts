@@ -74,20 +74,23 @@ const handler = async (req: Request): Promise<Response> => {
             email: 'contact@tomodachitours.com',
             name: 'Tomodachi Tours'
           },
-          template_id: data.templateId,
-          personalizations: data.personalizations
-        })
+          templateId: data.templateId!,
+          personalizations: data.personalizations.map(p => ({
+            to: p.to,
+            dynamicTemplateData: p.dynamic_template_data
+          }))
+        } as any)
       } else {
         // Old format for backward compatibility
         await sgMail.send({
-          to: data.to,
+          to: data.to!,
           from: {
             email: 'contact@tomodachitours.com',
             name: 'Tomodachi Tours'
           },
-          templateId: data.templateId,
+          templateId: data.templateId!,
           dynamicTemplateData: data.templateData
-        })
+        } as any)
       }
 
       return new Response(

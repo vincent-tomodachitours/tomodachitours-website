@@ -252,8 +252,9 @@ export class RetryService {
 
         // If we've exceeded the failure threshold, open the circuit
         if (failureCount >= failureThreshold) {
+          const previousState = state;
           state = 'OPEN';
-          console.log(`Circuit breaker: ${state === 'HALF_OPEN' ? 'HALF_OPEN' : 'CLOSED'} -> OPEN`);
+          console.log(`Circuit breaker: ${previousState} -> OPEN`);
         }
 
         throw error;

@@ -119,7 +119,11 @@ export class BookingRequestErrorHandler {
           'Error Handler Failure',
           `The error handling system itself failed while processing: ${error.message}`,
           context.bookingId,
-          { originalError: error.message, handlingError: handlingError.message, context }
+          { 
+            originalError: error instanceof Error ? error.message : 'Unknown error', 
+            handlingError: handlingError instanceof Error ? handlingError.message : 'Unknown error', 
+            context 
+          }
         );
       } catch (alertError) {
         console.error('CATASTROPHIC: Cannot send critical alert:', alertError);
