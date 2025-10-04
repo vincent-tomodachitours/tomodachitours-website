@@ -72,7 +72,7 @@ export const useCheckoutLogic = ({
             children: child,
             infants: infant,
             name: formData.fname + " " + formData.lname,
-            phone: `'${formData.phone}`,
+            phone: formData.phone,
             email: formData.email,
         };
     };
