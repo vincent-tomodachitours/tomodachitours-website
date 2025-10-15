@@ -39,8 +39,9 @@ export const TimesheetDashboard: React.FC = () => {
 
     // Get timesheet statistics
     const { data: stats, isLoading: isLoadingStats } = useQuery({
-        queryKey: ['timesheetStats'],
-        queryFn: () => TimesheetService.getTimesheetStats(),
+        queryKey: ['timesheetStats', employee?.id],
+        queryFn: () => employee ? TimesheetService.getTimesheetStats(employee.id) : null,
+        enabled: !!employee?.id,
         staleTime: 60000, // Consider data stale after 1 minute
         refetchInterval: connectionState === 'connected' ? 300000 : 60000, // Adjust based on connection
         refetchIntervalInBackground: false
@@ -52,7 +53,7 @@ export const TimesheetDashboard: React.FC = () => {
             TimesheetService.updateTimesheet(id, updates),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recentTimesheets', employee?.id] });
-            queryClient.invalidateQueries({ queryKey: ['timesheetStats'] });
+            queryClient.invalidateQueries({ queryKey: ['timesheetStats', employee?.id] });
             setEditingTimesheet(null);
         },
         onError: (error) => {
@@ -88,7 +89,7 @@ export const TimesheetDashboard: React.FC = () => {
                 // Invalidate and refetch relevant queries
                 queryClient.invalidateQueries({ queryKey: ['currentTimesheet', employee.id] });
                 queryClient.invalidateQueries({ queryKey: ['recentTimesheets', employee.id] });
-                queryClient.invalidateQueries({ queryKey: ['timesheetStats'] });
+                queryClient.invalidateQueries({ queryKey: ['timesheetStats', employee.id] });
 
                 setLastUpdateTime(new Date());
                 setConnectionState('connected');

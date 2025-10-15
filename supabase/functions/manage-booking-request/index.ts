@@ -186,7 +186,7 @@ async function sendStatusNotificationEmails(
           const adminNotificationData = {
             ...templateData,
             customerEmail: escapeHandlebars(booking.customer_email),
-            customerPhone: escapeHandlebars(booking.customer_phone || ''),
+            customerPhone: booking.customer_phone || '',
             paymentMethodId: booking.payment_method_id,
             errorDetails: escapeHandlebars(paymentError || 'Unknown payment error')
           };

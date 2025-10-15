@@ -132,7 +132,7 @@ async function sendAdminNotification(booking: any, tourDetails: any, sgMail: any
     tourName: escapeHandlebars(tourDetails.name),
     customerName: escapeHandlebars(booking.customer_name),
     customerEmail: escapeHandlebars(booking.customer_email),
-    customerPhone: escapeHandlebars(booking.customer_phone || ''),
+    customerPhone: booking.customer_phone || '',
     tourDate: escapeHandlebars(formattedDate),
     tourTime: escapeHandlebars(booking.booking_time),
     adults: booking.adults,

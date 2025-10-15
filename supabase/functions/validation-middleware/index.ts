@@ -72,7 +72,7 @@ export const paymentSchema = z.object({
   payment_method_id: z.string().min(1, "Payment method ID is required"),
   amount: z.number().min(1, "Amount must be positive"),
   bookingId: z.number().min(1, "Valid booking ID is required"),
-  discountCode: z.string().optional(),
+  discountCode: z.string().nullable().optional(),
   originalAmount: z.number().min(1, "Original amount must be positive").optional()
 })
 

@@ -376,7 +376,7 @@ export class TimesheetService {
     /**
      * Get timesheet statistics for dashboard
      */
-    static async getTimesheetStats(): Promise<{
+    static async getTimesheetStats(employeeId?: string): Promise<{
         activeEmployees: number;
         totalHoursToday: number;
         totalHoursThisWeek: number;
@@ -389,10 +389,16 @@ export class TimesheetService {
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
             // Get active employees (currently clocked in)
-            const { data: activeTimesheets, error: activeError } = await supabase
+            let activeQuery = supabase
                 .from('timesheets')
                 .select('employee_id')
                 .is('clock_out', null);
+            
+            if (employeeId) {
+                activeQuery = activeQuery.eq('employee_id', employeeId);
+            }
+
+            const { data: activeTimesheets, error: activeError } = await activeQuery;
 
             if (activeError) {
                 console.error('Error fetching active timesheets:', activeError);
@@ -402,25 +408,37 @@ export class TimesheetService {
             // Get completed timesheets for different periods
             const [todayResult, weekResult, monthResult] = await Promise.all([
                 // Today's hours
-                supabase
-                    .from('timesheets')
-                    .select('hours_worked')
-                    .not('clock_out', 'is', null)
-                    .gte('clock_in', startOfDay.toISOString()),
+                (async () => {
+                    let query = supabase
+                        .from('timesheets')
+                        .select('hours_worked')
+                        .not('clock_out', 'is', null)
+                        .gte('clock_in', startOfDay.toISOString());
+                    if (employeeId) query = query.eq('employee_id', employeeId);
+                    return query;
+                })(),
 
                 // This week's hours
-                supabase
-                    .from('timesheets')
-                    .select('hours_worked')
-                    .not('clock_out', 'is', null)
-                    .gte('clock_in', startOfWeek.toISOString()),
+                (async () => {
+                    let query = supabase
+                        .from('timesheets')
+                        .select('hours_worked')
+                        .not('clock_out', 'is', null)
+                        .gte('clock_in', startOfWeek.toISOString());
+                    if (employeeId) query = query.eq('employee_id', employeeId);
+                    return query;
+                })(),
 
                 // This month's hours
-                supabase
-                    .from('timesheets')
-                    .select('hours_worked')
-                    .not('clock_out', 'is', null)
-                    .gte('clock_in', startOfMonth.toISOString())
+                (async () => {
+                    let query = supabase
+                        .from('timesheets')
+                        .select('hours_worked')
+                        .not('clock_out', 'is', null)
+                        .gte('clock_in', startOfMonth.toISOString());
+                    if (employeeId) query = query.eq('employee_id', employeeId);
+                    return query;
+                })()
             ]);
 
             const totalHoursToday = (todayResult.data || [])
