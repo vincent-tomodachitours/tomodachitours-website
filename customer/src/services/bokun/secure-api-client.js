@@ -105,10 +105,17 @@ export class SecureBokunAPI {
     }
 
     /**
-     * Get activity details
+     * Get activity/product details
      */
     async getActivity(activityId) {
-        return this.makeRequest(`/activity/${activityId}`, 'GET');
+        return this.makeRequest(`/product/${activityId}`, 'GET');
+    }
+
+    /**
+     * Get product details (alias for getActivity)
+     */
+    async getProduct(productId) {
+        return this.getActivity(productId);
     }
 
     /**

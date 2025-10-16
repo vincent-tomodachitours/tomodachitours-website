@@ -21,6 +21,14 @@ function DatePicker({
     cancellationCutoffHoursWithParticipant,
     nextDayCutoffTime
 }: DatePickerProps) {
+    // Determine default cutoff based on tour type
+    // Uji tours need 48 hours for partner coordination, others default to 24
+    const isUjiTour = tourId === 'uji-tour' || tourId === 'uji-walking-tour';
+    const defaultCutoff = isUjiTour ? 48 : 24;
+    
+    // Ensure cutoff times have fallback values
+    const safeCutoffHours = cancellationCutoffHours || defaultCutoff;
+    const safeCutoffHoursWithParticipant = cancellationCutoffHoursWithParticipant || cancellationCutoffHours || defaultCutoff;
     // State management
     const [checkout, setCheckout] = useState<boolean>(false);
     const [loadingAvailability, setLoadingAvailability] = useState<boolean>(false);
@@ -61,8 +69,8 @@ function DatePicker({
         availableTimes,
         maxSlots,
         participantsByDate,
-        cancellationCutoffHours,
-        cancellationCutoffHoursWithParticipant,
+        safeCutoffHours,
+        safeCutoffHoursWithParticipant,
         nextDayCutoffTime
     );
 

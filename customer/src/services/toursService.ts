@@ -57,10 +57,8 @@ export interface TourFromDB {
     time_slots: Array<{ start_time: string; is_active: boolean }> | null;
     max_participants: number;
     min_participants: number;
-    cancellation_cutoff_hours: number | null;
-    cancellation_cutoff_hours_with_participant: number | null;
-    next_day_cutoff_time: string | null;
     meeting_point: string;
+    booking_cutoff_hours: number | null;
     type: string;
     updated_at: string;
 }
@@ -103,9 +101,12 @@ export async function fetchTours(): Promise<Record<string, TourConfig>> {
 
         (tours as TourFromDB[]).forEach(tour => {
             const key = getConfigKey(tour.type);
+            const cutoffHours = tour.booking_cutoff_hours ?? 24; // Fallback to 24 hours
+            
             console.log(`🔍 Processing tour ${tour.type} (${key}):`, {
                 min_participants: tour.min_participants,
-                max_participants: tour.max_participants
+                max_participants: tour.max_participants,
+                cutoff_hours: cutoffHours
             });
 
             transformedTours[key] = {
@@ -118,9 +119,9 @@ export async function fetchTours(): Promise<Record<string, TourConfig>> {
                 'time-slots': extractTimeSlots(tour.time_slots),
                 'max-participants': tour.max_participants,
                 'min-participants': tour.min_participants,
-                'cancellation-cutoff-hours': tour.cancellation_cutoff_hours ?? 24,
-                'cancellation-cutoff-hours-with-participant': tour.cancellation_cutoff_hours_with_participant ?? tour.cancellation_cutoff_hours ?? 24,
-                'next-day-cutoff-time': tour.next_day_cutoff_time ?? undefined,
+                'cancellation-cutoff-hours': cutoffHours,
+                'cancellation-cutoff-hours-with-participant': cutoffHours,
+                'next-day-cutoff-time': undefined,
                 'meeting-point': tour.meeting_point,
                 id: String(tour.id),
                 type: tour.type as TourType,

@@ -153,8 +153,7 @@ export type Database = {
       tours: {
         Row: {
           base_price: number
-          cancellation_cutoff_hours: number | null
-          cancellation_cutoff_hours_with_participant: number | null
+          booking_cutoff_hours: number | null
           created_at: string
           description: string | null
           duration_minutes: number
@@ -162,7 +161,6 @@ export type Database = {
           max_participants: number
           min_participants: number
           name: string
-          next_day_cutoff_time: string | null
           original_price: number | null
           reviews: number | null
           time_slots: Json
@@ -171,8 +169,7 @@ export type Database = {
         }
         Insert: {
           base_price: number
-          cancellation_cutoff_hours?: number | null
-          cancellation_cutoff_hours_with_participant?: number | null
+          booking_cutoff_hours?: number | null
           created_at?: string
           description?: string | null
           duration_minutes: number
@@ -180,7 +177,6 @@ export type Database = {
           max_participants: number
           min_participants: number
           name: string
-          next_day_cutoff_time?: string | null
           original_price?: number | null
           reviews?: number | null
           time_slots?: Json
@@ -189,8 +185,7 @@ export type Database = {
         }
         Update: {
           base_price?: number
-          cancellation_cutoff_hours?: number | null
-          cancellation_cutoff_hours_with_participant?: number | null
+          booking_cutoff_hours?: number | null
           created_at?: string
           description?: string | null
           duration_minutes?: number
@@ -198,7 +193,6 @@ export type Database = {
           max_participants?: number
           min_participants?: number
           name?: string
-          next_day_cutoff_time?: string | null
           original_price?: number | null
           reviews?: number | null
           time_slots?: Json

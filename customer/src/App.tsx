@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import NightTour from './Pages/NightTour';
 
 import Home from './Pages/Home';
+import UITest from './Pages/UITest';
 import CancellationPolicy from './Pages/CancellationPolicy';
 import PrivacyPolicy from './Pages/PrivacyPolicy';
 import TermsOfService from './Pages/TermsOfService';
@@ -43,6 +44,7 @@ const App: React.FC = () => {
             <ScrollToTop />
             <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/ui-test" element={<UITest />} />
                 {/* <Route path="/tours" element={<Tours />} /> */}
                 <Route path="/tours/kyoto-fushimi-inari-night-walking-tour" element={<NightTour />} />
                 {/* Redirect for typo in URL */}

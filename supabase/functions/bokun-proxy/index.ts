@@ -126,6 +126,66 @@ serve(async (req) => {
             })
         }
 
+        // Get product details
+        if (pathname.includes('/product/')) {
+            // GET /product/{productId}
+            const pathParts = pathname.split('/')
+            const productId = pathParts[pathParts.length - 1]
+
+            if (!productId) {
+                return new Response(JSON.stringify({ error: 'Missing product ID' }), {
+                    status: 400,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                })
+            }
+
+            console.log('Fetching Bokun product details for:', productId)
+
+            const bokunPath = `/activity.json/${productId}`
+
+            const now = new Date()
+            const year = now.getUTCFullYear()
+            const month = String(now.getUTCMonth() + 1).padStart(2, '0')
+            const day = String(now.getUTCDate()).padStart(2, '0')
+            const hours = String(now.getUTCHours()).padStart(2, '0')
+            const minutes = String(now.getUTCMinutes()).padStart(2, '0')
+            const seconds = String(now.getUTCSeconds()).padStart(2, '0')
+            const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+
+            const signature = await createSignature('GET', bokunPath, timestamp)
+
+            const bokunBaseURL = Deno.env.get('BOKUN_API_URL') || 'https://api.bokun.io'
+            const bokunResponse = await fetch(`${bokunBaseURL}${bokunPath}`, {
+                method: 'GET',
+                headers: {
+                    'X-Bokun-Date': timestamp,
+                    'X-Bokun-AccessKey': BOKUN_PUBLIC_KEY,
+                    'X-Bokun-Signature': signature,
+                    'Accept': 'application/json'
+                }
+            })
+
+            console.log('Bokun product API response status:', bokunResponse.status)
+
+            if (!bokunResponse.ok) {
+                const errorText = await bokunResponse.text()
+                console.error('Bokun product API error:', {
+                    status: bokunResponse.status,
+                    error: errorText
+                })
+                return new Response(JSON.stringify({ error: `Bokun API error: ${bokunResponse.status}` }), {
+                    status: bokunResponse.status,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                })
+            }
+
+            const data = await bokunResponse.json()
+
+            return new Response(JSON.stringify(data), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+        }
+
         // Get bookings for a specific product and date range
         if (pathname.includes('/bookings')) {
             const productId = url.searchParams.get('productId')

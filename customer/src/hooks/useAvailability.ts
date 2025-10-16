@@ -26,6 +26,15 @@ export const useAvailability = (
     const [preloadedAvailability, setPreloadedAvailability] = useState<Record<string, HookAvailabilityData>>({});
     const [availabilityLoading, setAvailabilityLoading] = useState<boolean>(true);
 
+    // Determine default cutoff based on tour type
+    // Uji tours need 48 hours for partner coordination, others default to 24
+    const isUjiTour = sheetId === 'uji-tour' || sheetId === 'uji-walking-tour';
+    const defaultCutoff = isUjiTour ? 48 : 24;
+    
+    // Fallback to tour-specific default if cutoff times are not provided
+    const safeCutoffHours = cancellationCutoffHours || defaultCutoff;
+    const safeCutoffHoursWithParticipant = cancellationCutoffHoursWithParticipant || cancellationCutoffHours || defaultCutoff;
+
     // Helper function to get the availability source for a tour
     const getAvailabilitySource = useCallback((tourSheetId: string): string => {
         // First, convert frontend tour IDs to database tour types
@@ -311,7 +320,7 @@ export const useAvailability = (
             const tourDateTimeJST = getTourDateTimeJST(date, slotTime);
             const hoursUntilTour = (tourDateTimeJST.getTime() - nowJST.getTime()) / (1000 * 60 * 60);
             const hasParticipants = currentParticipants > 0;
-            const cutoffHours = hasParticipants ? cancellationCutoffHoursWithParticipant : cancellationCutoffHours;
+            const cutoffHours = hasParticipants ? safeCutoffHoursWithParticipant : safeCutoffHours;
 
             // Check availability - use external data (Bokun/database) if available, otherwise fall back to local calculation
             let spotsAvailable: boolean;
@@ -334,7 +343,7 @@ export const useAvailability = (
         }
 
         return filteredOptions;
-    }, [maxSlots, participantsByDate, cancellationCutoffHours, cancellationCutoffHoursWithParticipant, nextDayCutoffTime, preloadedAvailability, availableTimes]);
+    }, [maxSlots, participantsByDate, safeCutoffHours, safeCutoffHoursWithParticipant, nextDayCutoffTime, preloadedAvailability, availableTimes]);
 
     /**
      * Check if a date is full
