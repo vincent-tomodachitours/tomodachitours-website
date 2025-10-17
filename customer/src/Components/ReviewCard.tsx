@@ -22,7 +22,6 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
     review,
     truncateLength = 150,
     showDate = true,
-    showHelpfulVotes = true
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -128,9 +127,8 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
 
     return (
         <div
-            className={`bg-white rounded-lg shadow-md border border-gray-200 p-6 transition-all duration-200 hover:shadow-lg flex flex-col ${
-                isExpanded ? 'h-auto' : 'h-80 sm:h-96'
-            }`}
+            className={`bg-white rounded-lg shadow-md border border-gray-200 p-6 transition-all duration-200 hover:shadow-lg flex flex-col ${isExpanded ? 'h-auto' : 'h-80 sm:h-96'
+                }`}
             data-testid="review-card"
         >
             {/* Header with rating and reviewer info */}
@@ -204,15 +202,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
                         </span>
                     )}
 
-                    {/* Helpful votes */}
-                    {showHelpfulVotes && review.helpfulVotes && review.helpfulVotes > 0 && (
-                        <span className="text-gray-500 flex items-center">
-                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                            </svg>
-                            {review.helpfulVotes} helpful
-                        </span>
-                    )}
+
 
                     {/* TripAdvisor Badge */}
                     <div className="flex items-center" data-testid="tripadvisor-badge">

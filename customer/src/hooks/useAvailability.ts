@@ -30,7 +30,7 @@ export const useAvailability = (
     // Uji tours need 48 hours for partner coordination, others default to 24
     const isUjiTour = sheetId === 'uji-tour' || sheetId === 'uji-walking-tour';
     const defaultCutoff = isUjiTour ? 48 : 24;
-    
+
     // Fallback to tour-specific default if cutoff times are not provided
     const safeCutoffHours = cancellationCutoffHours || defaultCutoff;
     const safeCutoffHoursWithParticipant = cancellationCutoffHoursWithParticipant || cancellationCutoffHours || defaultCutoff;

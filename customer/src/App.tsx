@@ -15,6 +15,7 @@ import ScrollToTop from './Components/ScrollToTop';
 import GionTour from './Pages/GionTour';
 import CommercialDisclosure from './Pages/CommercialDisclosure';
 import Recommendations from './Pages/Recommendations';
+import RecommendationsUITest from './Pages/RecommendationsUITest';
 import Thankyou from './Pages/Thankyou';
 import BookingCancellation from './Components/BookingCancellation';
 import PerformanceOptimizer from './components/PerformanceOptimizer';
@@ -59,6 +60,7 @@ const App: React.FC = () => {
                 <Route path="/kyoto-itinerary" element={<KyotoItinerary />} />
                 <Route path="/about" element={<About />} />
                 <Route path="recommendations" element={<Recommendations />} />
+                <Route path="/recommendations-ui-test" element={<RecommendationsUITest />} />
                 <Route path="/jobs" element={<Jobs />} />
                 <Route path="/cancellation-policy" element={<CancellationPolicy />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />

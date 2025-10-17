@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import Header from '../Components/Headers/HeaderTest'
+import Header from '../Components/Headers/Header1'
 import Footer from '../Components/Footer'
 import TripAdvisorReviews from '../Components/TripAdvisorReviews'
 
@@ -32,7 +32,7 @@ interface LoadingOrErrorStateProps {
 }
 
 const LoadingOrErrorState: React.FC<LoadingOrErrorStateProps> = ({ isLoading, heroImage }) => (
-    <div className='min-h-screen flex flex-col' style={{ backgroundColor: 'hsl(0, 0%, 90%)' }}>
+    <div className='min-h-screen flex flex-col' style={{ backgroundColor: 'oklch(90% 0 0)' }}>
         <Header />
 
         {/* Hero Section */}
@@ -93,14 +93,14 @@ const LoadingOrErrorState: React.FC<LoadingOrErrorStateProps> = ({ isLoading, he
         </main>
 
         {/* Customer Reviews Section */}
-        <section className='bg-white py-16 border-t border-gray-100'>
+        <section className='py-16' style={{ backgroundColor: 'oklch(90% 0 0)' }}>
             <div className='container mx-auto px-4 max-w-7xl'>
                 <div className='text-center mb-12'>
-                    <h2 className='font-ubuntu text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4'>
+                    <h2 className='font-ubuntu text-4xl md:text-5xl lg:text-6xl font-bold mb-4' style={{ color: 'oklch(5% 0 0)' }}>
                         Customer Reviews
                     </h2>
-                    <div className='w-24 h-1 bg-blue-500 mx-auto rounded-full mb-6'></div>
-                    <p className='text-xl text-gray-600 max-w-3xl mx-auto'>
+                    <div className='w-24 h-1 mx-auto rounded-full mb-6' style={{ backgroundColor: 'oklch(55% 0.22 250)' }}></div>
+                    <p className='text-xl max-w-3xl mx-auto' style={{ color: 'oklch(40% 0 0)' }}>
                         See what our guests are saying about their unforgettable experiences exploring Kyoto with us.
                     </p>
                 </div>
@@ -140,14 +140,14 @@ const TourCard: React.FC<TourCardProps> = ({ image, imageAlt, title, description
         const style = document.createElement('style');
         style.innerHTML = `
             .tour-card-test:hover {
-                background-color: hsl(0, 0%, 100%) !important;
+                background-color: oklch(100% 0 0) !important;
             }
             .tour-card-content-test {
-                background-color: hsl(0, 0%, 95%);
+                background-color: oklch(95% 0 0);
                 transition: background-color 0.3s ease;
             }
             .tour-card-test:hover .tour-card-content-test {
-                background-color: hsl(0, 0%, 100%) !important;
+                background-color: oklch(100% 0 0) !important;
             }
             .book-now-button-test {
                 transition: box-shadow 0.3s ease;
@@ -167,9 +167,9 @@ const TourCard: React.FC<TourCardProps> = ({ image, imageAlt, title, description
             to={link}
             className='tour-card-test group rounded-2xl overflow-hidden transform transition-all duration-300 hover:-translate-y-1 flex flex-col h-full'
             style={{
-                backgroundColor: 'hsl(0, 0%, 95%)',
-                border: '1px solid hsl(0, 0%, 95%)',
-                borderTop: '1px solid hsl(0, 0%, 100%)',
+                backgroundColor: 'oklch(95% 0 0)',
+                border: '1px solid oklch(95% 0 0)',
+                borderTop: '1px solid oklch(100% 0 0)',
                 boxShadow: '0px 2px 2px hsla(0, 0%, 5%, 0.07), 0px 4px 4px hsla(0, 0%, 0%, 0.15)'
             }}
         >
@@ -192,7 +192,7 @@ const TourCard: React.FC<TourCardProps> = ({ image, imageAlt, title, description
         </div>
         <div className='tour-card-content-test p-6 flex flex-col flex-grow'>
             <div className='flex-grow'>
-                <h3 className='text-2xl font-bold group-hover:text-blue-600 transition-colors duration-300 mb-4' style={{ color: 'hsl(0, 0%, 5%)' }}>
+                <h3 className='text-2xl font-bold group-hover:text-blue-600 transition-colors duration-300 mb-4' style={{ color: 'oklch(5% 0 0)' }}>
                     {title}
                 </h3>
                 <p className='text-gray-600 line-clamp-3 mb-4'>
@@ -225,9 +225,9 @@ const TourCard: React.FC<TourCardProps> = ({ image, imageAlt, title, description
                     <span 
                         className='book-now-button-test inline-flex items-center font-semibold transition-all duration-300 px-4 py-2 rounded-lg text-blue-600'
                         style={{
-                            backgroundColor: 'hsl(0, 0%, 100%)',
-                            border: '1px solid hsl(0, 0%, 100%)',
-                            borderTop: '1px solid hsl(0, 0%, 100%)'
+                            backgroundColor: 'oklch(100% 0 0)',
+                            border: '1px solid oklch(100% 0 0)',
+                            borderTop: '1px solid oklch(100% 0 0)'
                         }}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
@@ -272,7 +272,7 @@ const UITest: React.FC = () => {
     }
 
     return (
-        <div className='min-h-screen flex flex-col' style={{ backgroundColor: 'hsl(0, 0%, 90%)' }}>
+        <div className='min-h-screen flex flex-col' style={{ backgroundColor: 'oklch(90% 0 0)' }}>
             <SEO
                 title={seoData.home.title}
                 description={seoData.home.description}
@@ -342,15 +342,15 @@ const UITest: React.FC = () => {
                         </h2>
                         <div className='w-24 h-1 bg-blue-500 mx-auto rounded-full mb-6'></div>
                         <div className='flex flex-col md:flex-row items-center md:items-start justify-center gap-6 max-w-5xl mx-auto'>
-                            <div className='flex items-center gap-3 px-6 py-4 rounded-lg flex-shrink-0' style={{ backgroundColor: 'hsl(120, 20%, 98%)', border: '1px solid hsl(120, 30%, 85%)', boxShadow: '0px 2px 2px hsla(0, 0%, 5%, 0.07), 0px 4px 4px hsla(0, 0%, 0%, 0.15)' }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="lch(66.29 69.95 146.33)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <div className='flex items-center gap-3 px-6 py-4 rounded-lg flex-shrink-0' style={{ backgroundColor: 'oklch(98% 0.02 145)', border: '1px solid oklch(85% 0.04 145)', boxShadow: '0px 2px 2px hsla(0, 0%, 5%, 0.07), 0px 4px 4px hsla(0, 0%, 0%, 0.15)' }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="oklch(66% 0.17 145)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/>
                                     <path d="m9 8 3 3v7"/>
                                     <path d="m12 11 3-3"/>
                                     <path d="M9 12h6"/>
                                     <path d="M9 16h6"/>
                                 </svg>
-                                <p className='text-lg font-semibold text-left' style={{ color: 'lch(66.29 69.95 146.33)' }}>
+                                <p className='text-lg font-semibold text-left' style={{ color: 'oklch(66% 0.17 145)' }}>
                                     10% cheaper than major booking platforms
                                 </p>
                             </div>
@@ -435,14 +435,14 @@ const UITest: React.FC = () => {
             </main>
 
             {/* Customer Reviews Section */}
-            <section className='bg-white py-16 border-t border-gray-100'>
+            <section className='py-16' style={{ backgroundColor: 'oklch(90% 0 0)' }}>
                 <div className='container mx-auto px-4 max-w-7xl'>
                     <div className='text-center mb-12'>
-                        <h2 className='font-ubuntu text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4'>
+                        <h2 className='font-ubuntu text-4xl md:text-5xl lg:text-6xl font-bold mb-4' style={{ color: 'oklch(5% 0 0)' }}>
                             Customer Reviews
                         </h2>
-                        <div className='w-24 h-1 bg-blue-500 mx-auto rounded-full mb-6'></div>
-                        <p className='text-xl text-gray-600 max-w-3xl mx-auto'>
+                        <div className='w-24 h-1 mx-auto rounded-full mb-6' style={{ backgroundColor: 'oklch(55% 0.22 250)' }}></div>
+                        <p className='text-xl max-w-3xl mx-auto' style={{ color: 'oklch(40% 0 0)' }}>
                             See what our guests are saying about their unforgettable experiences exploring Kyoto with us.
                         </p>
                     </div>
