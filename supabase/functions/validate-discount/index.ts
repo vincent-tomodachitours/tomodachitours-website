@@ -21,7 +21,8 @@ const corsHeaders = {
 // Validation schema for discount code request
 const discountRequestSchema = z.object({
   code: z.string().min(1).max(50),
-  originalAmount: z.number().int().positive()
+  originalAmount: z.number().int().positive(),
+  tourType: z.string().optional() // Optional for backwards compatibility
 })
 
 console.log("Discount validation function loaded")
@@ -80,6 +81,22 @@ const handler = async (req: Request): Promise<Response> => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
+    }
+
+    // Check if tour type is excluded
+    if (data.tourType && discountCode.excluded_tour_types && Array.isArray(discountCode.excluded_tour_types)) {
+      if (discountCode.excluded_tour_types.includes(data.tourType)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'This discount code is not valid for the selected tour'
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
     }
 
     // Validate discount code

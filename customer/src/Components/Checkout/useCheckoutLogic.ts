@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import bookingFlowManager from '../../services/bookingFlowManager';
 import gtmService from '../../services/gtmService';
 import { UseCheckoutLogicParams, UseCheckoutLogicReturn, CheckoutFormData } from '../../types';
+import { getTourTypeFromId } from '../../utils/tourUtils';
 
 export const useCheckoutLogic = ({
     sheetId,
@@ -91,6 +92,8 @@ export const useCheckoutLogic = ({
         setDiscountError('');
 
         try {
+            const tourType = getTourTypeFromId(sheetId);
+            
             const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/validate-discount`, {
                 method: "POST",
                 headers: {
@@ -99,7 +102,8 @@ export const useCheckoutLogic = ({
                 },
                 body: JSON.stringify({
                     code: discountCode,
-                    originalAmount: (adult + child) * tourPrice
+                    originalAmount: (adult + child) * tourPrice,
+                    tourType: tourType
                 }),
             });
 

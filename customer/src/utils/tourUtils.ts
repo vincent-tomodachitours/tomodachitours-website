@@ -3,6 +3,25 @@
  */
 
 /**
+ * Converts a tour ID (sheetId) to its corresponding TourType enum value
+ * @param tourId - The tour identifier (sheetId) in kebab-case
+ * @returns The TourType enum value in UPPER_SNAKE_CASE
+ */
+export const getTourTypeFromId = (tourId: string): string => {
+    const tourTypeMap: Record<string, string> = {
+        'night-tour': 'NIGHT_TOUR',
+        'morning-tour': 'MORNING_TOUR',
+        'uji-tour': 'UJI_TOUR',
+        'uji-walking-tour': 'UJI_WALKING_TOUR',
+        'gion-tour': 'GION_TOUR',
+        'music-tour': 'MUSIC_TOUR',
+        'music-performance': 'MUSIC_PERFORMANCE'
+    };
+    
+    return tourTypeMap[tourId] || tourId.toUpperCase().replace(/-/g, '_');
+};
+
+/**
  * Determines if a tour requires the booking request flow (Uji tours)
  * @param tourId - The tour identifier (sheetId)
  * @returns true if the tour requires booking request flow, false for instant booking

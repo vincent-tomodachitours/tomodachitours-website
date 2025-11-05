@@ -111,6 +111,7 @@ export type Database = {
           code: string
           created_at: string
           description: string | null
+          excluded_tour_types: string[] | null
           id: number
           max_uses: number | null
           type: string
@@ -125,6 +126,7 @@ export type Database = {
           code: string
           created_at?: string
           description?: string | null
+          excluded_tour_types?: string[] | null
           id?: number
           max_uses?: number | null
           type: string
@@ -139,6 +141,7 @@ export type Database = {
           code?: string
           created_at?: string
           description?: string | null
+          excluded_tour_types?: string[] | null
           id?: number
           max_uses?: number | null
           type?: string
