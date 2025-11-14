@@ -211,7 +211,7 @@ const TourCard: React.FC<TourCardProps> = ({ image, imageAlt, title, description
             </div>
 
             <div className='mt-2'>
-                {showOriginalPrice && originalPrice && originalPrice > 0 && (
+                {showOriginalPrice && originalPrice && originalPrice > 0 && price !== `¥ ${originalPrice.toLocaleString('en-US')}` && (
                     <div className='mb-1'>
                         <span className='text-lg text-red-500 line-through'>
                             ¥ {originalPrice.toLocaleString('en-US')}
