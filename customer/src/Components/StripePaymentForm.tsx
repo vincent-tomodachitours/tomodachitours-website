@@ -134,7 +134,7 @@ const StripePaymentForm = ({ totalPrice, originalPrice: _originalPrice, appliedD
             const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
             onError(errorMessage);
         }
-    }, [stripe, elements, isProcessing, onCreateBookingAndPayment, onError, onProcessing, totalPrice]);
+    }, [stripe, elements, isProcessing, onCreateBookingAndPayment, onError, onProcessing, totalPrice, isRequestTour]);
 
     // Handle 3D Secure authentication
     const handle3DSecure = useCallback(async (clientSecret: string) => {

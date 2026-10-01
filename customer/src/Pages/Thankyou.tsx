@@ -255,6 +255,7 @@ const Thankyou: React.FC = () => {
         const timer = setTimeout(trackPurchaseConversion, 500);
 
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- run once; re-running would double-track the purchase
     }, []);
 
     return (
