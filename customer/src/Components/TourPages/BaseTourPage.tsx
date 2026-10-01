@@ -21,6 +21,14 @@ import { trackTourView } from '../../services/analytics';
 import { trackTourTabClickExtended } from '../../services/analytics/basicTracking';
 import attributionService from '../../services/attributionService';
 import gtmService from '../../services/gtmService';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
+
+const MaintenanceNotice: React.FC = () => (
+    <div className="h-fit rounded-lg border border-gray-200 bg-white p-6 text-center shadow-sm">
+        <h3 className="text-xl font-bold text-gray-900 mb-2">Site currently under maintenance</h3>
+        <p className="text-gray-600">Booking is temporarily unavailable.</p>
+    </div>
+);
 
 const BaseTourPage: React.FC<BaseTourPageProps> = ({
     tourId,
@@ -389,6 +397,7 @@ const BaseTourPage: React.FC<BaseTourPageProps> = ({
                                 </div>
                             </div>
 
+                            {MAINTENANCE_MODE ? <MaintenanceNotice /> : (
                             <DatePicker
                                 className="h-fit"
                                 tourName={tourTitle}
@@ -403,6 +412,7 @@ const BaseTourPage: React.FC<BaseTourPageProps> = ({
                                 cancellationCutoffHoursWithParticipant={cancellationCutoffHoursWithParticipant}
                                 nextDayCutoffTime={nextDayCutoffTime}
                             />
+                            )}
                         </div>
                     )}
                 </div>
@@ -432,6 +442,7 @@ const BaseTourPage: React.FC<BaseTourPageProps> = ({
                 {/* Mobile DatePicker - appears at bottom after reviews */}
                 {isMobile && (
                     <div id="mobile-booking-section" className="mt-8 mb-12">
+                        {MAINTENANCE_MODE ? <MaintenanceNotice /> : (
                         <DatePicker
                             className="h-fit"
                             tourName={tourTitle}
@@ -446,11 +457,12 @@ const BaseTourPage: React.FC<BaseTourPageProps> = ({
                             cancellationCutoffHoursWithParticipant={cancellationCutoffHoursWithParticipant}
                             nextDayCutoffTime={nextDayCutoffTime}
                         />
+                        )}
                     </div>
                 )}
 
                 {/* Fixed Mobile Book Now Button */}
-                {isMobile && (
+                {isMobile && !MAINTENANCE_MODE && (
                     <div
                         className={`mobile-book-now-button fixed bottom-4 left-4 right-4 z-40 transition-all duration-500 ease-in-out ${showBookButton
                             ? 'translate-y-0 opacity-100'

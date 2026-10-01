@@ -10,6 +10,7 @@ import LocalSEO from '../components/LocalSEO'
 import { seoData } from '../data/seoData'
 import { organizationSchema, localBusinessSchema, breadcrumbSchemas, faqSchemas } from '../data/schemaData'
 import { TourData } from '../types'
+import { MAINTENANCE_MODE } from '../config/maintenance'
 
 // Import tour services
 import { fetchTours } from '../services/toursService';
@@ -267,7 +268,7 @@ const Home: React.FC = () => {
         loadTours();
     }, []);
 
-    if (loading || !tours) {
+    if (!MAINTENANCE_MODE && (loading || !tours)) {
         return <LoadingOrErrorState isLoading={loading} heroImage={main1} />;
     }
 
@@ -360,6 +361,13 @@ const Home: React.FC = () => {
                         </div>
                     </div>
 
+                    {MAINTENANCE_MODE ? (
+                        <div className='flex items-center justify-center min-h-[200px]'>
+                            <p className='text-2xl font-semibold text-gray-700 text-center'>
+                                Site currently under maintenance
+                            </p>
+                        </div>
+                    ) : tours && (
                     <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 max-w-7xl mx-auto'>
                         {tours['night-tour'] && (
                             <TourCard
@@ -431,6 +439,7 @@ const Home: React.FC = () => {
                             />
                         )}
                     </div>
+                    )}
                 </div>
             </main>
 
